@@ -1,6 +1,34 @@
 # 05 — ML Training Pipeline
 
-**Priority:** Medium | **Status:** Spec ready | **Depends on:** #3 (self-contained checkpoint)
+**Priority:** Medium | **Status:** Executed (small scale) | **Depends on:** #3 (self-contained checkpoint)
+
+## Run log (2026-06-01)
+
+Deliverable script `scripts/training/train_with_discriminating_features.py` is
+implemented and was run end-to-end at small scale (20 verified mainnet
+contracts → 385 parameter samples → transformer encoder, 5 epochs):
+
+- Pipeline works: fetch (Etherscan V2) → dataset with discriminating features →
+  train → held-out validation. The model learns (val type-accuracy 0.47 → 0.53,
+  val loss 4.45 → 4.07 over 5 epochs); checkpoint is self-contained
+  (`encoder_config` + `format_version: 2`, per #3).
+- **Findings surfaced and fixed** while executing:
+  - `ParameterPredictionModel.forward`/`compute_loss`/`calibrate_temperatures`
+    did not align inputs/targets with the model's device → broke GPU training.
+    Fixed by aligning to the actual parameter device.
+  - The **CNN encoder is incompatible** with the token-id dataset (it expects
+    pre-channelised `(batch, seq, 256)` input, with no embedding step). The
+    transformer encoder is used instead; fixing the CNN path is follow-up work.
+  - The `--evaluate` flag runs the *full* pipeline and needs a function
+    classifier; its existing checkpoint has drifted (missing
+    `encoder_projection` keys) — separate follow-up.
+- **Caveat:** an earlier demo run wrote to `checkpoints/` and overwrote the
+  interim `*_parameter_predictor.pth` (gitignored, unrecoverable). The script
+  now defaults to `checkpoints/plan05/` to avoid clobbering canonical models.
+
+**Remaining for full completion:** run at Plan-scale (500+ contracts, ~15
+epochs) via `--addresses-file`, and benchmark with a freshly trained function
+classifier to hit the targets below.
 
 ## Goal
 

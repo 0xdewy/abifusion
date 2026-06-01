@@ -10,7 +10,11 @@ training_*.log
 
 # Caches and large artifacts (re-derivable / expensive, kept out of history)
 cache/
-checkpoints/*.pth
+*.pth
+# Fetched/derived training datasets
+data/*.parquet
+data/*.json
+data/etherscan_contracts.json
 
 # Data directories
 abi_reconstructor_data/

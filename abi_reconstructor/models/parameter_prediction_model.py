@@ -218,6 +218,21 @@ class ParameterPredictionModel(nn.Module):
         Returns:
             Dictionary with type logits, mask logits, count predictions.
         """
+        # Align all inputs with the model's *actual* parameter device. Callers
+        # (and the training loop) may hand us CPU tensors even when the model
+        # lives on GPU, and self._device can be stale if the model was moved
+        # after construction (e.g. by the trainer). Derive from parameters.
+        from abi_reconstructor.device import to_device
+
+        device = next(self.parameters()).device
+        bytecode_features = to_device(bytecode_features, device)
+        if attention_mask is not None:
+            attention_mask = to_device(attention_mask, device)
+        if function_ids is not None:
+            function_ids = to_device(function_ids, device)
+        if discriminating_features is not None:
+            discriminating_features = to_device(discriminating_features, device)
+
         # Handle empty batch case - return empty tensors
         if bytecode_features.size(0) == 0:
             return {
@@ -372,13 +387,20 @@ class ParameterPredictionModel(nn.Module):
         Returns:
             Dictionary with losses and metrics
         """
-        # Forward pass
+        # Forward pass (forward() aligns its inputs with the model device)
         outputs = self(bytecode_tokens, attention_mask, function_name_idx, discriminating_features)
 
         # Get logits from outputs
         count_logits = outputs["count_logits"]
         type_logits = outputs["type_logits"]
         mask_logits = outputs["mask_logits"]
+
+        # Targets must live on the same device as the logits.
+        from abi_reconstructor.device import to_device
+
+        parameter_count = to_device(parameter_count, count_logits.device)
+        parameter_types = to_device(parameter_types, type_logits.device)
+        parameter_mask = to_device(parameter_mask, mask_logits.device)
 
         # Truncate parameter_types and parameter_mask to max_parameters
         # The dataset might have more parameters than our model can handle
@@ -597,6 +619,7 @@ class ParameterPredictionModel(nn.Module):
                 count_logits = outputs["count_logits"]
 
                 clipped_count = torch.clamp(parameter_count, max=self.max_parameters)
+                clipped_count = clipped_count.to(count_logits.device)
                 loss = self.count_criterion(count_logits, clipped_count)
 
                 optimizer.zero_grad()

@@ -43,17 +43,18 @@ def _tiny_trainer(model, tmp_path):
     )
 
 
-def _synthetic_batch(model, batch_size=2):
-    # The trainer may place the model on GPU (via DeviceManager); match it.
-    device = next(model.parameters()).device
+def _synthetic_batch(batch_size=2):
+    # Deliberately leave tensors on CPU: the model/trainer may place weights on
+    # GPU (via DeviceManager), and compute_loss/forward must align inputs to the
+    # model's device. This guards the device-handling fix.
     tokens = (
         torch.randint(0, 256, (batch_size, SEQ)).float().unsqueeze(-1).expand(-1, -1, 256)
     )
     return {
-        "bytecode_tokens": tokens.to(device),
-        "parameter_count": torch.tensor([1, 2][:batch_size]).to(device),
-        "parameter_types": torch.randint(0, NUM_TYPES, (batch_size, MAX_PARAMS)).to(device),
-        "parameter_mask": torch.zeros(batch_size, MAX_PARAMS).to(device),
+        "bytecode_tokens": tokens,
+        "parameter_count": torch.tensor([1, 2][:batch_size]),
+        "parameter_types": torch.randint(0, NUM_TYPES, (batch_size, MAX_PARAMS)),
+        "parameter_mask": torch.zeros(batch_size, MAX_PARAMS),
     }
 
 
@@ -62,7 +63,7 @@ class TestTrainingStep:
         model = _tiny_model()
         trainer = _tiny_trainer(model, tmp_path)
 
-        loss_dict = trainer.compute_batch_loss(_synthetic_batch(model))
+        loss_dict = trainer.compute_batch_loss(_synthetic_batch())
         loss = loss_dict["total_loss"]
 
         assert torch.is_tensor(loss)
@@ -76,7 +77,7 @@ class TestTrainingStep:
         ref = next(model.count_predictor.parameters())
         before = ref.detach().clone()
 
-        loss = trainer.compute_batch_loss(_synthetic_batch(model))["total_loss"]
+        loss = trainer.compute_batch_loss(_synthetic_batch())["total_loss"]
         trainer.optimizer.zero_grad()
         loss.backward()
         trainer.optimizer.step()
