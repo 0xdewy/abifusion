@@ -31,13 +31,14 @@ def test_package_structure():
     """Test that package structure is correct."""
     import abi_reconstructor
 
-    # Check submodules
-    assert hasattr(abi_reconstructor, "data")
-    assert hasattr(abi_reconstructor, "models")
+    # Submodules must be importable (don't rely on import side-effects from
+    # other tests having already populated these attributes).
+    import importlib
+
+    assert importlib.import_module("abi_reconstructor.data")
+    assert importlib.import_module("abi_reconstructor.models")
 
     # Check that __init__.py files exist (use absolute path)
-    import abi_reconstructor
-
     package_dir = os.path.dirname(abi_reconstructor.__file__)
 
     assert os.path.exists(os.path.join(package_dir, "__init__.py"))
