@@ -123,9 +123,11 @@ def fetch_dataset(addresses: list, data_dir: Path) -> Path:
 def run_training(args, data_dir: Path) -> int:
     """Reuse the existing training entry point (trains with discriminating features).
 
-    Uses the transformer encoder: it embeds the dataset's integer token ids
-    directly. (The CNN encoder expects pre-channelised (batch, seq, 256) input
-    and is not compatible with the token-id dataset.)
+    Trains both the function-name classifier and the parameter model, then runs
+    the full-pipeline evaluation (--evaluate). Because both models are trained
+    in-process, --evaluate uses the freshly trained models and does not hit any
+    stale on-disk checkpoint. Either encoder ("transformer" or "cnn") embeds the
+    dataset's integer token ids directly.
     """
     cmd = [
         sys.executable,
@@ -133,12 +135,9 @@ def run_training(args, data_dir: Path) -> int:
         "abi_reconstructor.training.train_ml_models",
         "--data_dir", str(data_dir),
         "--checkpoint_dir", args.checkpoint_dir,
+        "--train_function",
         "--train_parameter",
-        # Note: --evaluate runs the *full* pipeline (function classifier +
-        # parameter model). Plan #05 targets the parameter model, whose held-out
-        # evaluation is the per-epoch validation split printed during training.
-        # Full-pipeline benchmarking via scripts/eval/benchmark.py additionally
-        # requires a freshly trained function classifier.
+        "--evaluate",
         "--encoder_type", args.encoder_type,
         "--hidden_dim", "256",
         "--max_parameters", "12",

@@ -964,16 +964,20 @@ def evaluate_models(
                 function_metrics["confidences"].append(float(func_confs[i]))
 
             # 2. Evaluate parameter prediction model
+            # predict() takes (bytecode_features, attention_mask, ...thresholds);
+            # it does not accept function ids.
             param_outputs = parameter_model.predict(
                 bytecode_tokens,
-                true_function_idx,
                 attention_mask,
                 type_threshold=0.0,
                 mask_threshold=0.5,
             )
 
-            type_preds = param_outputs["type_predictions"]
-            mask_preds = param_outputs["mask_predictions"]
+            # predict() returns per-sample "predictions" plus a "raw_outputs"
+            # dict of batched tensors; use the latter for vectorised metrics.
+            raw_outputs = param_outputs["raw_outputs"]
+            type_preds = raw_outputs["predicted_types"]            # (B, max_params)
+            mask_preds = (raw_outputs["mask_probs"] > 0.5).long()  # (B, max_params)
 
             batch_size = type_preds.shape[0]
             for i in range(batch_size):

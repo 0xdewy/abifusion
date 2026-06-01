@@ -924,6 +924,12 @@ class ParameterPredictionModel(nn.Module):
             device=device_obj,
         )
 
+        # If the checkpoint was trained with class weights it carries a
+        # type_criterion_weighted buffer; recreate it so the keys match (the
+        # placeholder values are overwritten by load_state_dict).
+        if "type_criterion_weighted.weight" in state_dict:
+            model.set_type_class_weights(torch.ones(num_type_classes))
+
         # Load state dict
         model.load_state_dict(state_dict)
 
