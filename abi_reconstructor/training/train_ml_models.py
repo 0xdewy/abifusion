@@ -965,12 +965,14 @@ def evaluate_models(
 
             # 2. Evaluate parameter prediction model
             # predict() takes (bytecode_features, attention_mask, ...thresholds);
-            # it does not accept function ids.
+            # it does not accept function ids. Pass discriminating features so
+            # evaluation matches training (avoids train/serve skew).
             param_outputs = parameter_model.predict(
                 bytecode_tokens,
                 attention_mask,
                 type_threshold=0.0,
                 mask_threshold=0.5,
+                discriminating_features=batch.get("discriminating_features"),
             )
 
             # predict() returns per-sample "predictions" plus a "raw_outputs"

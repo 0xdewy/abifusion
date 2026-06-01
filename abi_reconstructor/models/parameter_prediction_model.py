@@ -520,6 +520,7 @@ class ParameterPredictionModel(nn.Module):
         count_threshold: float = 0.5,
         type_threshold: float = 0.5,
         mask_threshold: float = 0.5,
+        discriminating_features: Optional[torch.Tensor] = None,
     ) -> Dict[str, Any]:
         """Make parameter predictions.
 
@@ -529,13 +530,20 @@ class ParameterPredictionModel(nn.Module):
             count_threshold: Confidence threshold for count prediction
             type_threshold: Confidence threshold for type prediction
             mask_threshold: Threshold for parameter existence
+            discriminating_features: Optional SigRec R11-R18 feature vector
+                (batch_size, 7). Pass the same features used in training so
+                inference matches; omit to predict without them.
 
         Returns:
             Dictionary with predictions in nested per-sample format
         """
         self.eval()
         with torch.no_grad():
-            outputs = self.forward(bytecode_features, attention_mask)
+            outputs = self.forward(
+                bytecode_features,
+                attention_mask,
+                discriminating_features=discriminating_features,
+            )
 
             count_probs = outputs["count_probs"]
             count_confidence = outputs["count_confidence"]

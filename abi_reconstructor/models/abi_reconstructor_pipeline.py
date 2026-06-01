@@ -584,13 +584,36 @@ class ABIReconstructorPipeline:
         attention_mask[:num_real_tokens] = 1.0
         attention_mask = attention_mask.unsqueeze(0)  # Add batch dimension
 
+        # Discriminating features (SigRec R11-R18) from the same context window
+        # used in training, so inference matches the training distribution.
+        from abi_reconstructor.features.discriminating_features import (
+            DiscriminatingFeatureExtractor,
+        )
+
+        try:
+            disc_vec = (
+                DiscriminatingFeatureExtractor()
+                .extract_from_context(context, context)
+                .to_vector()
+            )
+        except Exception:
+            disc_vec = [0.0] * 7
+        discriminating_features = torch.tensor(
+            disc_vec, dtype=torch.float
+        ).unsqueeze(0)
+
         if self.use_cuda and torch.cuda.is_available():
             from abi_reconstructor.device import batch_to_device
             moved = batch_to_device(
-                {"tokens": tokens_tensor, "mask": attention_mask}
+                {
+                    "tokens": tokens_tensor,
+                    "mask": attention_mask,
+                    "disc": discriminating_features,
+                }
             )
             tokens_tensor = moved["tokens"]
             attention_mask = moved["mask"]
+            discriminating_features = moved["disc"]
 
         return {
             "bytecode_tokens": tokens_tensor,
@@ -598,6 +621,7 @@ class ABIReconstructorPipeline:
             "selector": selector,
             "position": position,
             "context": context,
+            "discriminating_features": discriminating_features,
         }
 
     def classify_function_name(
@@ -813,6 +837,7 @@ class ABIReconstructorPipeline:
                 features["bytecode_tokens"],
                 function_ids=function_name_idx,
                 attention_mask=features.get("attention_mask"),
+                discriminating_features=features.get("discriminating_features"),
             )
 
         # Parse predictions

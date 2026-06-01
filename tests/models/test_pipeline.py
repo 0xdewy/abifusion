@@ -27,7 +27,9 @@ class _FakePredictor(nn.Module):
         super().__init__()
         self.count = count
 
-    def forward(self, tokens, function_ids=None, attention_mask=None):
+    def forward(
+        self, tokens, function_ids=None, attention_mask=None, discriminating_features=None
+    ):
         batch = 1
         num_types = len(TYPE_VOCAB)
         count_logits = torch.full((batch, MAX_PARAMS + 1), -10.0)
