@@ -1,0 +1,178 @@
+[
+  {
+    "key": "10.1109/sp40001.2021.00006",
+    "title": "When Function Signature Recovery Meets Compiler Optimization",
+    "doi": "10.1109/sp40001.2021.00006",
+    "status": "abstract_only",
+    "path": null,
+    "chars": 0,
+    "truncated": false,
+    "locator_used": null,
+    "error": null
+  },
+  {
+    "key": "10.1109/tse.2021.3078342",
+    "title": "SigRec: Automatic Recovery of Function Signatures in Smart Contracts",
+    "doi": "10.1109/tse.2021.3078342",
+    "status": "full_text",
+    "path": "research/evm-bytecode-to-abi/data/fulltext/sigrec-automatic-recovery-of-function-signatures-in-smart-co.txt",
+    "chars": 60000,
+    "truncated": true,
+    "locator_used": "pdf",
+    "error": null
+  },
+  {
+    "key": "10.1016/j.jss.2023.111627",
+    "title": "Neural-FEBI: Accurate function identification in Ethereum Virtual Machine bytecode",
+    "doi": "10.1016/j.jss.2023.111627",
+    "status": "abstract_only",
+    "path": null,
+    "chars": 0,
+    "truncated": false,
+    "locator_used": null,
+    "error": "html yielded only 0 chars"
+  },
+  {
+    "key": "Building Reuse-Sensitive Control Flow Graphs (CFGs) for EVM Bytecode",
+    "title": "Building Reuse-Sensitive Control Flow Graphs (CFGs) for EVM Bytecode",
+    "doi": null,
+    "status": "full_text",
+    "path": "research/evm-bytecode-to-abi/data/fulltext/building-reuse-sensitive-control-flow-graphs-cfgs-for-evm-by.txt",
+    "chars": 60000,
+    "truncated": true,
+    "locator_used": "pdf",
+    "error": null
+  },
+  {
+    "key": "Abusing the Ethereum Smart Contract Verification Services for Fun and Profit",
+    "title": "Abusing the Ethereum Smart Contract Verification Services for Fun and Profit",
+    "doi": null,
+    "status": "full_text",
+    "path": "research/evm-bytecode-to-abi/data/fulltext/abusing-the-ethereum-smart-contract-verification-services-fo.txt",
+    "chars": 60000,
+    "truncated": true,
+    "locator_used": "pdf",
+    "error": null
+  },
+  {
+    "key": "10.1145/3527321",
+    "title": "Elipmoc: advanced decompilation of Ethereum smart contracts",
+    "doi": "10.1145/3527321",
+    "status": "failed",
+    "path": null,
+    "chars": 0,
+    "truncated": false,
+    "locator_used": null,
+    "error": "403 Client Error: Forbidden for url: https://dl.acm.org/doi/10.1145/3527321"
+  },
+  {
+    "key": "Decompiling Smart Contracts with a Large Language Model",
+    "title": "Decompiling Smart Contracts with a Large Language Model",
+    "doi": null,
+    "status": "full_text",
+    "path": "research/evm-bytecode-to-abi/data/fulltext/decompiling-smart-contracts-with-a-large-language-model.txt",
+    "chars": 60000,
+    "truncated": true,
+    "locator_used": "pdf",
+    "error": null
+  },
+  {
+    "key": "SCDBench: A Benchmark for LLM-Based Smart Contract Decompilers",
+    "title": "SCDBench: A Benchmark for LLM-Based Smart Contract Decompilers",
+    "doi": null,
+    "status": "full_text",
+    "path": "research/evm-bytecode-to-abi/data/fulltext/scdbench-a-benchmark-for-llm-based-smart-contract-decompiler.txt",
+    "chars": 54680,
+    "truncated": false,
+    "locator_used": "pdf",
+    "error": null
+  },
+  {
+    "key": "10.1109/qrs57517.2022.00053",
+    "title": "Nimbus: Toward Speed Up Function Signature Recovery via Input Resizing and Multi-Task Learning",
+    "doi": "10.1109/qrs57517.2022.00053",
+    "status": "abstract_only",
+    "path": null,
+    "chars": 0,
+    "truncated": false,
+    "locator_used": null,
+    "error": null
+  },
+  {
+    "key": "10.1145/3428258",
+    "title": "Precise static modeling of Ethereum “memory”",
+    "doi": "10.1145/3428258",
+    "status": "failed",
+    "path": null,
+    "chars": 0,
+    "truncated": false,
+    "locator_used": null,
+    "error": "403 Client Error: Forbidden for url: https://dl.acm.org/doi/10.1145/3428258"
+  },
+  {
+    "key": "10.1016/j.bcra.2025.100384",
+    "title": "EVMLiSA: Sound Static Control-Flow Graph Construction for EVM Bytecode",
+    "doi": "10.1016/j.bcra.2025.100384",
+    "status": "abstract_only",
+    "path": null,
+    "chars": 0,
+    "truncated": false,
+    "locator_used": null,
+    "error": null
+  },
+  {
+    "key": "Interaction-Aware Vulnerability Detection in Smart Contract Bytecodes",
+    "title": "Interaction-Aware Vulnerability Detection in Smart Contract Bytecodes",
+    "doi": null,
+    "status": "full_text",
+    "path": "research/evm-bytecode-to-abi/data/fulltext/interaction-aware-vulnerability-detection-in-smart-contract.txt",
+    "chars": 60000,
+    "truncated": true,
+    "locator_used": "pdf",
+    "error": null
+  },
+  {
+    "key": "10.1145/2259051.2259056",
+    "title": "Dexpler",
+    "doi": "10.1145/2259051.2259056",
+    "status": "abstract_only",
+    "path": null,
+    "chars": 0,
+    "truncated": false,
+    "locator_used": null,
+    "error": null
+  },
+  {
+    "key": "10.1007/978-3-540-45099-3_11",
+    "title": "Efficient Inference of Static Types for Java Bytecode",
+    "doi": "10.1007/978-3-540-45099-3_11",
+    "status": "abstract_only",
+    "path": null,
+    "chars": 0,
+    "truncated": false,
+    "locator_used": null,
+    "error": null
+  },
+  {
+    "key": "EthIR: A Framework for High-Level Analysis of Ethereum Bytecode",
+    "title": "EthIR: A Framework for High-Level Analysis of Ethereum Bytecode",
+    "doi": null,
+    "status": "full_text",
+    "path": "research/evm-bytecode-to-abi/data/fulltext/ethir-a-framework-for-high-level-analysis-of-ethereum-byteco.txt",
+    "chars": 17522,
+    "truncated": false,
+    "locator_used": "pdf",
+    "error": null
+  },
+  {
+    "key": "10.1109/access.2026.3662238",
+    "title": "Seeing Through EVM Bytecode Obfuscation",
+    "doi": "10.1109/access.2026.3662238",
+    "status": "abstract_only",
+    "path": null,
+    "chars": 0,
+    "truncated": false,
+    "locator_used": null,
+    "error": null
+  }
+]

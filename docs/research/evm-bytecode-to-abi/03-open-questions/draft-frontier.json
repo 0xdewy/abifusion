@@ -1,0 +1,38 @@
+[
+  {
+    "id": "frontier-1",
+    "hypothesis": "LLM-based decompilers will eventually surpass static analysis for ABI recovery, but the apparent gap between fine-tuned models and zero-shot frontier LLMs on SCDBench is an artifact of intermediate-representation fidelity (TAC vs. raw bytecode), not a fundamental LLM capability ceiling. A structured intermediate representation that captures EVM dispatch-pattern semantics will close most of the remaining semantic-consistency gap regardless of LLM scale.",
+    "rationale": "SCDBench (2026) reports that the best frontier LLM perfectly decompiles only 42/600 contracts. Yet 'Decompiling Smart Contracts with a Large Language Model' (2025) achieves 0.82 average semantic similarity using a modest Llama-3.2-3B model fine-tuned on 238,446 TAC-to-Solidity pairs, recovering 'precise function signatures' from the TAC intermediate representation. The key difference is not model size but the information-preserving TAC encoding, which retains dispatch structure that raw bytecode abstracts away. If this hypothesis holds, then the bottleneck is representation engineering for LLM input, not LLM reasoning capacity, which reorients research investment from scaling models to designing lossless bytecode encodings.",
+    "supports_if": "Fine-tuned smaller models consistently outperform zero-shot frontier models when given the same structured IR; performance scales with IR quality, not parameter count; ablation of TAC components (dispatch-pattern preservation, stack-to-register conversion, CFG annotation) shows monotonic degradation of ABI recovery.",
+    "refutes_if": "Scaling laws hold for this task — i.e., a sufficiently large zero-shot LLM (e.g., GPT-5-scale) achieves similar ABI recovery to fine-tuned models without a structured IR, or fine-tuning on raw bytecode directly matches TAC-mediated performance.",
+    "motivating_papers": [
+      "SCDBench: A Benchmark for LLM-Based Smart Contract Decompilers",
+      "Decompiling Smart Contracts with a Large Language Model"
+    ]
+  },
+  {
+    "id": "frontier-2",
+    "hypothesis": "The fundamental barrier to ABI recovery under obfuscation is not dispatch-pattern elimination but compiler-introduced code reuse — multiple semantic functions sharing identical bytecode sequences. Tools that dynamically construct reuse-sensitive CFGs (like Esuer) will achieve strictly better ABI recovery on obfuscated contracts than any method relying on reuse-insensitive or purely static CFG construction, because code reuse confounds the mapping between bytecode regions and logical functions.",
+    "rationale": "'When Function Signature Recovery Meets Compiler Optimization' (2021) established that Solidity's --optimize flag breaks static signature recovery by eliminating dispatch artifacts. But 'Building Reuse-Sensitive Control Flow Graphs (CFGs) for EVM Bytecode' (2025) reveals a deeper, less-studied problem: solc's own compilation introduces pervasive code reuse — identical bytecode executing in diverse contexts — which creates 'semantic ambiguities and redundant control-flow dependencies within reuse-insensitive CFGs.' Esuer's dynamic taint analysis achieves 99.94% trace coverage vs. static tools. 'Seeing Through EVM Bytecode Obfuscation' (2026) targets deliberate obfuscation. Together these suggest the real arms race is at the CFG-construction level: if an analyzer cannot correctly resolve code reuse, it cannot recover the ABI regardless of how sophisticated its type inference is.",
+    "supports_if": "On a benchmark of obfuscated or heavily-optimized contracts, tools built on reuse-sensitive CFGs recover significantly more function boundaries and parameter types than Elipmoc, Gigahorse, or Panoramix; the gap widens with increasing code-reuse density; and manual inspection confirms the errors are traceable to reuse-induced CFG merging.",
+    "refutes_if": "Reuse-insensitive CFGs (e.g., Elipmoc's transactional sensitivity, which already provides a static abstraction of dynamic executions) already handle code reuse effectively in practice, and Esuer's dynamic replication of reused code offers no statistically significant improvement in ABI recovery accuracy over static context-sensitive approaches.",
+    "motivating_papers": [
+      "Building Reuse-Sensitive Control Flow Graphs (CFGs) for EVM Bytecode",
+      "Seeing Through EVM Bytecode Obfuscation",
+      "When Function Signature Recovery Meets Compiler Optimization",
+      "Elipmoc: advanced decompilation of Ethereum smart contracts"
+    ]
+  },
+  {
+    "id": "frontier-3",
+    "hypothesis": "Function signature inference and vulnerability detection share a latent representation that joint models exploit — COBRA's 94.76% F1-score for signature inference is not due to signature-specific engineering but to the bidirectional benefit between interface recovery and semantic analysis. Standalone ABI recovery tools (SigRec) underperform on the same data because they lack the semantic context that vulnerability-oriented feature extraction provides.",
+    "rationale": "COBRA (2024, 'Interaction-Aware Vulnerability Detection in Smart Contract Bytecodes') explicitly integrates 'semantic context and function interfaces' and demonstrates that its SRIF signature inference module achieves 94.76% F1-score — competitive with SigRec's 98.7% accuracy on its own benchmark. Critically, COBRA shows that when ground-truth ABI is absent, the inferred function features still fill the encoder and achieve 89.46% recall for vulnerability detection. This bidirectional dependency — signatures help detect vulnerabilities, and vulnerability-oriented features improve signature inference — suggests that the two tasks share a latent space. Meanwhile 'Decompiling Smart Contracts with a Large Language Model' (2025) generates both signatures and decompiled code simultaneously, further supporting the joint-representation hypothesis.",
+    "supports_if": "An ablation study on COBRA or a similar joint model shows that removing the function-interface branch degrades vulnerability detection more than expected, and removing semantic-context features degrades signature inference more than expected; a standalone signature inference model (SigRec or equivalent) tested on the COBRA dataset performs significantly worse than SRIF within the joint framework.",
+    "refutes_if": "The function interface signal is independent and additive — i.e., SigRec alone achieves equivalent or better F1-score on the same contracts without needing semantic vulnerability features, and COBRA's joint training provides no statistical benefit over simply concatenating the outputs of two separately trained models.",
+    "motivating_papers": [
+      "Interaction-Aware Vulnerability Detection in Smart Contract Bytecodes",
+      "SigRec: Automatic Recovery of Function Signatures in Smart Contracts",
+      "Decompiling Smart Contracts with a Large Language Model"
+    ]
+  }
+]

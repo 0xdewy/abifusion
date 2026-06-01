@@ -1,0 +1,1412 @@
+# SigRec: Automatic Recovery of Function Signatures in Smart Contracts
+DOI: 10.1109/tse.2021.3078342
+Source: https://arxiv.org/pdf/2305.07067 (pdf)
+[TRUNCATED to 60000 chars]
+======================================================================
+
+1
+SigRec: Automatic Recovery of Function
+Signatures in Smart Contracts
+Ting Chen, Zihao Li, Xiapu Luo, Xiaofeng Wang, Ting Wang, Zheyuan He, Kezhao Fang, Yufei Zhang,
+Hang Zhu, Hongwei Li, Y an Cheng, and Xiaosong Zhang
+Abstract—Millions of smart contracts have been deployed onto Ethereum for providing various services, whose functions can be
+invoked. For this purpose, the caller needs to know the function signature of a callee, which includes its function id and parameter
+types. Such signatures are critical to many applications focusing on smart contracts, e.g., reverse engineering, fuzzing, attack
+detection, and proﬁling. Unfortunately, it is challenging to recover the function signatures from contract bytecode, since neither debug
+information nor type information is present in the bytecode. To address this issue, prior approaches rely on source code, or a collection
+of known signatures from incomplete databases or incomplete heuristic rules, which, however, are far from adequate and cannot cope
+with the rapid growth of new contracts. In this paper, we propose a novel solution that leverages how functions are handled by
+Ethereum virtual machine (EVM) to automatically recover function signatures. In particular, we exploit how smart contracts determine
+the functions to be invoked to locate and extract function ids, and propose a new approach named type-aware symbolic execution
+(TASE) that utilizes the semantics of EVM operations on parameters to identify the number and the types of parameters. Moreover, we
+develop SigRec, a new tool for recovering function signatures from contract bytecode without the need of source code and function
+signature databases. The extensive experimental results show that SigRec outperforms all existing tools, achieving an unprecedented
+98.7% accuracy within 0.074 seconds. We further demonstrate that the recovered function signatures are useful in attack detection,
+fuzzing and reverse engineering of EVM bytecode.
+Index Terms—smart contract, function signature, Ethereum, automatic recovery, type-aware symbolic execution.
+!
+1 I NTRODUCTION
+M
+Ore than 30 million smart contracts have been de-
+ployed on Ethereum, the largest contract-hosting
+blockchain. An Ethereum smart contract is a program (i.e.,
+a collection of code and data) running on Ethereum virtual
+machine (EVM), which can be accessed through its address
+in Ethereum [1]. A smart contract is typically written in a
+high-level language (e.g., Solidity [2]) and then compiled
+into EVM bytecode. After the bytecode is deployed, its
+public and external functions can be invoked. To invoke
+a contract function, the caller needs to know its function
+signature which consists of a function id and the list of
+parameter types [3] 1. A function id refers to the ﬁrst 4 bytes
+in the Keccak-256 hash of a function name and the list of
+parameter types [3].
+Function signatures play a critical role in many appli-
+cations focusing on smart contracts because their functions
+(in terms of function signatures) need to be ﬁrst identiﬁed
+before their behaviors can be evaluated. For example, some
+studies recognize wallet contracts [4], token contracts [5], [6],
+• Ting Chen (brokendragon@uestc.edu.cn), Zheyuan He, Kezhao Fang,
+Yufei Zhang, Hang Zhu, Hongwei Li and Xiaosong Zhang are with
+University of Electronic Science and Technology of China, China.
+• Zihao Li and Xiapu Luo (csxluo@comp.polyu.edu.hk) are with Hong Kong
+Polytechnic University, Hong Kong. (Corresponding Author: Xiapu Luo.)
+• Xiaofeng Wang is with Indiana University, Bloomington, USA.
+• Ting Wang is with Pennsylvania State University, USA.
+• Yan Cheng is with Ant Group, China.
+Postal Code: 310013
+1. A function signature deﬁned by Ethereum includes a function
+name and the list of parameter types [3]. Since function id instead of
+function name is required to invoke a contract function, in this paper
+we just consider function id, parameter number and parameter types.
+[7], and the contracts for Ethereum name service [6] based
+on function signatures. §6 shows that function signatures
+can be used to enhance the results of reverse engineering
+results contract bytecode by adding types, meaningful vari-
+able names and simplifying the code for accessing parame-
+ters. Besides, knowing the parameter list of a target function,
+a fuzzer can strategically mutate the test cases [8], [9] for
+better vulnerability detection. Our experimental results (§6)
+show that function signatures enable ContractFuzzer [8] to
+ﬁnd 23% more bugs than it could without these signatures.
+Function signatures are also important to the detection of
+attacks against smart contracts. A prominent case is theshort
+address attack that exploits an EVM vulnerability in handling
+a malformed actual argument of the address type, which is
+shorter than a valid address [10]. We develop ParChecker,
+a new tool based on the recovered function signatures to
+detect malformed actual arguments including short address
+attacks (§6).
+Challenges in signature discovery. It is challenging to
+recover function signatures from bytecode since there is
+no debug information in contract bytecode and the byte-
+code is untyped, i.e., parameters are kept in 256-bit words
+without type information [11]. All existing approaches fail
+to effectively recover function signatures (§5.6). More pre-
+cisely, an intuitive method is to extract the function sig-
+natures from the source code of smart contracts, which,
+however, is only available for a small proportion of contracts
+(< 1% until 2017 [12]). Another method retrieves signatures
+from existing databases, like Ethereum Function Signature
+Database (EFSD) [13], through function ids. For example,
+Gigahorse [14], Eveem [15], and Online Solidity Decompiler
+arXiv:2305.07067v1  [cs.CR]  11 May 2023
+
+2
+(OSD) [16] rely on EFSD, while EVM Bytecode Decompiler
+(EBD) [17] and JEB [18] maintain their own databases. How-
+ever, these databases are incomplete, only covering 31.7% of
+the function signatures in the wild (Supplementary material
+A) and quickly become out of date without constantly
+updating.
+Alternatively, one could reverse engineering a function
+id by enumerating all possible parameter type combina-
+tions to compute a hash, together with a possible function
+name. Given the huge space of possible combinations, this
+attempt is fragile in general. Abi Decompiler [19] adopts
+this approach, which only covers 12.3% of function signa-
+tures (Supplementary material A). Finally, one could derive
+function signatures using some heuristics: Gigahorse infers
+the number of parameters based upon the number of items
+that a function pops from stack [14]; Eveem regards a type as
+an array if its layout contains an offset ﬁeld and a num ﬁeld.
+Although this direction is promising, existing approaches
+turn out to be ineffective due to the incompleteness of
+their heuristics. For example, Eveem can only achieve an
+accuracy of 58.1% and 18.3% to infer the function signatures
+in closed-source smart contracts and synthesized contracts,
+respectively (§5.6), even it leverages an existing database,
+EFSD.
+Our work. In this paper, we propose a new solution called
+SigRec to automatically recover function signatures from
+EVM bytecode compiled from two mainstream compilers
+(i.e., Solidity and Vyper) for smart contracts without the
+need of source code and other databases. Our key obser-
+vation is that even in the absence of type information,
+the way EVM bytecode handles a function call and its
+inputs uniquely characterizes different parameter types. For
+example, a uint32 argument will be extracted using a 32-bits
+mask applied to the input data (R11, §3.4). Based upon this
+observation, we ﬁrst generalize the semantics of such type-
+related operations into rules (§3). Then, we designtype-aware
+symbolic execution (TASE) to explore the EVM instructions
+that manipulate parameters, and use the rules for inferring
+the types of parameters (§4). Since the EVM instructions
+handling parameters are typically near a function’s entry
+point, TASE can handle them very effectively and efﬁciently
+to keep up with the ever-growing Ethereum smart contracts.
+Studies on reverse engineering of variable types from
+binary executables by leveraging the semantics of instruc-
+tions [20], [21], [22], [23], [24], [25], [26], [27], [28], [29] are
+related to our work. However, TASE has several differences
+with existing approaches. First, to recover complicated types
+that cannot be handled by existing techniques, TASE infers
+how variables are affected by parameters through symbolic
+execution (SE). For example, to identify a multidimensional
+array, TASE checks whether the read location is calculated
+by adding the value of the offset ﬁeld to the base (§3.2).
+Second, semantic knowledge summarized from binary code
+cannot be applied to EVM bytecode, due to architecture
+differences (§8) and unique parameter types deﬁned in
+smart contracts, e.g., 256-bit integers (no more than 64 bit
+in x64 binaries), the 20-byte address type, and reversed
+array notation (§2.3). New knowledge, therefore, needs to be
+discovered to support type inference through TASE. Third,
+by exploiting the fact that the code responsible for handling
+parameters is usually around a function’s entry point, TASE
+runs extremely fast (0.074s to recover one function signature
+on average, §5.4).
+We conduct extensive experiments to evaluate SigRec
+and compare it with all existing approaches. First, we collect
+all 119,404 unique (i.e., duplicates are eliminated) open-
+source smart contracts on Ethereum, which include 210,869
+public/external functions with unique function signatures,
+and use them to evaluate the accuracy of SigRec. The
+experimental result shows that SigRec achieves an aver-
+age accuracy of 98.7% (§5.2), and the accuracy never goes
+below 96% across all compilers (from V 0.1.1 to V 0.8.0)
+with or without optimization (§5.3). Second, we compare
+SigRec with all existing approaches, i.e., OSD [16], EBD [17],
+JEB [18], Gigahorse [14] and Eveem [15]. The experimental
+results show that SigRec correctly recovers much more sig-
+natures, outperforming them by at least 22.5 %, 40.1% and
+80.5% in processing open-source, closed-source and synthe-
+sized smart contracts, respectively (§5.6). Manual investi-
+gation shows that for many function signatures, existing
+approaches report wrong types, produce nonexistent types,
+output an unspeciﬁc type, add nonexistent parameters, miss
+parameters or fail to generate function signatures (§5.6).
+Third, we apply SigRec to the bytecode of all 37,009,570
+smart contracts deployed on Ethereum with 47,329,149 pub-
+lic/external functions, and found that it only takes 0.074
+seconds on average to recover a function signature (§5.4).
+We further demonstrate how the recovered function
+signatures can enable the detection of stealthy short address
+attacks, empower the state-of-the-art fuzzer to discover
+more vulnerabilities, and enhance the result of reverse engi-
+neering contract bytecode (§6).
+Contributions. The major contributions of the paper are
+summarized as follows:
+• We propose a novel solution that exploits the semantics
+of EVM instructions to correctly and efﬁciently recover
+function signatures from the bytecode of smart contracts.
+• We develop SigRec based on our new solution, and con-
+duct extensive experiments to evaluate it. The experimental
+results show that SigRec achieves nearly 100% accuracy
+in signature recovery, under different compiler versions,
+within 0.074 seconds on average, and it signiﬁcantly out-
+performs existing methods. We have deployed SigRec as an
+online web service http://bit.ly/SigRecWS and will release
+its code after paper publication.
+• We use three important applications to demonstrate the
+usage of recovering function signatures, including attack de-
+tection, fuzzing and reverse engineering of EVM bytecode.
+2 A CCESSING PATTERNS OF PARAMETERS
+This section ﬁrst introduces how function invocation is
+performed in EVM and then elaborate more on the EVM
+instructions and variables involved in a function invocation.
+The concepts of account, bytecode of smart contracts, and
+public/external function can be found in Supplementary
+material B.
+Function invocation. To invoke a public/external function,
+a message will be sent by an EOA account or a smart
+contract account [30]. The message contains the address of
+the smart contract whose function will be invoked and the
+call data ﬁeld which indicates the function to be invoked
+
+3
+data
+A
+B
+…
+offsettop top
+stack stack
+call data
+32 bytes
+CALLDATALOAD
+datacall data
+offsetc len
+top
+stack
+A
+B
+…
+A
+B
+… stack
+top
+data
+offsetm
+memoryA
+B
+…
+CALLDATACOPY
+id 0x0000000000000000000000000000000
+000000000000000000000000011223344
+4 bytes 32 bytes
+id 0x6162636400000000000000000000000
+000000000000000000000000000000000
+4 bytes 32 bytes
+id uint256
+4 bytes
+uint256 uint256 uint256 uint256 uint256
+uint256[3] uint256[3]
+uint256[3][2]: 192 bytes 4 bytes 32 bytes
+uint256 uint256 uint256 uint256 uint256 uint256
+32 bytes
+uint256[3][2]: 192 bytes
+num
+offset ... ...id
+Fig. 1. The process of executing a CALLDATALOAD
+data
+A
+B
+…
+offsettop top
+stack stack
+call data
+32 bytes
+CALLDATALOAD
+datacall data
+offsetc len
+top
+stack
+A
+B
+…
+A
+B
+… stack
+top
+data
+offsetm
+memoryA
+B
+…
+CALLDATACOPY
+id 0x0000000000000000000000000000000
+000000000000000000000000011223344
+4 bytes 32 bytes
+id 0x6162636400000000000000000000000
+000000000000000000000000000000000
+4 bytes 32 bytes
+id uint256
+4 bytes
+uint256 uint256 uint256 uint256 uint256
+uint256[3] uint256[3]
+uint256[3][2]: 192 bytes 4 bytes 32 bytes
+uint256 uint256 uint256 uint256 uint256 uint256
+32 bytes
+uint256[3][2]: 192 bytes
+num
+offset ... ...id
+Fig. 2. The process of running a CALLDATACOPY
+and carries actual arguments. The ﬁrst 4 bytes of the call
+data is the function id of the function being called, which
+is followed by the arguments [3]. For example, to call a
+function whose signature is “transfer(address, uint256)”, the
+call data begins with its function id 0xa9059cbb, followed
+by two arguments, including an address and a 256-bits
+unsigned integer.
+2.1 EVM Instructions to Read the Call Data
+CALLDATALOAD. CALLDATALOADreads 32 bytes into the top of
+the stack [30]. As shown in Fig. 1, CALLDATALOADﬁrst reads
+the top item from the stack, which is the offset used to locate
+the data. After that, the top item of the stack is removed. It
+then reads 32 bytes data from the call data starting from the
+offset. Finally, the data is pushed to the stack.
+CALLDATACOPY. CALLDATACOPY reads variable-length data
+from the call data into memory [30]. As shown in Fig. 2,
+CALLDATACOPYconsumes top three stack items. The second
+item denotes the offset ( offsetc) in the call data from where
+the data will be copied. The ﬁrst item is the offset ( offsetm)
+in the memory to where data will be copied. The third item
+indicates the data length.
+2.2 Accessing Function ID
+To invoke a public/external function in a smart contract,
+the caller should provide the function id. The callee extracts
+it from the call data to determine the function to be invoked
+by executing a CALLDATALOAD with the offset being 0 to
+read 32 bytes from the beginning of the call data, whose
+highest 4 bytes is the function id. Then, the callee uses a DIV
+instruction (i.e., unsigned integer division [30]) or an SHR
+instruction (i.e., bitwise right shift [31]) to move the function
+id to the lowest 4 bytes.
+2.3 Accessing Different Types of Parameters
+Our work support two mainstream compilers, Solidity and
+Vyper which have different parameter types.
+data
+A
+B
+…
+offsettop top
+stack stack
+call data
+32 bytes
+CALLDATALOAD
+datacall data
+offsetc len
+top
+stack
+A
+B
+…
+A
+B
+… stack
+top
+data
+offsetm
+memoryA
+B
+…
+CALLDATACOPY
+id 0x0000000000000000000000000000000
+000000000000000000000000011223344
+4 bytes 32 bytes
+id 0x6162636400000000000000000000000
+000000000000000000000000000000000
+4 bytes 32 bytes
+id uint256
+4 bytes
+uint256 uint256 uint256 uint256 uint256
+uint256[3] uint256[3]
+uint256[3][2]: 192 bytes
+id offset
+4 bytes 4 bytes
+num uint256 uint256 uint256 uint256 uint256 uint256
+… …
+4 bytes
+uint256[3][2]: 192 bytes
+Fig. 3. The call data layout of a uint32, 0x11223344
+data
+A
+B
+…
+offsettop top
+stack stack
+call data
+32 bytes
+CALLDATALOAD
+datacall data
+offsetc len
+top
+stack
+A
+B
+…
+A
+B
+… stack
+top
+data
+offsetm
+memoryA
+B
+…
+CALLDATACOPY
+id 0x0000000000000000000000000000000
+000000000000000000000000044332211
+4 bytes 32 bytes
+id 0x6162636400000000000000000000000
+000000000000000000000000000000000
+4 bytes 32 bytes
+id uint256
+4 bytes
+uint256 uint256 uint256 uint256 uint256
+uint256[3] uint256[3]
+uint256[3][2]: 192 bytes
+id offset
+4 bytes 4 bytes
+num uint256 uint256 uint256 uint256 uint256 uint256
+… …
+4 bytes
+uint256[3][2]: 192 bytes
+Fig. 4. The call data layout of a bytes4, ‘abcd’
+2.3.1 Solidity
+We classify all parameter types supported by Solidity into
+ﬁve categories: basic types,array , bytes and string, and struct.
+1. Basic Types: There are ﬁve basic types.
+(1) uint⟨M ⟩, 8 ≤ M ≤ 256, M%8 == 0 . uint⟨M ⟩ is an
+unsigned integer of M bits [3]. If a public/external function
+has a uint⟨M ⟩ type parameter, it will be extended on the
+higher-order (left) side with zeros to make the length be 32
+bytes [3]. Fig. 3 shows the call data layout of a public/ex-
+ternal function with one uint32 argument whose value is
+0x11223344. The call data begins with a 4-byte function id,
+followed by the extended 32-bytes value. To read a uint⟨M ⟩,
+the smart contract executes a CALLDATALOADwith the offset
+indicating the start of the extended value. After that, the
+extended value will be masked by an AND instruction, and
+the result is the uint⟨M ⟩ argument before padding. The
+masking is not needed to access a uint256 because it is not
+extended.
+(2) int⟨M ⟩, 8≤ M ≤ 256, M%8 == 0 . int⟨M ⟩ is a signed
+integer of M bits [3]. The layout and accessing pattern of an
+int⟨M ⟩ is similar to that of a uint⟨M ⟩, except that a SIGNEX-
+TEND rather than an AND is used to mask an extended value
+because SIGNEXTEND is responsible for sign extension [30].
+Similarly, the SIGNEXTEND is not needed to access an int256
+because the highest bit of an int256 indicates the sign. To
+distinguish an int256 from a uint256, both of which are not
+extended, we leverage some instructions (e.g., SDIV) that can
+only access signed integers.
+(3) address. Every account has a unique 20-bytes ad-
+dress [30]. We ﬁnd that the call data layout of an address
+and reading an address from the call data are the same
+as a uint160. To differentiate them, we exploit the fact that
+mathematic operations can involve a uint160 rather than an
+address.
+(4) bool. It can be true or false. The layout and reading abool
+from the call data are similar to that of a uint⟨M ⟩, except that
+two consecutive ISZEROs are used for masking. An ISZERO
+pushes a one to the stack if the top stack item is zero and a
+zero otherwise [30]. Hence, two consecutive ISZEROs push a
+one to the stack if the top stack item is not zero, otherwise
+push a zero.
+(5) bytes⟨M ⟩, 0 < M≤ 32. A bytes⟨M ⟩ is a byte sequence of
+M bytes [3]. If a public/external function has a bytes⟨M ⟩
+type parameter, it will be extended on the lower-order
+(right) side with zero to make the length be 32 bytes [3].
+Fig. 4 shows the call data layout of a public/external func-
+tion with one bytes4 argument whose value is ‘abcd’. A
+
+4
+CALLDATALOAD is needed to read a bytes⟨M ⟩ from the call
+data, and an AND is used for masking. After masking, the
+higher-order bytes of a bytes⟨M ⟩ is retained. By contrast, for
+a uint⟨M ⟩, the masking retains the lower-order bytes since a
+uint is extended on the higher-order side. Since bytes32 and
+uint256 are not extended, we differentiate them by exploiting
+the fact that a BYTE instruction is used for accessing a single
+byte of a bytes32, while an AND masks a uint256 for the same
+purpose.
+2. Array: An array hosts array items of the same basic type.
+An array can be static, dynamic or nested. The size of a static
+array is known during compilation whereas the size of a
+dynamic array and a nested array is determined by the actual
+argument at runtime.
+(1) Static array . We denote it as T[X1]...[Xn], where T is
+one of the basic types, X1, ..., Xn are constant numbers
+known in compilation, and n is the dimension. If n > 1,
+T[X1]...[Xn] is a multidimensional array. The size of a static
+array is known in compilation since the number of items in
+each dimension is ﬁxed. As a basic type, each array item
+is extended through the process described above. Different
+from other languages (e.g., C), the notation of an array in
+EVM is reversed and the access is in the opposite direction
+of the declaration [32]. For example, uint256[3][2] x means
+an array x of two arrays of three uint256, and x[1][0] accesses
+the ﬁrst item of the second uint256[3]. All items of a static
+array are stored consecutively in the call data. Fig. 5 shows
+the call data layout of a public/external function with one
+uint256[3][2] argument.
+data
+A
+B
+…
+offsettop top
+stack stack
+call data
+32 bytes
+CALLDATALOAD
+datacall data
+offsetc len
+top
+stack
+A
+B
+…
+A
+B
+… stack
+top
+data
+offsetm
+memoryA
+B
+…
+CALLDATACOPY
+id
+0x00000000000000000000000000
+0000000000000000000000000000
+0044332211
+4 bytes 32 bytes
+id
+0x61626364000000000000000000
+0000000000000000000000000000
+0000000000
+4 bytes 32 bytes
+id uint256
+4 bytes
+uint256 uint256 uint256 uint256 uint256
+uint256[3] uint256[3]
+uint256[3][2]: 192 bytes
+Fig. 5. The call data layout of a static array, uint256[3][2]
+The accessing patterns of a static array are different for
+public and external functions.
+(a) Public function. Its static array will be read into the
+memory by one or more CALLDATACOPYs. Then, each array
+item is accessed by an MLOAD, which reads 32 bytes from
+the memory to the stack [30]. We ﬁnd that a nested loop is
+used to read parameters from the call data, and the level
+of the nested loop is equal to the dimension of the static
+array minus one. In the most inner layer, a CALLDATACOPY
+is executed. A CALLDATACOPY can read a one-dimensional
+static array.
+Listing 1 shows the pseudocode (we do not show the
+EVM instructions for the ease of presentation) to read a
+uint256[3][2] from the call data to the memory. The execu-
+tion of each CALLDATACOPY copies the array of the lowest
+dimension (Line 3). The loop guard (Line 2) determines
+how many times the CALLDATACOPY should be executed.
+The loop guard is compiled into an LT instruction, which
+checks whether the current loop count is smaller than the
+item number of the highest dimension.
+1 i = 0 ;
+2 while ( i < 2 ){ / / how many uint256 [ 3 ] needs to copy
+3 c a l l d a t a c o p y ( uint256 [ 3 ] ) ;
+4 i ++;
+5 }
+Listing 1. Pseudocode for reading a uint256[3][2] parameter to memory
+(b) External function. Its static array will not be entirely
+copied. Instead, array items will be read from the call data
+to the stack using CALLDATALOADon demand. We ﬁnd that
+if the smart contract is compiled without optimization or
+the index of the array is a variable, the CALLDATALOAD is
+preceded by bound checks to prevent array overrun. For
+instance, before accessing the item x[i][j] of the array x[3][2],
+two bound checks i < 2 and j < 3 are executed. Only after
+they are passed, x[i][j] can be accessed. Such runtime bound
+check is not needed if the array index is a constant and
+the smart contract is compiled with optimization due to the
+compile-time bound checks.
+(2) Dynamic array. We denote it as T[X1]...[Xn−1][], where
+T is one of basic types, X1, ..., Xn−1 are constant numbers
+known in compilation, n is the dimension. The size of a
+dynamic array is unknown in compilation because the item
+number of the highest dimension is unknown. Instead, the
+item number should be provided in the call data so that
+the invoked function can know it at runtime. Fig. 6 shows
+the call data layout of a dynamic array uint256[3][], which is
+the ﬁrst parameter, and the actual argument is uint256[3][2].
+A 32-bytes value, i.e., the offset ﬁeld, is located right after
+the function id, and this value is an offset relative to the
+ﬁrst byte after the function id. The 32 bytes, i.e., the num
+ﬁeld, pointed by the offset stores the number of items in the
+highest dimension. All array items are located after the num
+ﬁeld.
+data
+A
+B
+…
+offsettop top
+stack stack
+call data
+32 bytes
+CALLDATALOAD
+datacall data
+offsetc len
+top
+stack
+A
+B
+…
+A
+B
+… stack
+top
+data
+offsetm
+memoryA
+B
+…
+CALLDATACOPY
+id 0x0000000000000000000000000000000
+000000000000000000000000011223344
+4 bytes 32 bytes
+id 0x6162636400000000000000000000000
+000000000000000000000000000000000
+4 bytes 32 bytes
+id uint256
+4 bytes
+uint256 uint256 uint256 uint256 uint256
+uint256[3] uint256[3]
+uint256[3][2]: 192 bytes 4 bytes 32 bytes
+uint256 uint256 uint256 uint256 uint256 uint256
+32 bytes
+uint256[3][2]: 192 bytes
+num
+offset ... ...id
+Fig. 6. The call data layout of a dynamic array uint256[3][], and the actual
+argument is uint256[3][2]
+The accessing patterns of a dynamic array are different
+for public and external functions.
+(a) Public function. Its dynamic array will be read into the
+memory by one or more CALLDATACOPYs. More precisely, the
+smart contract uses a CALLDATALOADto read the offset (i.e.,
+the offset ﬁeld), and another CALLDATALOADto read the item
+number of the highest dimension (i.e., the num ﬁeld). Then,
+the item number will be read from the stack to the memory
+by an MSTORE, which saves 32 bytes from the stack into the
+memory [30]. After that, the smart contract uses a nested
+loop to copy all array items into the memory right after the
+item number. Only one CALLDATACOPYis needed to read a
+one-dimensional dynamic array.
+(b) External function. Two CALLDATALOADs are used to read
+the offset and the item number of the highest dimension.
+Different from the process for public functions, an array
+item will be read from the call data to the stack by a CALL-
+DATALOAD on demand. The operand of the CALLDATALOAD,
+i.e., the location from where to copy, is computed from the
+value of the offset ﬁeld at runtime, and the result contains
+the multiplication of 32, because each array item is extended
+to 32 bytes. For example, the location of the third array item
+is computed by offset + 4 + 32 + 2× 32 (the function id is of 4
+bytes, an item number is of 32 bytes, the ﬁrst twoarray items
+
+5
+are of 64 bytes). The bound check of the highest dimension
+exists since its item number is unknown in compilation.
+(3) Nested array. We denote a n-dimensional nested array as
+T[X1]...[Xn], where T is one of basic types. At least one of
+X1 to Xn−1 should be empty indicating the corresponding
+dimension is dynamic. The key difference between a n-
+dimensional nested array and a n-dimensional dynamic array
+is that at least one dimension of the lower n− 1 dimensions
+of the former can be dynamic whereas the lower n− 1
+dimensions of the latter must be static [3]. Hence, each
+dimension of a n-dimensional nested array associates an
+offset ﬁeld and anum ﬁeld to enable dynamic dimension size.
+Fig. 7 shows the call data layout of a nested array uint[][],
+which is the ﬁrst parameter of a function. Let’s assume
+that the actual argument is [[0x1, 0x2], [0x3]] for the ease
+of explanation. offset1 is the offset ﬁeld of this nested array,
+and num1 is the num ﬁeld of its highest dimension. Two
+items (i.e., [0x1, 0x2] and [0x3]) in the highest dimension are
+placed after num1. Because both the two items are dynamic
+arrays, their offset ﬁelds will be placed immediately after
+num1. In this example, offset2 and num2 are the offset and
+num ﬁelds of the item [0x1, 0x2], and offset3 and num3 are
+the offset and num ﬁelds of the item [0x3]. 0x1 and 0x2 which
+are two items of the array [0x1, 0x2] are placed immediately
+after num2. Similarly 0x3, the only item of the array [0x3] is
+placed immediately after num3.
+The accessing pattern of a nested array in the public
+mode is the same as that in the external mode, and an
+array item in nested array will be read from the call data to
+the stack by a CALLDATALOADon demand. More speciﬁcally,
+two CALLDATALOADs are used to read offset1 and num1, the
+item number of the highest dimension. For example, to
+read the array item 0x3 as an example, three additional
+CALLDATALOADs are required to read offset3, num3 and the
+item 0x3. To access an array item, there is a bound check for
+each dimension.
+4 bytes 32 bytes
+offset2 offset3 num2 1 2 num3num1
+offset1 ... ...id
+3
+32 bytes
+4 bytes 32 bytes
+offset2 1 2num1
+offset1 ... ...id
+32 bytes
+3 num2
+Fig. 7. The call data layout of a nested array uint[][], and the actual
+argument is [[1, 2], [3]]
+3. bytes: It is a dynamic byte sequence whose size is
+determined at runtime [3]. If a public/external function has
+a bytes type parameter, it will be extended on the lower-
+order (right) side with the minimum number of zero to
+make the length of the extended result be multiple of 32
+bytes [3]. For example, if an un-extended bytes is ‘abcd’, the
+extended result is shown in Fig. 4. The layout of a bytes
+is similar to that of a one-dimensional dynamic array, as
+shown in Fig. 6, except that the num ﬁeld stores the size (in
+byte) of the bytes before padding. Note that the num ﬁeld
+of a one-dimensional dynamic array records the number of
+array items. The extended value is located right after thenum
+ﬁeld.
+The accessing patterns of a bytes value are different for
+public and external functions.
+(a) Public function. The accessing pattern of a bytes in a
+public function is the same as the accessing pattern of a
+one-dimensional dynamic array in a public function except
+the computation of read size, because every single byte of a
+bytes is not extended.
+(b) External function. The accessing pattern of a bytes in the
+external mode is the same as the accessing pattern of a one-
+dimensional dynamic array in the external mode, except
+that accessing a single byte of a bytes does not need the
+multiplication of 32 because every single byte of a bytes is
+not extended.
+4. string: It is a dynamic Unicode string, whose size is
+determined at runtime [3]. The call data layout of a string
+and reading a string from the call data are the same as that of
+a bytes. We distinguish them based on the observation that a
+bytes supports reading/writing its individual byte whereas
+a string does not support such operation.
+5. struct: We denote a struct as (T1, ..., Tn), where n is a
+constant number, indicating n struct items whose types can
+be any types in Solidity. The size of a struct can be dynamic
+or static. For a static struct whose size is known before
+compilation, the type of each struct item should be one of
+basic types, static array, or static struct. A dynamic struct
+whose size is unknown in compilation can host all possible
+Solidity types. The accessing pattern of a struct in the public
+mode is the same as that in the external mode. We ﬁnd that
+the layout of a static struct is the same as that of all its items
+as if they were not inside the static struct. For example,
+Listing 2 is the deﬁnition of a struct (uint256, uint256) in
+Solidity, Listing 3 is the deﬁnition of a function with two
+uint256 parameters in Solidity. Fig. 8 shows the same call
+data layout of them. Moreover, the bytecode to read an item
+of a static struct is the same as the bytecode to read the item
+as if it was not placed inside the struct. Therefore, there is
+no sufﬁcient hint from the bytecode to distinguish these two
+different situations.
+1 s t r u c t StructSample {
+2 uint256 a ;
+3 uint256 b ;
+4 }
+5 f u n c t i o n Func ( StructSample var1 ) {}
+Listing 2. A function taking in a struct with two uint256 items
+1 f u n c t i o n FuncSample ( uint256 a , uint256 b ) {}
+Listing 3. A function taking in two uint256 parameters
+4 bytes 32 bytes
+offset2 offset3 num2 1 2 num3num1
+offset1 ... ...id
+3
+32 bytes
+4 bytes 32 bytes
+offset2 1 2
+offset1 ... ...id
+32 bytes
+3 num1
+id uint256
+4 bytes
+uint256
+a b
+(uint, uint) 32 bytes
+id uint256
+4 bytes
+uint256
+a b
+Fig. 8. The layout of a struct containing two uint256 items is the same to
+that of two individual uint256 parameters
+The layout of a dynamic struct has an offset ﬁeld, and all
+struct items are placed after the offset ﬁeld. Fig. 9 shows the
+call data layout of a dynamic struct (uint[], uint), which is
+the ﬁrst parameter of a function, and we assume that the
+actual argument is ([0x1, 0x2], 0x3). In this example, offset1
+is the offset ﬁeld of this struct. Two items (i.e., [0x1, 0x2]
+and 0x3) of this struct are placed after the position which
+offset1 indicated. Because the item [0x1, 0x2] is array, its offset
+ﬁeld will be placed immediately after the position which
+offset1 indicated, and the value of item 0x3 will be placed
+immediately after it. In this example, offset2 and num1 are
+the offset and num ﬁelds of item [0x1, 0x2], and items of
+
+6
+[0x1, 0x2] are placed immediately after num1. For example,
+to access the struct item 0x3, one CALLDATALOADis used for
+reading offset1 and one additional CALLDATALOADis required
+to read the item 0x3 directly.
+4 bytes 32 bytes
+offset2 offset3 num2 1 2 num3num1
+offset1 ... ...id
+3
+32 bytes
+4 bytes 32 bytes
+offset2 1 2
+offset1 ... ...id
+32 bytes
+3 num1
+Fig. 9. The call data layout of a dynamic struct (uint[],uint), and the
+actual argument is ([1, 2], 3)
+2.3.2 Vyper
+Vyper supports ten parameter types, including bool, int128,
+uint256, address, bytes32, decimal, ﬁxed-size list, ﬁxed-size
+byte array , ﬁxed-size string, and struct [33]. The ﬁrst ﬁve
+types are also supported by Solidity, and the layouts of these
+ﬁve types are the same with the layouts of Solidity types.
+Different with Solidity, the instructions to read these ﬁve
+types use comparison instructions (e.g., LT) rather than mask
+instructions (e.g., AND) to ensure that the values of these ﬁve
+types are in the valid ranges. For example, Listing 4 shows
+the accessing pattern for address parameter in Solidity and
+Listing 5 shows the accessing pattern for address parameter
+in Vyper. We also learn that Vyper generates the same
+bytecode for public and external functions. We describe the
+remaining ﬁve types below.
+1 C A L L D A T A L O A D / / read the parameter
+2 . . .
+3 PUSH20 0 x f f f f f f f f f f f f f f f f f f f f f f f f f f f f f f f f f f f f f f f f
+4 A N D / / mask by 0 x f f . . . f f
+Listing 4. Accessing pattern for an address parameter in Solidity
+1 PUSH21 0 x010000000000000000000000000000000000000000
+2 PUSH1 0 x20
+3 M S T O R E
+4 . . .
+5 C A L L D A T A L O A D / / read the parameter
+6 PUSH1 0 x20
+7 M L O A D / / load 0 x01 . . . 0 0
+8 DUP2
+9 LT / / compare to 0 x01 . . . 0 0
+Listing 5. Accessing pattern for an address parameter in Vyper
+1. decimal. A decimal is a ﬁxed-point value with a precision
+of 10 decimal, whose value ranges from −2127 and 2127−
+1 [33]. We ﬁnd that the layout and the accessing pattern of a
+decimal is similar to that of signed integer in Solidity, except
+that two comparisons rather than a SIGNEXTEND mask are
+used for ensuring that the value of the decimal is between
+−2127 and 2127− 1. If the decimal value is out of the range,
+the execution of smart contract will be aborted.
+2. Fixed-size list. Fixed-size list records a constant number of
+items. [33]. We denote a ﬁxed-sizelist as T [X1]...[Xn], where
+T is one of bool, int128, uint256, address, bytes32 and decimal.
+X1, ..., Xn are constant numbers known in compilation, and
+n is the dimension and n≥ 1. The layout and accessing
+pattern of a ﬁxed-size list is the same as that of a static array
+in the external mode of Solidity. To access a list item, bound
+checks are used to prevent the overrun of the list if the index
+is a variable.
+3. Fixed-size byte array. A ﬁxed-size byte array is a byte se-
+quence with a maximum length, which is given in the source
+code. Its real length which is provided at runtime, should
+not be longer than the maximum size. We denote a ﬁxed-
+size byte array as bytes[maxLen], maxLen is a constant value
+denoting the maximum length. The layout and accessing
+pattern for a ﬁxed-size byte array are similar to a bytes in
+the public mode of Solidity, except that 32 (the size of the
+num ﬁeld) + maxLen are read from the call data. That is, the
+extended bytes of a ﬁxed-size byte array are not read.
+4. Fixed-size string. We denote a ﬁxed-size string as
+string[maxLen], where maxLen is a constant value represent-
+ing the maximum length of the string. The layout and the
+way to read a ﬁxed-sizestring from the call data are the same
+as that of a ﬁxed-size byte array. The difference between the
+two types lies in that a ﬁxed-size byte array allows accessing
+its individual byte whereas a ﬁxed-size byte array does not
+allow it.
+5. struct. struct is a container type that can host several
+variables. We denote a struct as (T1, ..., Tn), where n is a
+constant value indicating n struct items and Ti can be one
+of the following types, bool, int128, uint256, address, bytes32
+and decimal [33]. The layout of a struct is the same as that
+of all its items as if they were not placed inside the struct.
+The bytecode to read a struct item is also the same as the
+bytecode to read the item as if it was not inside the struct.
+Therefore, there is no sufﬁcient hint from the bytecode to
+distinguish these two different types. Listing 6 shows a
+function signature which takes in a struct containing two
+uint256 items, and Listing 7 presents a function taking in
+two uint256 parameters. The layouts of the struct and two
+individual uint256 parameters are the same, as shown in Fig.
+10.
+1 s t r u c t StructSample :
+2 a : uint256
+3 b : uint256
+4 def Func ( var1 : StructSample )
+Listing 6. A function taking in a struct with two uint256 items
+1 def FuncSample ( a : uint256 , b : uint256 )
+Listing 7. A function taking in two uint256 parameters
+4 bytes 32 bytes
+offset2 offset3 num2 1 2 num3num1
+offset1 ... ...id
+3
+32 bytes
+4 bytes 32 bytes
+offset2 1 2
+offset1 ... ...id
+32 bytes
+3 num1
+id uint256
+4 bytes
+uint256
+a b
+(uint, uint) 32 bytes
+id uint256
+4 bytes
+uint256
+a b
+Fig. 10. The layout of a struct containing two uint256 items is the same
+to that of two individual uint256 parameters
+3 R ULES FOR TYPE INFERENCE
+This section ﬁrst introduces the method to generate rules,
+and then describes the ﬁrst four rules. We brieﬂy introduce
+the remaining 27 rules, and elaborate more on them in
+Supplementary material C.
+3.1 Rules Generation
+We propose a systematic approach to generate rules. The ba-
+sic idea is to ﬁrst learn the accessing patterns automatically
+from the bytecode of self-generated smart contracts and then
+summarize the rules manually, which are used by SigRec
+to recover function signatures from the bytecode of other
+smart contracts. Our approach has ﬁve steps. Since the ﬁrst
+four steps are automated, it can be easily extended to handle
+new accessing patterns due to new compilers/programming
+language/obfuscation techniques and new parameter types
+(discussed in §7).
+
+7
+Step 1. Preparing smart contracts and their bytecode. We
+develop a tool to automatically construct smart contracts
+and compile them into bytecode, from which the rules
+will be learned. We develop smart contracts in Solidity
+and Vyper since they are the most popular languages for
+developing Ethereum smart contracts. To ensure the com-
+pleteness of the derived rules, we consider all parameter
+types supported in Solidity and Vyper, all major versions
+of compilers as well as various optimization levels. More
+speciﬁcally, each smart contract contains one public or ex-
+ternal function. Since we ﬁnd that smart contracts handle
+the different parameters of a function independently, each
+generated function just has one parameter to ease rule
+learning. To expose the accessing patterns of parameters, the
+body of each generated function contains statements to ac-
+cess the parameter, e.g., assignments, arithmetic operations,
+comparisons, reading one byte from bytes and bytes32, and
+reading one array item.
+We consider all basic types with all possible widths,
+e.g., uint8, uint16, ..., uint256. Since the upper bound of the
+array dimension and the upper bound of the size of a static
+dimension are undocumented, we ﬁrst identify the patterns
+with concrete number of dimensions and then generalize the
+pattern for all possible dimensions. Speciﬁcally, we set array
+dimensions from 1 to 5 and each dimension can be static or
+dynamic. For each static dimension, we set its size from 1 to
+10. The items of an array are set to one of supported basic
+types with all possible widths (e.g., uint8, uint16, ..., uint256).
+Step 2. Collecting the accessing pattern of each parameter
+type. We conduct data dependence analysis and control
+dependence analysis to locate the EVM instruction sequence
+used to access the parameter of each generated function,
+which are required in subsequent steps. We consider such
+instruction sequence as an accessing pattern. Speciﬁcally,
+the instructions which are data dependent with parameters
+are needed in step 4 for collecting the symbolic expressions
+of variables. Step 5 needs the control dependency relations
+to infer the structure of some complicated parameter types.
+For example, TASE infers the loop structure from the EVM
+instructions that are control dependent on the instruction
+for reading the call data to discover n-dimensional dynamic
+array.
+Step 3. Extracting common accessing patterns. We observe
+that the access patterns for some parameters types (e.g.,uint8
+and uint16) are similar, and thus this step extracts common
+access patterns from the accessing patterns obtained in step
+2. We regard an instruction sequence as the common access-
+ing pattern of some accessing patterns if it appears in all
+these accessing patterns. For example, from step 2 we obtain
+the accessing patterns of uint8, uint16, ..., uint256 in Solidity,
+and then in this step we try to extract the common accessing
+pattern from these patterns to facilitate the derivation of
+the rule for uint with all possible widths. On the contrary,
+bool, int128, uint256, address, bytes32, decimal of Vyper are
+basic types, we skip the step for them because these types
+have ﬁxed widths. Besides, we omit the description about
+the ﬁxed-size list of Vyper because it is equivalent to the
+static array of Solidity.
+Basic types of Solidity. We use unsigned integers as an ex-
+ample, and the other basic types are handled similarly. We
+extract the common accessing pattern from the accessing
+patterns of uint8, uint16, ..., uint256, which is used in step 5
+to generate a general rule for inferring the unsigned integers
+with all possible widths, uint⟨M ⟩, 8≤ M≤ 256, M%8 ==
+0.
+One-dimensional static array of Solidity. We extract the com-
+mon accessing pattern from the accessing patterns of
+uint8[1], uint8[2], ..., uint8[10]. By retaining the instructions
+in the common accessing pattern but not in the accessing
+pattern of uint8, we further obtain the accessing pattern of
+T[N], 1≤ N≤ 10, T is one of the basic types.
+Multidimensional static array of Solidity. We ﬁrst extract the
+common accessing pattern from the accessing patterns of
+uint8[N1][N2], 1≤ N1, N2 ≤ 10. Then we obtain the ac-
+cessing pattern of T[N1][N2], 1≤ N1, N2≤ 10 by retaining
+the instructions in the common accessing pattern but not
+in the accessing pattern of uint8. Similarly, we obtain the
+accessing patterns of T[N1][N2][N3], T[N1][N2][N3][N4],
+T[N1][N2][N3][N4][N5], 1≤ N1, N2, N3, N4, N5≤ 10.
+One-dimensional dynamic array of Solidity. We regard the EVM
+instructions that are in the accessing pattern ofuint8[] but not
+in the accessing pattern of uint8 as the common accessing
+pattern of T[].
+Multidimensional dynamic array of Solidity. We extract the
+common accessing pattern from accessing patterns of
+uint8[N1][], 1≤ N1≤ 10. By retaining the EVM instructions
+that appear in such common accessing pattern but not in the
+accessing pattern of uint8, we obtain the accessing pattern of
+T[N1][], 1≤ N1 ≤ 10. We also obtain the accessing pat-
+terns of T[N1][N2][], T[N1][N2][N3][], T[N1][N2][N3][N4][],
+1≤ N1, N2, N3, N4≤ 10 through the same process.
+Nested array of Solidity. We extract the common accessing
+pattern from the accessing patterns of uint8[][N1], 1≤ N1≤
+10 or N1 is empty. By retaining the EVM instructions that
+appear in such common accessing pattern but not in the
+accessing pattern of uint8, we obtain the accessing pat-
+tern of T[][ N1], 1 ≤ N1 ≤ 10 or N1 is empty. We also
+obtain the accessing pattern of T[ N1][N2][N3]][N4]][N5],
+1≤ N1, N2, N3, N4, N5≤ 10 and at least one of N1 to N4
+is empty through the same process.
+Fixed-size byte array of Vyper. We obtain the accessing pat-
+tern of bytes[maxLen] by extracting the common accessing
+pattern from the accessing patterns of bytes[1], bytes[2],...,
+bytes[50].
+Fixed-size string of Vyper. We obtain the accessing pattern of
+string[maxLen] by extracting the common accessing pattern
+from the accessing patterns ofstring[1], string[2],..., string[50].
+struct of Solidity. we extract the accessing pattern of ( uint8[]).
+By retaining the EVM instructions that appear in such
+accessing pattern but not in the accessing pattern of uint8[],
+which is extracted above, we obtain the accessing pattern of
+the struct type of Solidity.
+struct of Vyper. we extract the common accessing pattern
+from accessing patterns of ( uint256). By retaining the EVM
+instructions that appear in such common accessing pattern
+but not in the accessing pattern of uint256, we obtain the
+accessing pattern of the struct type of Vyper.
+Step 4. Generating symbolic expressions from parameters.
+To characterize how parameters are handled by EVM in-
+structions, we conduct symbolic execution on the common
+accessing patterns obtained in step 3 by treating the call data
+as symbols, and collect the symbolic expressions for each
+
+8
+variable. Step 5 needs symbolic expressions to summarize
+rules.
+Step 5. Summarizing rules. We summarize the rules ac-
+cording to the common accessing patterns obtained in step
+3 and the symbolic expressions collected in step 4, and then
+organize them into a decision tree (Fig. 13) for fast rule
+checking. To determine the rules for arrays, we investigate
+how the accessing patterns change when its dimension
+increases from 1 to 5 and the number of items per-dimension
+increases from 1 to 10. Eventually, we generate 18 rules
+and divide them into three categories for CALLDATALOAD
+(§3.2), CALLDATACOPY (§3.3), and other instructions (§3.4),
+respectively.
+3.2 Rules for CALLDATALOAD
+A CALLDATALOADcan read 3 kinds of data from the call data
+(§2): (1) the value of a parameter; (2) the offset ﬁeld of a
+parameter; (3) the num ﬁeld of a parameter.
+R1: R1 is used to infer a dynamic array/bytes/string. It
+holds if two CALLDATALOADs (termed by CALLDATALOAD1 and
+CALLDATALOAD2) satisfy that x = CALLDATALOAD1(loc)∧y =
+CALLDATALOAD2(x + 0x4), where x = CALLDATALOAD1(loc)
+means that a 32-bytes value is read from the loc byte of
+the call data into x by a CALLDATALOAD. Actually, x is the
+offset ﬁeld of a dynamic array/bytes/string parameter. CALL-
+DATALOAD2 reads the num ﬁeld of the parameter, because the
+location of the num ﬁeld is the value of the offset ﬁeld plus
+the length of the function id (i.e., 4 bytes).
+R2: R2 is used to infer an n-dimensional ( n > 1) dynamic
+array in an external function. It holds if three requirements,
+v1, v2, v3 are satisﬁed. Let exp(loc) represent the symbolic
+expression of the location loc, which describes how loc is
+computed from symbols. Let exp(p)⋄ q denote that the sym-
+bolic expression of p (e.g., x + y× 5) contains the symbolic
+expression q (e.g., y× 5). v1 is deﬁned as exp(loc)⋄ (offset+),
+meaning that the read location is computed by adding the
+value of the offset ﬁeld, because array items are placed after
+the num ﬁeld, which is pointed by the offset ﬁeld. Hence, if
+a CALLDATALOADreads an item from a dynamic array in the
+external model, v1 is satisﬁed.
+v2 is deﬁned as exp(loc)⋄ (32×), meaning that the
+symbolic expression of loc contains the multiplication of 32.
+If a CALLDATALOADreads an item from a dynamic array pa-
+rameter in an external function, v2 is satisﬁed, because each
+array item is extended to 32 bytes so that the multiplication
+of 32 is needed to access an array item.
+Before introducing v3, we let numn =
+CALLDATALOAD(num) indicate that a CALLDATALOAD reads
+the value of the num ﬁeld and assigns it to numn.
+numn−1, ..., num1 are constant numbers, and LTj(ij, numj)
+means that an LT instruction compares a number ij with a
+number numj. Let insi  insj indicate that the instruction
+insj is control-ﬂow dependent on the instruction insi. v3
+is deﬁned as LTn(in, numn)  LTn−1(in−1, numn−1)  ... 
+LT1(i1, num1)  CALLDATALOAD(loc). v3 is satisﬁed if the
+CALLDATALOADfor reading the array item is within a nested
+loop. Hence, if a CALLDATALOAD(loc) reads an item from
+a dynamic array in an external function, v3 is satisﬁed,
+because n bound checks (i.e., n LTs) for preventing array
+overrun are located between the two CALLDATALOADs.
+Hence, if v1, v2, and v3 are all fulﬁlled, the dynamic array
+is n-dimensional, and numn−1, ..., num1 are the sizes of the
+lower n− 1 dimensions, respectively. We give an example
+in Supplementary material D to explain this rule.
+R3: R3 is used to infer an n-dimensional (n > 1) static array
+in an external function. It depends on two requirements v1
+and v2. v1 is deﬁned as ¬(exp(loc)⋄ (offset)), where “ ¬”
+means negation. v1 means that the read location is not com-
+puted from the offset ﬁeld. If a CALLDATALOADreads an item
+from a static array in an external function, v1 holds because
+the layout of a static array does not have an offset ﬁeld (Fig.
+5). v2 is deﬁned as LTn(in, numn)  LTn−1(in−1, numn−1) 
+...  LT1(i1, num1)  CALLDATALOAD(loc). v2 is the same as
+v3 of R2. If a CALLDATALOAD(loc) reads an item from an
+n-dimensional static array parameter in an external func-
+tion, v2 holds because there are n bound checks for each
+dimension in a nested loop to prevent array overrun before
+reading the array item. Hence, if v1 and v2 are satisﬁed,
+the static array is n-dimensional, and the item numbers
+from the highest dimension to the lowest dimension are
+numn, ..., num1, which are all constants since the item num-
+ber of each dimension in a static array is known in compila-
+tion. Supplementary material D uses an example to explain
+this rule due to page limit.
+R4: x is regarded as a uint256, if R1, R2 and R3 are not
+fulﬁlled. R4 means that without sufﬁcient hints we just
+know that the length of x is 32 bytes and thus regard a 32-
+bytes parameter as a uint256. We will reﬁne it to a speciﬁc
+type after using other rules to get more hints.
+R19 is used for inferring a struct nested array parameter.
+R21 and R22 are used for inferring a struct parameter (R21)
+and a nested array parameter (R22). R24 and R25 are used
+for inferring a ﬁxed-size list parameter (R24) and a uint256
+parameter (R25) after R20 is satisﬁed.
+3.3 Rules for CALLDATACOPY
+A CALLDATACOPY reads the value of a parameter(§2). R5
+– R10 and R23 are used for inferring a one-dimensional
+dynamic array/bytes/string parameter in a public function
+(R5), a one-dimensional static array in a public function (R6),
+a one-dimensional dynamic array in a public function (R7), a
+bytes/string in a public function (R8), an (n+1)-dimensional
+(n > 0) static array in a public function (R9), an ( n + 1)-
+dimensional ( n > 0) dynamic array in a public function
+(R10) and a ﬁxed-size byte array and string in Vyper (R23).
+3.4 Rules for Other Instructions
+R11 – R18 will be applied after R4 is satisﬁed (Fig. 13). By
+leveraging them, we can reﬁne a uint256 parameter into a
+uint⟨256− 8× x⟩, 0 < x < 32 (R11), a bytes⟨32− x⟩, 0 <
+x < 32 (R12), an int⟨(x + 1)× 8⟩, 0≤ x < 31 (R13 ), a bool
+(R14), an int256 (R15), an address (R16), a bytes (R17), and
+a bytes32 (R18). R20 is used to distinguish Vyper bytecode
+from Solidity bytecode. R26 is used for inferring a ﬁxed-size
+byte arrayparameter in Vyper after R23 is satisﬁed. R27 – R31
+will be applied after R25 is satisﬁed (Fig. 13). By leveraging
+them, we can reﬁne a uint256 parameter into an address
+(R27), an int128 (R28), a decimal (R29), a bool (R30), a bytes32
+(R31) in Vyper.
+
+9
+393
+394
+395
+396
+397
+398
+399
+400
+401
+402
+403
+404
+405
+406
+407
+408
+409
+410
+411
+412
+413
+414
+415
+416
+417
+418
+419
+420
+421
+422
+423
+424
+425
+426
+427
+428
+429
+430
+431
+432
+433
+434
+435
+436
+437
+438
+439
+440
+441
+Short Title 1:9
+Rules for CALLDATALOAD
+x =CALLDATALOAD1(loc) y=CALLDATALOAD2(x +4)
+Solidity unknown ▶ dynamic array/bytes/string (R1)
+exp (loc)⋄(offset+) exp (loc)⋄(32×) LTn (in ,numn )◁LTn− 1(in− 1,numn− 1)◁...◁LT1(i1,num1)◁CALLDATALOAD(loc)
+numn=CALLDATALOAD(num) numn− 1,...,num1: Constant
+dynamic array/bytes/string ▶ dynamic array in external mode (R2)
+¬(exp (loc)⋄(offset)) LTn (in ,numn )◁LTn− 1(in− 1,numn− 1)◁...◁LT1(i1,num1)◁CALLDATALOAD(loc)
+numn ,...,num1: Constant
+Solidity unknown ▶ static array in external mode (R3)
+x =CALLDATALOAD(loc)
+Solidity unknown ▶ uint256 (R4)
+offset1=CALLDATALOAD1(loc1)◁offset2=CALLDATALOAD2(loc2)◁...◁offsetn =CALLDATALOADn (locn ) n >2
+(loc1: Constant)∧ (exp (loc2)⋄(offset1)) ∧...∧(exp (locn )⋄(offsetn− 1))
+Solidity unknown ▶ struct/nested array (R19)
+offset1=CALLDATALOAD(loc)◁∄LT (i,CALLDATALOAD(offset1+0x 4))◁CALLDATALOAD(offset1+0x 4+0x 32×i)
+loc: Constant
+struct/nested array ▶ struct (R21)
+LT(in ,numn )◁LT(in− 1,numn− 1)◁...◁LT(i1,num 1)◁CALLDATALOADn+1(loc )
+exp (loc)⋄(offsetn ) offsetn is defined in R19
+num x :Constant/Variable at least one of num1 ...numn− 1 should be variable
+struct/nested array ▶ nested array (R22)
+¬(exp (loc)⋄(offset)) LTn (in ,numn )◁LTn− 1(in− 1,numn− 1)◁...◁LT1(i1,num1)◁CALLDATALOAD(loc)
+numn ,...,num1: Constant
+Vyper unknown ▶ fixed-size list (R24)
+x =CALLDATALOAD(loc)
+Vyper unknown ▶ uint256 (R25)
+..............................................................................................................................................................................
+Rules for CALLDATACOPY
+∄LT◁CALLDATACOPY(offsetm,x +36,len) x is defined in R1
+dynamic array/bytes/string ▶ one-dimensional dynamic array/bytes/string in public mode (R5)
+∄LT◁CALLDATACOPY(offsetm,offsetc,len) offsetc,len: Constant
+Solidity unknown ▶ one-dimensional static array in the public mode (R6)
+len==32×y len is defined in R5 yis defined in R1
+one-dimensional dynamic array/bytes/string ▶ one-dimensional dynamic array in public mode (R7)
+len==32×⌈y/32⌉ len is defined in R5 yis defined in R1
+one-dimensional dynamic array/bytes/string ▶ bytes/string in public mode (R8)
+LTn (in ,numn )◁LTn− 1(in− 1,numn− 1)◁...◁LT1(i1,num1)◁CALLDATACOPY(offsetm,offsetc,len)
+numn ,...,num1,len: Constant
+Solidity unknown ▶ (n+1)-dimensional static array in public mode (R9)
+LTn (in ,y)◁LTn− 1(in− 1,numn− 1)◁...◁LT1(i1,num1)◁CALLDATACOPY(offsetm,offsetc,len) yis defined in R1
+numn− 1,...,num1: Constant
+dynamic array/bytes/string ▶ (n+1)-dimensional dynamic array in public mode (R10)
+x =CALLDATALOAD(loc ) CALLDATACOPY(offset m ,offset c ,len ) len :Constant exp (offset c )⋄(x )
+Vyper unknown ▶ fixed-size byte array/string (R23)
+..............................................................................................................................................................................
+Rules for Other Instructions
+AND(op1,op2) op1:uint256 op2:Constant with x leading zero-bytes
+uint256 ▶ uint ⟨M⟩ (R11)
+AND(op1,op2) op1:uint256 op2:Constant with x trailing zero-bytes
+uint256 ▶ bytes ⟨M⟩ (R12)
+SIGEXTEND(op ,x ) op :uint256 x :Constant
+uint256 ▶ int ⟨M⟩ (R13) x =ISZERO(op ) y=ISZERO(x ) op :uint256
+uint256 ▶ bool (R14)
+SDIV/SMOD/SLT/SGT(op1,op2) op1:uint256
+uint256 ▶ int256 (R15) op1:uint160 op1 is not involved in any MATH(op )
+uint256 ▶ address (R16)
+BYTE/MSTORE8(op ) op :string/bytes
+bytes/string ▶ bytes (R17) BYTE(op ) op :uint256
+uint256 ▶ bytes32 (R18)
+x =CALLDATALOAD(0) MSTORE(offset m ,x )
+unknown ▶ Vyper unknown (R20) BYTE/MSTORE8(op ) op :fixed-size byte array/string
+fixed-size byte array/string ▶ fixed-size byte array (R26)
+LT(op1,op2) op1:uint256 op2:2160
+uint256 ▶ address (R27)
+SLT(op1,op2) SGT(op1,op3) op1:uint256 op2:2127− 1 op3:− 2127
+uint256 ▶ int128 (R28)
+SLT(op1,op2) SGT(op1,op3) op1:uint256 op2:2127− 1 op3:− 2127
+uint256 ▶ decimal (R29)
+LT(op1,op2) op1:uint256 op2:2
+uint256 ▶ bool (R30) BYTE/MSTORE8(op ) op :string/bytes
+uint256 ▶ bytes32 (R31)
+Proc. ACM Program. Lang., Vol. 1, No. CONF, Article 1. Publication date: January 2018.
+Fig. 11. Rules
+4 D ESIGN AND IMPLEMENTATION OF SI GRE C
+4.1 Overview
+Fig. 12 shows the architecture of SigRec which takes in the
+runtime bytecode of a smart contract and outputs the func-
+tion signatures of all public/external functions in it. SigRec
+ﬁrst disassembles the bytecode using Geth disassembler [34]
+and recognizes basic blocks from them, then extracts func-
+tion ids from the bytecode. Technical details are presented
+in Supplementary material E. After that, it uses TASE to
+infer the types of all parameters (§4.2). Finally, it outputs
+the function ids as well as the list of parameter types. The
+reasons for using TASE rather than conventional SE and
+other methods are explained in Supplementary material F.
+4.2 TASE: Type-aware Symbolic Execution
+Being the core of SigRec, TASE has four steps. First, it
+conducts coarse-grained type inference to recognize Solidity
+and Vyper bytecode, and then it recognizes struct, arrays,
+bytes, strings and basic types of Solidity, and ﬁxed-size lists,
+ﬁxed-size byte arrays, ﬁxed-size strings and basic types of
+
+10
+bytecode
+0x6080604052
+348015610010
+57600080fd5b
+506...
+0xa9059cbb(address,uint256)
+0x42f5b7e0(uint256,uint256[4])
+......
+signatures
+disassemble
+ block
+recognition
+function
+recognition
+0xa9059cbb
+0x42f5b7e0
+......
+function ids
+(address,uint256)
+(uint256,uint256[4])
+......
+type lists
+coarse
+type infer
+para num & 
+order infer
+symbol 
+introduction
+fine
+type infer
+TASE
+step 1 step 2 step 3 step 4
+blocks
+1st block
+Fig. 12. Architecture of SigRec
+Vyper. This step only determines whether a parameter is
+a basic type instead of deciding the speciﬁc basic type,
+and this step does not infer the type of array items, the
+type of struct items, and this step does not distinguish a
+bytes from a string. Second, it infers the number and the or-
+der of parameters. Third, by introducing parameter-related
+symbols when reading arguments from the call data, TASE
+determines whether an instruction operates on an argument
+and which argument is operated if that is the case. Finally, it
+conducts ﬁne-grained type inference to distinguish different
+basic types for Solidity and Vyper, recognizes the item types
+of arrays, nested array s, and each item type of struct for
+Solidity and the item types of ﬁxed-size list for Vyper, and
+reﬁnes the types (e.g., from uint256 to bytes32) for Solidity
+and Vyper.
+TASE treats the call data as symbols and maintains the
+symbolic expressions of all variables depending on the call
+data in order to apply the rules. TASE enhances conven-
+tional symbolic execution (CSE) with the ability to infer
+parameter types. It conducts symbolic execution (SE) to
+statically explores the paths of the smart contract and stops
+if the jump target is determined by inputs (e.g., function
+parameters), because inputs are unknown in static analysis.
+This restriction is not a big problem in practice since we only
+ﬁnd 5 smart contracts deployed in Ethereum containing
+such kind of jump instructions, and TASE usually does
+not need to analyze the code deep inside smart contracts
+because parameters are usually handled near the entry
+point of each function. TASE treats each value read from
+the environment as a free symbol, because SigRec focuses
+on how a smart contract processes the parameters rather
+than its program logic. Experimental results show that these
+two restrictions do not affect SigRec’s accuracy (§5.2). After
+describing the details of TASE, we present the differences
+between TASE and CSE, as well as the rationale of using
+TASE instead of other approaches.
+Step 1. Coarse-grained type inference.
+At this step, TASE recognizes struct, arrays, bytes, strings
+and basic types in Solidity, and ﬁxed-size lists, ﬁxed-siz

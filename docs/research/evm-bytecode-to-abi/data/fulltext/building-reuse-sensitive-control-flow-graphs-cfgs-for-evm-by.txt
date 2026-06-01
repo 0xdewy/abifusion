@@ -1,0 +1,1369 @@
+# Building Reuse-Sensitive Control Flow Graphs (CFGs) for EVM Bytecode
+DOI: None
+Source: https://arxiv.org/pdf/2505.14437 (pdf)
+[TRUNCATED to 60000 chars]
+======================================================================
+
+arXiv:2505.14437v1  [cs.SE]  20 May 2025
+JOURNAL OF LATEX CLASS FILES, VOL. 14, NO. 8, AUGUST 2021 1
+Building Reuse-Sensitive Control Flow Graphs
+(CFGs) for EVM Bytecode
+Dingding Wang, Jianting He, Yizheng Yang, Lei Wu, Rui Chang, Yajin Zhou
+Abstract—The emergence of smart contracts brings security
+risks, exposing users to the threat of losing valuable cryp-
+tocurrencies, underscoring the urgency of meticulous scrutiny.
+Nevertheless, the static analysis of smart contracts in EVM
+bytecode faces obstacles due to flawed primitives resulting from
+code reuse introduced by compilers. Code reuse, a phenomenon
+where identical code executes in diverse contexts, engenders
+semantic ambiguities and redundant control-flow dependencies
+within reuse-insensitive CFGs.
+This work delves into the exploration of code reuse within
+EVM bytecode, outlining prevalent reuse patterns, and introduc-
+ing Esuer, a tool that dynamically identifies code reuse when
+constructing CFGs. Leveraging taint analysis to dynamically
+identify reuse contexts, Esuer identifies code reuse by comparing
+multiple contexts for a basic block and replicates reused code
+for a reuse-sensitive CFG. Evaluation involving 10,000 prevalent
+smart contracts, compared with six leading tools, demonstrates
+Esuer ’s ability to notably refine CFG precision. It achieves an
+execution trace coverage of 99.94% and an F1-score of 97.02%
+for accurate identification of reused code. Furthermore, Esuer
+attains a success rate of 99.25%, with an average execution
+time of 1.06 seconds, outpacing tools generating reuse-insensitive
+CFGs. Esuer’s efficacy in assisting identifying vulnerabilities such
+as tx.origin and reentrancy vulnerabilities, achieving F1-scores
+of 99.97% and 99.67%, respectively.
+Index Terms—Control Flow Graph, EVM , bytecode
+I. I NTRODUCTION
+Nowadays, smart contracts have gained widespread popu-
+larity, involving billions of USD every day. At the same time,
+smart contracts are error-prone [1]–[3] or malicious [4], [5],
+resulting in a potentially high financial risk to their users. For
+instance, in 2022, attacks on vulnerable smart contracts caused
+a loss of about 4 billion USD [6].
+To mitigate the threat, static analysis tools have been
+developed to detect benign but vulnerable smart contracts
+and malicious contracts . Several tools [7]–[14] operate on
+EVM bytecode, which represents the compiled form of smart
+contracts. The absence of verified source code constitutes a key
+enabling factor for these tools. Studies [15], [16] indicate that
+approximately 77.3% of deployed smart contracts lack verified
+source code on Etherscan [17]. Significantly, the source code
+for almost all malicious smart contracts remains inaccessible.
+Furthermore, even among open-source smart contracts, about
+11.9% contain inline assembly code that poses challenges for
+source-level analysis tools.
+Dingding Wang, Yizheng Yang, Lei Wu, Rui Chang, Yajin Zhou are with the
+School of Cyber Science and Technology, Zhejiang University, Hangzhou,
+China. Jianting He is with the Blocksec Team, Hangzhou, China.
+Email: dingdingwang@zju.edu.cn, jthe@blocksec.com, {yizhengyang,
+lei wu, crix1021, yajin zhou}@zju.edu.cn.
+Corresponding author: Yajin Zhou.
+Limitations of existing tools However, the efficacy of static
+analysis tools is significantly hindered by the limitations within
+CFGs due to code reuse in EVM bytecode. Code reuse occurs
+when two distinct execution paths share basic blocks (BBs)
+in bytecode, despite having disparate contexts. It is generated
+by compilers to compress smart contract size, which can save
+transaction fees for deploying. However, this practice poses
+intricate challenges for static analysis tools. Existing tools
+neglect code reuse and generate reuse-insensitive CFGs, which
+contain an explosion of control-flow dependency because of
+disparate execution contexts for the same BB. While certain
+decompilers [15], [18], [19] work on recovering functions,
+which eases the explosion, they cannot eliminate code reuse in
+generated CFGs. The limitations on the reuse-insensitive CFG
+for EVM bytecode are explained in detail in §III.
+Our observations and solution Code reuse presents com-
+plex implications for static analysis. Despite mentions in
+previous work [15], [19] regarding compiler optimizations in
+code reuse, a comprehensive investigation is absent. Conse-
+quently, we systematically study the root cause and impacts
+of code reuse to enable reuse-sensitive analysis. In summary,
+we extract eight prevalent code reuse patterns and elucidate
+two challenges in reuse-sensitive analysis in §IV.
+In response to the challenges, we introduce Esuer, a tool
+tailored to generate reuse-sensitive CFGs for EVM bytecode.
+Esuer’s workflow involves bytecode preprocessing for BB
+generation (§V-A) and iterative construction of reuse-sensitive
+CFGs (§V-B). The construction begins with an empty stack at
+the first block, with each iteration handling a BB and finding
+its successors, progressing through successors until all control-
+flow transfers are addressed. Each iteration comprises three
+steps, dynamically completing the reuse context for each BB.
+With insights into code reuse, Esuer utilizes jump operands
+on the stack to determine the reuse context, where distinct
+contexts for the same BB signify code reuse. Specifically,
+Esuer captures stack state snapshots (§V-B1), taints reuse
+context based on snapshots (§V-B2), and finds a non-reused
+successor or generates a clone if necessary (§V-B3). Detection
+of reuse relies on comparing reuse contexts across iterations.
+We conduct a comprehensive evaluation of Esuer by com-
+paring it with six SoA tools. The assessments in precision
+and performance utilize 10,000 prevalent smart contracts as
+dataset. The results show that Esuer achieves the best preci-
+sion, with a execution trace coverage of 99.94%, the fewest
+infeasible paths, and a F1-score of 97.02% in code reuse iden-
+tification correctness. In addition, Esuer achieves the highest
+success rate at 99.25%, with an average execution time of 1.06
+seconds, surpassing most tools that construct reuse-insensitive
+
+JOURNAL OF LATEX CLASS FILES, VOL. 14, NO. 8, AUGUST 2021 2
+CFGs, while demonstrating robust performance across smart
+contract sizes. Furthermore, we evaluate the effectiveness of
+Esuer in downstream static analysis with SolidiFi dataset [20].
+Detectors based on Esuer achieve a F1-score of 99.97% to
+detect tx.origin vulnerabilities and a F1-score of 99.67% to
+detect reentrancy vulnerabilities. The outperformance of Esuer
+in terms of precision, performance, and effectiveness provides
+strong evidence of its reliability and potential.
+In summary, our work makes the following contributions.
+• We are the first to study code reuse introduced by compilers,
+proposing insights on common code reuse patterns and
+challenges to static analysis of EVM bytecode.
+• We propose a method to address the code reuse issue, and
+implement Esuer to construct reuse-sensitive CFGs.
+• We evaluate Esuer with six SoA tools, demonstrating its
+superiority in precision, performance, and effectiveness.
+II. B ACKGROUND
+A. EVM Bytecode
+Ethereum Virtual Machine (EVM), is the defacto standard to
+execute smart contracts, used by many popular programmable
+blockchains, such as Ethereum [21], Binance Smart Chain
+(BSC) [22], and Polygon [23]. Its assembly language, EVM
+bytecode, is a stack-based low-level intermediate represen-
+tation where operands are obtained from stack. There are
+some special instructions in the EVM bytecode related to our
+work. First, only the PUSH instructions 1 have data encoded in
+instructions. All other instructions contain only one byte of
+opcode. Second, the instruction JUMPDEST (whose opcode is
+0x5b) is used to denote the addresses of valid jump targets. All
+jumps to other instructions except JUMPDEST will be reverted
+by EVM. Third, the JUMP instructions (including unconditional
+JUMP and conditional JUMPI) uses the top value in the stack as
+jump targets, instead of encoding jump targets in instructions
+like x86 or JVM bytecode.
+B. CFG Construction
+CFG is essential for most static techniques, greatly influ-
+encing their effectiveness. CFG is a directed graph, in which
+nodes are BBs and edges are control-flow transfers. BB is a
+sequence of instructions with one entry and one exit. There
+are two special types of nodes in CFG: join node and branch
+node. Join node is the node with multiple predecessors, and
+branch node is the node with multiple successors.
+CFG recovery has been widely discussed in prior work [24]–
+[27]. Two primary strategies for constructing CFG are dis-
+cussed: linear sweep and recursive traversal [26]. Linear sweep
+is to linearly disassemble and split BBs, extract jump targets
+from jump instructions, and add the new edge to the CFG.
+The whole CFG can be constructed in a single pass. However,
+this strategy cannot handle interleaved code and data sections
+(e.g., in ARM assembly language). Recursive traversal is to
+disassemble and analyze a BB, identify its successors, connect
+1 We use PUSH instructions to denote the instructions with opcodes from 0x60
+to 0x7F. They are used to push different lengths of data on the stack.
+them, and repeat the analysis recursively for all successors
+until no new BBs are identified.
+Existing approaches to construct CFGs for EVM bytecode
+take the recursive traversal strategy [7]–[11]. As mentioned
+in §II-A, the jump operands are obtained from the stack.
+For some BBs, their successors can only be achieved with
+contexts in the stack, necessitating stack emulation. Stack
+emulation 2 symbolically emulates the state of the stack during
+traversal. For each instruction, instead of real execution, only
+their effects on the stack (e.g., popping and pushing [21]) are
+emulated. Some works [9], [10] only keep symbols for jump
+instructions in the stack, while others [7], [8] keep symbols
+for all instructions. Our work takes the latter method.
+III. M OTIVATING EXAMPLES
+Code reuse is common in EVM bytecode, primarily moti-
+vated by the need to economize transaction fees in deployment,
+with a capped bytecode size limit of 24,576 bytes. Deploying
+smart contracts incurs transaction fees that escalate in tandem
+with contract size. Consequently, compilers tend to compress
+contract size by reusing identical code snippets [19], [28].
+In this section, we use an example to illustrate the notion
+of code reuse in EVM bytecode and emphasize the necessity
+of reuse-sensitive CFGs for static analysis. For better under-
+standing, we present the example using source code, while
+acknowledging that our work focuses on EVM bytecode. The
+example code is shown in Fig. 1(a), including repetitions of
+the statement ( x+=2) at both line 2 and line 5. As a result, the
+EVM bytecode that reuses the code ( x+=2) will be generated.
+Based on the EVM bytecode with reused code, the con-
+structed reuse-sensitive and reuse-insensitive CFGs are shown
+in Fig. 1(b) and Fig. 1(c), respectively. In the reuse-sensitive
+CFG, the control flow and semantics mirror those of the source
+code, with two conditional jumps leading to four possible
+execution paths. However, a discrepancy arises in the reuse-
+insensitive CFG, where line 1, 3, and 4 all direct to the
+code x+=2, making two unintended loops that do not exist in
+the source code. The semantics in the reuse-insensitive CFG
+changes into a dead loop infinitely increasing the value of x.
+Compared to the reuse-sensitive CFG, the reuse-insensitive
+CFG introduces redundant control-flow dependencies. In the
+reuse-sensitive CFG and the source code, line 3 exclusively
+relies on lines 1 and 2 for control flow. However, in the
+reuse-insensitive CFG, line 3 depends on all other three BBs,
+introducing a false positive. The redundant control-flow de-
+pendencies create infeasible paths that can mislead subsequent
+analyses such as path constraints. For example, in the reuse-
+insensitive CFG, x+=2 can execute under any condition, unlike
+in practice where it only executes if x is less than 1.
+The redundant control-flow dependencies also cause false
+positives in data-flow dependency. We use Static Single As-
+signment (SSA) form, a prevalent primitive, to illustrate data
+flows. Generating SSA form [29]–[31] involves traversing
+paths in CFGs and assigning new symbols upon variable
+2 Stack emulation represents various terms from prior works, such as stack
+model [15], symbolic stack execution [9], [10], and symbolic execution [7].
+
+JOURNAL OF LATEX CLASS FILES, VOL. 14, NO. 8, AUGUST 2021 3
+1 if x < 1:
+2 x += 2
+3 if x < 2:
+4 x *= 2
+5 x += 2
+4
+(a) Example code
+x += 2
+if x < 1
+x += 2 if x < 2
+x *= 2 (b) Reuse-sensitive CFG
+if x < 1
+x += 2
+x *= 2
+if x < 2 (c) Reuse-insensitive CFG
+x4 = Φ(x2,x3)
+x5 = x4 + 2
+if x0 < 1
+x1 = x0 + 2 x2 = Φ(x0,x1)
+if x2 < 2
+x3 = x2 * 2 (d) Reuse-sensitive data analysis
+if x0 < 1
+x3 = Φ(x0,x2,X4)
+x1 = x3 + 2
+x4 = x2 * 2
+x2 = Φ(x0,x1)
+if x2 < 2 (e) Reuse-insensitive data analysis
+Fig. 1. Reuse-sensitive and reuse-insensitive CFGs and data analysis for the example. The reused BB is in gray background.
+Push S
+Jump
+Push X
+Jump
+P X S
+(a) The regular jump
+Push S2Push XJump
+JumpP1
+P2
+X
+S1
+S2
+Push S1Push XJump (b) The jump for code reuse
+Fig. 2. Two different jump patterns in EVM bytecode.
+definition. In cases of multiple values at join nodes, ϕ in-
+structions are created to represent alternatives. Fig. 1(d) and
+Fig. 1(e) depict the data flows based on reuse-sensitive and
+reuse-insensitive CFGs, respectively. In the reuse-sensitive
+SSA form, x2 depends on x0 and x1 , aligning with the source
+code where x in line 3 has a data-flow dependency on x from
+lines 1 and 2. However, in the reuse-insensitive SSA form, x2
+depends on all variables, introducing three false positives.
+IV. O BSERVATIONS ABOUT CODE REUSE
+Based on our analysis of EVM bytecode and the com-
+piler [32], [33], we find that different jump patterns [9], [10],
+[19], [34] facilitate code reuse. Fig. 2 depicts the two most
+common jump patterns. As shown in Fig. 2(a), a regular
+jump involves pushing the jump target immediately before
+the jump instruction, following the sequence ” PUSH offset ,
+JUMP/JUMPI”. Otherwise, Fig. 2(b) shows the jump pattern for
+reuse, where BB X is reused. The jump target of X is not
+pushed inside itself, but in its predecessors P1 and P2 instead,
+enabling X to be reused by two unrelated paths (i.e., P1→S1
+and P2→S2) at runtime.
+Based on different jump patterns, code reuse manifests in
+various forms. We abstract eight reuse patterns from numerous
+contracts, classified into two categories: reuse without control-
+flow structures and reuse with control-flow structures , posing
+distinct challenges for static analysis. These patterns will be
+discussed in detail in the following. Notable is that code reuse
+in practice is more complex, e.g., various patterns may interact
+with one another in intricate ways.
+A. Reuse without Control-flow Structures
+First, we introduce four reuse patterns devoid of control-
+flow structures as shown in Fig. 3. These patterns pose a
+challenge: identification of reused code . It is challenging to
+statically distinguish reuse patterns and conventional control-
+flow structures based solely on graph structures, because there
+exist legitimate cases for each pattern that exhibit identical
+graph structures but vary in semantics.
+Basic fake join node The fake join node is the most
+common and basic reuse pattern, as shown in Fig. 3(a). The
+A B
+X
+C D
+ Reuse-Insensitive 
+A B
+X
+C D
+ Reuse-Sensitive 
+X'
+(a) Basic fake join node
+A
+B
+X
+C
+ Reuse-Insensitive
+A X
+B
+C
+ Reuse-Sensitive
+X' (b) Basic fake loop
+E F
+A B
+X
+E FE F
+A B
+X
+A B
+X
+C D
+ Reuse-Insensitive 
+A B
+X
+C D
+ Reuse-Sensitive 
+X'
+E F
+G H
+E
+G
+B'
+D'
+X''
+F
+H
+(c) Sequences of fake join nodes
+C
+B
+A
+ Reuse-Insensitive Reuse-Sensitive
+D
+E
+C
+BA
+D
+E
+B'
+C'
+B''A'
+B''' (d) Nested fake loops
+Fig. 3. Reuse patterns without real control-flow structures.
+paths A→X→C and B→X→D reuse X, constructing a fake join
+node (A→X and B→X) and a fake branch node ( X→C and X→D)
+in the reuse-insensitive CFG. Meanwhile, the reuse-sensitive
+CFG is two split paths A→X→C and B→X’→D by generating X’
+to avoid overlap. Due to the reuse of X, the reuse-insensitive
+CFG contains two infeasible paths ( A→X→D and B→X→C).
+Basic fake loop When there exists data dependency between
+the paths reusing the same code, a fake loop is formed, as
+shown in Fig. 3(b). The predecessor and the successor of B
+both are X. When X is executed for the first time, its successor
+is B, and for the second time, the successor is C. The reuse-
+insensitive CFG contains a loop between B and X, and X
+has polymorphic jump targets ( B and C). However, in reuse-
+sensitive CFG, there is only one path. The fake loop in the
+reuse-insensitive CFG can mislead following analysis.
+Sequences of fake join nodes Fig. 3(c) shows a sequence of
+fake join nodes led by nested code reuse. The paths A→X→C
+and E→B→X→D→G share X, while the path F→B→X→D→H
+reuses B, X, and D. The nested reuse makes a sequence of fake
+join nodes ( B and X) and fake branch nodes ( X and D) in the
+reuse-insensitive CFG. For blocks C, G, and H, they all have
+two redundant predecessors from the other two paths. As a
+result, the reuse-insensitive CFG contains nine paths while the
+reuse-sensitive CFG only contains three. These false positives
+in reuse-insensitive CFG increase exponentially when fake join
+nodes appear more times. This pattern poses a fact that one
+BB can be reused by different paths with different scope. The
+block X in the paths A→X→C and E→B→X→D→G is reused as a
+single BB, while in paths E→B→X→D→G and F→B→X→D→H is
+reused as a sequence of BBs (B→X→D). This fact indicates that
+Esuer needs to identify the reused code based on the executed
+
+JOURNAL OF LATEX CLASS FILES, VOL. 14, NO. 8, AUGUST 2021 4
+A B
+X
+C D
+ Reuse-Insensitive 
+A B
+X
+C D
+ Reuse-Sensitive 
+X'
+E E
+(a) Fake join node with a real one
+B
+A
+C
+ Reuse-Insensitive
+A
+B C
+ Reuse-Sensitive
+D
+A'
+B' D (b) Fake loop with a real loop
+A B
+XY Z
+A B
+X
+C D
+ Reuse-Insensitive
+Y Z
+A B
+X
+C D
+Y Z
+ Reuse-Sensitive
+X'
+Y' Z'
+(c) Fake join nodes with multiple
+exits
+A
+B
+X
+C
+ Reuse-Insensitive Reuse-Sensitive
+Y
+Z
+A
+B
+X
+C
+Y
+Z
+A'
+X' Y'
+Z'
+(d) Fake loop with control-flow
+transfers
+Fig. 4. Reuse patterns with real control-flow structures.
+path to build reuse-sensitive CFGs.
+Nested fake loops Similar to fake join nodes, fake loops can
+also be nested, as shown in Fig. 3(d). There are two snippets
+of reused code with different scopes. The first only contains
+the block B, while the second contains blocks A, B, and C. The
+second includes the first. The second actually reuses the block
+B twice, and the block B is executed four times. These fake
+loops require dual processing to construct the reuse-sensitive
+CFG, necessitating iterative handling rather than a singular
+cloning process, as the inner loop impacts the outer loop.
+B. Reuse with Control-flow Structures
+Second, we introduce the reuse patterns that involve real
+control-flow structures as shown in Fig. 4. Code reuse mixed
+with real control-flow structures is more complex. These
+patterns present a new challenge that is distinguishing and
+maintaining the real control-flow transfers in the reused code ,
+to ensure the correctness of the semantics in generated CFGs.
+Fake join node with a real one When the fake join node
+is also a real join node, a mixed fake join node is formed,
+as shown in Fig. 4(a). The paths B→X→D and E→X→D join
+at X while the path A→X→C reuses X, forming a mixed fake
+join node. The control flow into X is mixed up with a real
+join ( B→X and E→X) and a fake join ( A→X). The constructed
+reuse-insensitive CFG looks like a join node with 3 in degrees
+and 2 out degrees. This CFG indicates that three predecessors
+(A, B, and E) merge at X and then the control flow splits to two
+successors ( C and D). The following analysis based on this
+CFG will regard both C and D have control-flow dependency
+on all A, B, and E, which conflicts with the real semantics.
+To provide accurate control-flow dependency for this pattern,
+Esuer needs to recognize the fake join from the real join nodes,
+which poses a new challenge. Besides identifying and cloning
+the reused block X, the connection between predecessors and
+successors should be recovered to avoid duplicate copies of
+reused code or the generation of another fake join node.
+Fake join nodes with multiple exits The fake join node can
+also be a real branch node, leading to multiple exits in reused
+code, as shown in Fig. 4(c). The reused code is a cluster of
+Disassembly
+Basic Block
+Identification
+Pre-process
+Bytecode BBs CFG
+Snapshot
+Generation
+Reuse Context
+Update
+Reuse-Sensitive CFG Recovery
+Code Reuse
+Handler
+( Bc , Bs )( Bp , Bc )
+Three-step Iteration for Each BB
+Fig. 5. High-level architecture of Esuer.
+TABLE I
+REFERENCE SYMBOLS
+Bc The BB processed in current iteration
+Bp A predecessor ofBc, which has been processed in previous iterations
+Bs A successor ofBc, which will be processed in following iterations
+Sstart The state of stack before emulation
+Send The state of stack after emulation
+BBs, including blocks X, Y, and Z. Blocks Y and Z both are
+the ends of the code reuse. Block X has a conditional jump
+to Y and Z (real branch node), and Y and Z both jump to the
+same successor (real join node). The reuse-insensitive CFG
+indicates Y and Z both have polymorphic jump targets C and
+D, which is inconsistent with the real semantics. In fact, it is
+impossible that Y goes to C while Z goes to D at the same time.
+Fake loop with control-flow structures Similar to the fake
+join nodes, the fake loop can also contain real control-flow
+structures in the loop body, as shown in Fig. 4(b) and Fig. 4(d).
+In Fig. 4(b), the fake loop contains a real loop in the loop
+body. The real loop consisting of A and B is executed twice
+and reused. Block A has a conditional jump whose fall-through
+edge is to B. Jump target of A is C for the first time, and D for
+the second time. Due to code reuse, block C jumps back to A in
+the reuse-insensitive CFG, forming a fake loop. In Fig. 4(d),
+the reused code is a cluster of BBs including blocks A, X, Y,
+and Z, containing a branch node and a join node. Block Z is
+a real join node as the successor of X and Y. This cluster is
+reused and executed twice with two different successors B and
+C. In the reuse-insensitive CFG, the reuse constructs a fake
+loop. These two patterns both require Esuer to identify the
+real control-flow structures in the fake loop body.
+V. D ESIGN
+In this section, we present Esuer which identifies code
+reuse and constructs reuse-sensitive CFGs for EVM bytecode.
+To enhance comprehension, we offer illustrative examples
+in §V-C. We introduce the core idea of Esuer at first. §IV
+proposes two challenges due to code reuse: identification
+of code reuse and maintaining real control-flow transfers ,
+with various reuse patterns. To address these two challenges
+and handle all patterns, Esuer adopts a dynamic approach to
+identify code reuse during CFG construction. Fundamentally,
+Esuer defines reuse context to identify code reuse generally.
+Definition 1 For each BB, its reuse context is the jump
+operands that are pushed by predecessors in its stack, which
+are also called pre-pushed jump operands in the following.
+The definition of reuse context is based on our insights in
+§IV. First, if the jump operand of a BB is pre-pushed, it
+indicates that this BB can be reused, which can be used to
+identify code reuse. Second, the values of pre-pushed jump
+operands from different predecessors are the same in real join
+
+JOURNAL OF LATEX CLASS FILES, VOL. 14, NO. 8, AUGUST 2021 5
+nodes, and are different in fake join nodes, which can be used
+to maintain real control-flow transfers. Therefore, pre-pushed
+jump operands can be reuse contexts. If the contexts from
+two predecessors are the same, these two predecessors can be
+connected to the same successor. Otherwise, it is code reuse,
+and a new clone of the successor should be generated.
+Based on this core idea, the overview of Esuer is shown in
+Fig. 5, and the reference symbols are shown in Table I. Esuer
+consists of two components: pre-process and reuse-sensitive
+CFG recovery. Pre-process takes bytecode as input and outputs
+identified BBs as nodes in the CFG. Reuse-sensitive CFG
+recovery connects control-flow transfers between BBs, and
+identifies code reuse during the process. To construct CFGs,
+Esuer adopts an iterated method to recursively visit BBs. In
+the recursive traversal, each BB can be visited multiple times,
+and Esuer needs to identify code reuse since the second visit
+by comparing reuse contexts cross visits. Therefore, Esuer
+keeps the snapshots about stack state of each BB for every
+visit ( snapshot generation ), and taints reuse context ( reuse
+context update) in every iteration, to ensure all connections in
+the generated CFG are non-reuse ( code reuse handler ). The
+iterations start from the BB at offset 0x0, and end when all
+control-flow transfers are found. Each iteration emulates Bc
+with context from Bp, and connects Bs to Bc. The Bc becomes
+Bp for the next iteration, and Bs becomes Bc.
+A. Pre-process
+Pre-process consists of disassembly and basic block iden-
+tification. Disassembly translates the hex string into readable
+mnemonics with offsets, and basic block identification splits
+monolithic mnemonics into BBs which will be nodes in CFGs.
+Disassembly Esuer uses linear sweep strategy in disassem-
+bly, to scan bytecode, convert each instruction from hex string
+into its corresponding mnemonic, and increase the program
+counter with the length of the instruction. The mnemonic and
+length of each instruction are recorded in the formal specifi-
+cation of Ethereum [21]. In addition, Esuer skips embedded
+data of PUSH instructions to avoid unintended instructions. If
+data of PUSH instructions are converted into instructions, the
+disassembled instructions will conflict with the real execution.
+Basic block identification Esuer identifies BBs by locating
+JUMPDEST instruction which is used to mark the start of a
+BB. Unlike previous work [8]–[11] that directly strips data
+before identifying BBs, Esuer keeps all data in this process to
+ensure the completeness of generated CFGs. That is because
+developers can deliberately embed code in the data region for
+the purpose of code obfuscation. For instance, the code can be
+put inside the data region of the CODECOPY instruction or the
+metadata section. Removing data and metadata too early can
+lead to an incomplete CFG.
+B. Reuse-sensitive CFG Recovery
+The reuse-sensitive CFG recovery is an iterated and incre-
+mental process, as shown in Algorithm 1. The whole process
+starts from the first BB at code offset 0x0 (Line 1), with
+an empty stack as its Sstart (Line 6), and stops when no
+new control-flow transfers are found. In each iteration, a BB
+Algorithm 1: Reuse-sensitive CFG Recovery
+Input: BBs ; ▷ All BBs identified in pre-process
+Output: CF G
+1 Bc ← The BB at offset 0x0 ; ▷ Initialization
+2 work list ← [(N one, Bc)];
+3 while work list is not empty do
+4 Bp, Bc ← work list.pop() ;
+5 if Bp is None then
+6 Bc.Sstart ←An empty stack;
+7 end
+8 else
+9 Bc.Sstart ← PrepareStack(Bp,Bc);
+10 end
+11 Bc.Send, Off s ← Emulate(Bc) /* Off s is a list containing
+offsets of all Bc’s successors */
+12 Snapshot(Bc.Sstart,Bc.Send) ; ▷ §V-B1
+13 for offset in Off s do
+14 if offset in Bc.Sstart then
+15 UpdateContext(offset) ; ▷ §V-B2
+16 end
+17 Bs ← ReuseHandler(Bc, offset) ; ▷ §V-B3
+18 CF G.add edge(Bc, Bs);
+19 work list.push(Bc, Bs);
+20 end
+21 end
+is symbolically emulated with the stack inherited from its
+predecessors, and its successors are obtained for following
+iterations. There are three steps involved in each iteration.
+Step I: Snapshot generation. The first step works towards
+Bc, including stack emulation and snapshot preservation (Line
+4-12). Esuer symbolically emulates Bc, and keeps Sstart and
+Send as the snapshot of Bc in this visit. This snapshot will be
+used to compare with other snapshots in future visits to decide
+whether Bc is reused (in step III).
+Step II: Reuse context update. This step works towards Bps
+and their clones, updating their reuse context based on taint
+analysis. The reuse context is pre-pushed jump operands in the
+Sstart, which are tainted when the operands are used. In this
+step, Esuer uses the jump operand used in Bc as the initial
+source to collect taint sources and transfer taints.
+Step III: Code reuse handler. The third step works towards
+Bss, detecting reuse of them based on the snapshots with
+tainted reuse context generated in Step I and Step II from
+previous visits. In this step, Esuer selects a non-reuse Bs as
+jump target of Bc, or generates a new clone as Bs if needed.
+After that, the iteration for Bc is finished. And Esuer
+continues to the next iteration for Bs (which will be Bc
+in that iteration). Each step in the iteration affects different
+BBs instead of just Bc. Therefore, iterations can interact with
+each other, helping to construct a reuse-sensitive CFG. In the
+following, we will elaborate on each step.
+1) Snapshot Generation: The initial step in each iteration
+involves creating snapshots for Bc. These snapshots encom-
+pass Sstart and Send, capturing the stack state before and
+after emulation, respectively. The generation of Sstart occurs
+in Algorithm 1 Lines 5-10. For the initial BB with an offset
+of 0x0, its Sstart remains an empty stack. In contrast, for
+other BBs, their Sstart is inherited from Bp.Send (Line 9).
+In cases where Bc has additional predecessors with differing
+Send values from Bp.Send, ϕ instructions are introduced
+to represent multiple potential values. These ϕ instructions
+facilitate the replacement of varying stack values to establish
+the new Bc.Sstart.
+
+JOURNAL OF LATEX CLASS FILES, VOL. 14, NO. 8, AUGUST 2021 6
+Following the acquisition of Sstart for Bc, the stack emula-
+tion process proceeds to derive Send using Sstart as the execu-
+tion context (Line 11). As elucidated in §II-B, Esuer engages
+in stack emulation and leverages symbols in SSA format to
+denote the outcomes of emulated instructions. Each instruction
+involves the popping of stack elements as instruction operands,
+with the subsequent generation of an SSA symbol for pushing
+back to the stack as the return value if the instruction yields
+one. Post-emulation, all instructions within Bc are translated
+into three-address codes annotated with their operands and
+return values represented by SSA symbols or constants.
+2) Reuse Context Update: Reuse context is identified based
+on taint analysis, including taint generation and taint transfer.
+These taints are used in identification of code reuse (Step III).
+Taint generation After stack emulation, the jump target of
+Bc is determined. If this target has been pre-pushed, Esuer
+utilizes it as the initial source and generates taint for it,
+indicating that it belongs to reuse context. That is because
+different pre-pushed jump targets align with the code reuse
+pattern, signifying reused code (§IV).
+Based on the initial source, Esuer collects others taint
+sources by backwards data analysis. By utilizing SSA symbols
+generated in stack emulation (Step I), Esuer builds def-use
+chains for the initial source, and traces back to the origin, i.e.,
+the PUSH instruction that introduces the operand into the stack.
+During this process, Esuer taints all intermediate variables as
+sources. For example, if the variable a is the initial source and
+is calculated by AND(0xffff,b), b is also tainted as a source.
+Taint Transfer Reuse context taints propagate from sources
+based on data dependencies. Moreover, taints are also trans-
+ferred among clones of the same BB, as these clones can share
+locations of reuse context with each other. This sharing arises
+from the fact that identical instructions yield the same effects
+on the stack, involving an equal number of stack pops and
+pushes. Consequently, pre-pushed jump operands that should
+be tainted as reuse context are stored in the same identical
+locations in these clones. For a pair of clones, same values of
+pre-pushed jump operands signify the execution of the same
+instructions, leading to identical locations for the subsequent
+pre-pushed jump operand. Conversely, different pre-pushed
+jump operands between two clones, denoting distinct paths
+that execute different instructions, signal the termination of
+shared reuse context.
+Based on these insights, taint transfers between clones
+following these steps. Initially, Esuer aggregates tainted reuse
+contexts from clones of a basic block, denoted by (stack
+index, value) . Here, the stack index signifies the position
+of the tainted reuse context in the stack, while the value
+represents the value of the tainted variable. Subsequently,
+Esuer facilitates the transfer of taints between clones that
+possess identical values at corresponding locations.
+3) Code Reuse Handler: The third step is to detect code
+reuse when selecting Bs for Bc and generate clones if neces-
+sary. To build a reuse-sensitive CFG, Esuer needs to select a
+BB that is not reused as Bs and connect it to Bc. Snapshots of
+Bs in different iterations are utilized to ensure the connection
+will not lead to code reuse. Specifically, Esuer can obtain the
+offset of Bs from emulated jump instructions in Bc (Line 11
+in Algorithm 1). Because of cloning in previous iterations,
+the same offset can lead to multiple BBs. All these BBs are
+candidates for successors of Bc. Esuer compares the Bc.Send
+with all candidates to select a non-reuse successor as Bs. If
+there are no suitable BBs, a new clone will be generated.
+The selection of the successor is based on the snapshots
+generated by the Step I (§V-B1) with reuse context marked by
+the Step II (§V-B2) in previous iterations. Specifically, Esuer
+compares Bc.Send with Sstart in snapshots of each candidate.
+Given the two stacks, Esuer regards it is not code reuse iff all
+the values of tainted reuse contexts are the same. If Esuer
+cannot find a non-reuse candidate for Bc, a new clone will be
+generated as Bs in the end. When generating the new clone,
+context sharing strategy (§V-B2) is also adopted to initialize
+the reuse context of the new clone, to ensure the reuse context
+of the new clone is sufficient for further reuse identification
+in following iterations.
+C. Example
+An example is used to illustrate the previous steps about
+code reuse identification (§V-B), as shown in Fig. 6. 3.
+Note that, examples only show snippets instead of the whole
+programs. We use BBoff to denote offset of BBs. In the
+example, Block X is a mixed fake join node with a real one.
+There are three steps to construct a reuse-sensitive CFG for it.
+Step 1: Mark reuse context for X. For the first visit, X inherits
+Sstart from A whose Send contains Coff . After emulation,
+Esuer finds that the used jump operand Coff is pre-pushed
+and exists in X.Sstart. Therefore, Esuer taints the Coff in
+X.Sstart as X’s reuse context. Then Esuer explores the path
+recursively until the end.
+Step 2: Identify code reuse with the marked reuse context.
+When exploring other paths, Esuer emulates B and needs to
+find the successor for it. Esuer collects all candidates, which
+are X. Esuer compares the values of tainted reuse context in
+X.Sstart and B.Send. Then Esuer finds that they are not equal
+as one is Coff while another is Doff , which means that A and
+B reuse X. As a result, Esuer cannot find a suitable successor
+for B, and generates a new clone X’. After generation, X shares
+reuse context with X’. Esuer first gathered locations and values
+of tainted reuse context from X, which is Coff at index 1. Then,
+Esuer transfers the taint to the same location in X’, which is
+Doff at index 1. After that, Esuer finds that X and X’ do not
+have the same value at this location, and finishes the sharing.
+Step 3: Select successors with the marked reuse context.
+Esuer finds E whose jump target is also Xoff . Now there
+are two candidates for E’s successor, i.e., X and X’. Esuer
+compares E.Send with X.Sstart and X ′.Sstart, and finds that
+the contents at reuse context from E.Send and X ′.Sstart are
+the same, which both are Doff . Therefore, X’ is the successor
+for E, and Esuer connects them. After that, Esuer solves the
+reuse of X and keeps the real join of B and E.
+VI. E VALUATION
+The evaluation aims to qualify Esuer by answering the
+following research questions.
+3 We also provide another example in our github repo which is more complex
+to explain taint transfers in marking reuse context (§V-B2)
+
+JOURNAL OF LATEX CLASS FILES, VOL. 14, NO. 8, AUGUST 2021 7
+ Reuse-Insensitive CFG 
+2
+Code Reuse
+ Reuse-Sensitive CFG 
+C
+...
+A.Send 
+1 Bp = A , Bc = X
+...
+Jump C
+X
+Mark reuse context (in red) in the first visit
+...
+Push C
+A
+0
+1 C
+...
+X.Sstart 
+Identify code reuse before the second visit
+Bc = B , Bs = X
+D
+...
+B.Send 
+...
+Push D
+B
+C
+...
+X.Sstart 
+X.Sstart[1] != B.Send[1]
+D
+...
+X'.Sstart 
+B
+XX.Sstart 
+C
+...
+X
+A
+C X'B
+A B
+X
+C D
+E A B
+X
+C D
+X'
+E
+3
+Select suitable successors for following visits
+Bc = E , Bs = X
+D
+...
+E.Send 
+...
+Push D
+E
+C
+...
+X.Sstart 
+D
+...
+X'.Sstart X'E
+E
+X'X
+Select X'
+Fig. 6. An example to illustrate the basic idea of Esuer.
+RQ1: Precision. Do CFGs generated by Esuer exhibit higher
+precision by reuse-sensitive analysis? Does the reuse-sensitive
+analysis influence correctness of CFGs? Can Esuer success-
+fully identify all code reuse?
+RQ2: Performance. Can Esuer successfully generate CFGs
+for real-world smart contracts? What is the performance of
+Esuer? Is Esuer scalable, in terms of analyzing smart contracts
+in different sizes?
+RQ3: Effectiveness. How effective is Esuer in solving the
+downstream static analysis problem?
+Dataset We use two datasets for the evaluation. For precision
+and performance, we utilized the most popular smart contracts
+as our dataset for this evaluation. Specifically, we collected
+10,000 unique contracts that had the most transactions from
+September 27, 2021, to September 27, 2022. We obtained the
+compile information for these contracts from Etherscan [17].
+The scale and compiler version distribution of the smart
+contracts in our dataset are shown in Fig. 7(a) and Fig. 7(b),
+respectively. The size of smart contracts in our dataset varies
+from tens of bytes to nearly the maximal size limit, covering
+all possible sizes of smart contracts. This allows us to measure
+the performance of all tools in handling smart contracts
+of different sizes, ensuring a comprehensive evaluation of
+their effectiveness. The compiler configuration of the smart
+contracts in our dataset is also diverse. Although most popular
+smart contracts use the latest version of the Solidity compiler,
+the oldest version is still used. Additionally, while nearly
+all popular smart contracts use the Solidity compiler, some
+contracts use Vyper. This diversity of compiler configurations
+requires the ability of analyzing EVM bytecode with different
+versions of different compilers, making our evaluation com-
+prehensive and applicable to a wide range of smart contracts.
+For effectiveness, we use SolidiFI dataset [35], which
+consists in 50 Ethereum smart contracts whose source code
+has been injected with 9,369 security vulnerabilities by the
+automated approach SolidiFI [20]. This dataset has been used
+to compare the most prominent vulnerability detection tools
+in previous works [9], [10], [20].
+Comparison Tools In this evaluation, we compare Esuer
+with six state-of-the-art (SoA) tools, namely Rattle [8], Van-
+dal [7], Ethersolve [9], [10], Gigahorse [18], [19], Octo-
+pus [11], and Mythril [36]. These tools serve for different aims
+and use different methodologies to generate CFGs. Rattle and
+Vandal are two static analysis frameworks, while Ethersolve is
+a specialized tool that focuses on CFGs. Gigahorse is one of
+the leading decompilers of EVM bytecode. Octopus uses static
+primitives to detect vulnerabilities in smart contracts, while
+0 5 10 15 20 25
+Contract Bytecode Length 
+(thousands)
+0.0
+0.2
+0.4
+0.6
+0.8
+1.0Percentage of Smart Contract
+(a) The CDF for contracts
+size in dataset.
+v0.3.x v0.4.x v0.5.x v0.6.x v0.7.x v0.8.x vyper
+Compiler Version
+0
+1000
+2000
+3000
+4000
+5000
+6000
+7000
+8000Number of Contracts
+3 423 477 769 604
+7657
+67
+(b) The distribution of compiler versions for
+contracts in dataset.
+Fig. 7. The statistics of the dataset.
+Mythril analyzes EVM bytecode with symbolic execution and
+constraint solving techniques. We find that Octopus crashes
+due to unsupported operations and fix them because we are
+more interested in comparing algorithms in CFG generation
+than the imperfection of implementations
+A. Precision
+To answer RQ1, we measure the precision of Esuer from
+path quality in CFGs and the capability to detect code reuse.
+1) Path quality: We measure the quality of paths in a
+CFG to measure the precision of the CFG, for the following
+three reasons. First, paths contain information on control-flow
+dependencies, which is lossless in representing a CFG. Second,
+as mentioned in §IV, code reuse can result in a geometric
+increase in the number of possible paths in CFGs. Therefore,
+a larger number of possible paths can suggest the presence of
+reused code in CFGs. Third, paths can reflect the efficiency
+of subsequent analyses based on the CFG, indicating the
+applicability of the tool.
+Metric We use two metrics to measure the path quality
+of CFGs: the number of paths in CFGs generated by all
+tools, and coverage of execution traces extracted from historic
+transactions. A higher coverage with fewer paths indicates that
+the CFG contains more real execution traces while removing
+infeasible paths introduced by code reuse, which is better
+in precision of control-flow information. We do not use real
+execution traces as ground truth, because real transactions only
+trigger a small part of contracts as most feasible paths are used
+for error handling which are not toughed by transactions.
+Method To measure path number, we take Esuer as base and
+use ratio to represent the number of paths in CFGs generated
+by each tool, as the number of paths can be very large due
+to path explosion. To ensure a fair comparison, for each
+compared tool, we only compare smart contracts for which
+both Esuer and the compared tool can successfully generate
+CFGs. In addition, we exclude Mythril due to its low success
+
+JOURNAL OF LATEX CLASS FILES, VOL. 14, NO. 8, AUGUST 2021 8
+20% 30% 40% 50% 60% 70% 80% 90% 100%
+Execution trace coverage
+1x
+10x
+30x
+100x
+1000x
+3000x
+# of paths in generated CFGs
+ based on Esuer (in logscale)
+(98.83%, 29.70x)
+(94.02%, 1.04x)(23.99%, 1.30x)
+(54.52%, 2739.36x) (59.94%, 3092.25x)
+(99.94%, 1.00x)
+Ethersolve
+Gigahorse
+Octopus
+Vandal
+Rattle
+Esuer
+Fig. 8. The precision of all tools. A higher coverage with fewer paths indicates
+better precision.
+rate (explained in §VI-B). Specifically, to calculate the ratio
+of a compared tool, we use the average of the ratios for all
+common contracts of Esuer and the compared tool. For each
+contract, we use dynamic programming to count paths in the
+CFGs generated by Esuer and the compared tool, and get their
+ratio. For loops in CFGs, we only count once.
+To measure coverage, we collected real execution traces
+from historical transactions of smart contracts in the dataset. In
+total, we collect 252,726,569 transactions and extract 950,221
+execution traces from transactions. Most transactions trigger
+the same execution trace of a contract, which is served as a
+functionality of the contract. To calculate the trace coverage
+of a CFG, we check the existence of execution traces in the
+CFG. After that, we used the average trace coverage of all
+CFGs to represent the trace coverage of a tool.
+Result The results are shown in Fig. 8, demonstrating im-
+provements in path quality achieved by Esuer’s reuse-sensitive
+analysis. The y-axis represents the ratio of the number of
+paths in CFGs generated by each tool to that in Esuer’s CFGs.
+The x-axis represents the execution trace coverage of CFGs
+generated by each tool. A higher value in x-axis means that
+the CFGs generated by the tool cover more real execution
+traces, indicating that CFGs include more feasible paths and
+are more complete. A lower value in y-axis notates generated
+CFGs contain less paths, indicating there are less infeasible
+paths in generated CFGs As a result, Esuer outperforms all
+tools. Esuer has both the smallest number of paths and the
+highest execution trace coverage, which means that Esuer
+provides the most complete control-flow information with the
+fewest infeasible paths. Therefore, it is reasonable to conclude
+that Esuer’s reuse-sensitive analysis is highly effective in
+improving the precision of CFGs.
+The loss of trace coverage is caused by the absence of edges
+in CFGs. For Esuer, there are 138 execution traces not in
+the CFGs, involving two smart contracts. These two contracts
+both use jump operands stored in the memory. Similar to most
+existing static analysis tools towards EVM bytecode , Esuer
+do not emulate contents in memory and storage, leading to
+unknown jump destinations. The problem is rare in present
+contracts, as these two contracts are both compiled by old
+versions of Vyper.
+As for other tools, they lose trace coverage due to flaws
+in their CFG construction method. There are lots of orphan
+BBs in CFGs generated by Octopus, which is the reason
+to both the small amount of paths and low trace coverage.
+That is because Octopus misuses magic code to extract code
+and maintains wrong offset of instructions, leading to failures
+in connecting BBs. Vandal and Rattle both recursively con-
+nect BBs backward with limited stack depth. Without reuse
+analysis, they spend most time and stack depth in infeasible
+edges due to code reuse, and fail to connect feasible edges
+that can be executed in practice. As a result, they both have
+a great amount of paths in CFGs with low trace coverage.
+Gigahorse also uses jump operands as a key feature with
+pattern matching to recover internal functions and clone BBs
+that belong to different extracted functions, which reduces the
+number of paths but also diminishes trace coverage. Intricate
+reuse scenarios coupled with the influence of the compilation
+environment inherently restrict the efficacy of pattern matching
+in EVM bytecode, particularly in addressing complex corner
+cases. Therefore, Esuer uses a dynamic way to complete
+reuse contexts and identify code reuse, which is general and
+accurate regardless of compilation environments. Ethersolve
+uses a forward method to construct CFGs, which makes the
+path amount of it is smaller than Rattle and Vandal. However,
+Ethersolve does not handle code reuse, resulting in its path
+amount nearly 30 times of Esuer. In addition, Ethersolve only
+maintains jump operands in stack, which leads to the loss of
+edges in CFGs. In contrast, Esuer keeps all values in stack,
+which enables Esuer find edges that engage calculation.
+2) Code reuse detection: We measure the capability of code
+reuse detection of Esuer in two aspects: correctness of code
+reuse detection and existence of code reuse in generated CFGs.
+Metric The correctness of code reuse detection is to check
+whether the code reuse identified by Esuer is correct by
+comparing with the compiler. When the identified code reuse
+is also marked as reuse in compiler, it is a true positive (TP).
+If the identified code reuse is not marked by compiler, it is a
+false positive (FP). If the code reuse is marked by the compiler
+but not identified by Esuer, it is a false negative (FN). We use
+the precision ( |TP|
+|TP|+|FP|), recall ( |TP|
+|TP|+|FN |), and F1-score
+( 2×P recision×Recall
+P recision+Recall ) metrics to measure the correctness of
+code reuse detection. ∥ denotes the number of TPs/FPs/FNs.
+The existence of code reuse in generated CFGs is a measure
+of the ability of Esuer to eliminate code reuse. In particular,
+we use the existence of polymorphic jump targets to measure
+the existence of code reuse in CFGs, which is a metric used by
+previous workse [18], [19] to measure precision. Polymorphic
+jump targets means that jumps resolve to more than one
+target for non-fallthrough CFG edges, which is abnormal
+in compiler-generated EVM bytecode. The root cause of
+polymorphic jump targets is that multiple predecessors of
+reused code push different pre-pushed jump operands. In other
+assembly languages, there are other cases that can lead to poly-
+morphic jump targets such as jump tables introduced by switch
+cases or function pointers. However, in EVM bytecode, these
+cases are processed by if-else structures, without polymorphic
+jump targets. Therefore, polymorphic jump targets can be a
+characteristic of code reuse in EVM bytecode.
+Method To get reuse information from the compiler, we
+extract ”tag” information from the assembly. Assembly has the
+
+JOURNAL OF LATEX CLASS FILES, VOL. 14, NO. 8, AUGUST 2021 9
+same semantics as bytecode, and contains more information
+from the compiler, which is the ”tag” information. Tag is
+used by the solidity compiler to flag code snippets [33]. We
+identify code reuse in the assembly by identifying tag reuse.
+Specifically, tag is used in the assembly with the instruction
+”push tag”. If a tag is used in multiple places, all BBs with the
+tag are reused. For example, if there is the instruction ”push
+tag 3” in both tag 1 and tag 2, it means that code in tag 3 is
+reused by tag 1 and tag 2. After achieving reused code in the
+assembly, we compare it with reused code identified by Esuer.
+However, in some cases, the reuse tag in assembly is not
+actually reused in execution. For example, two path after a
+branch both ”push tag”, but one of them reverts before using
+the tag. As a result, the tag is only used once but pushed twice.
+Therefore, we further evaluate the existence of code reuse in
+generated CFGs by ”polymorphic jump targets”. Specifically,
+we count the number of polymorphic jump targets in CFGs.
+Result Esuer achieves precision of 98.16%, recall of
+96.18%, and F1-score of 97.02%. The loss of precision is
+because of FPs, which are introduced by clones of end BBs.
+End BBs are the BBs whose terminators end transactions such
+as STOP and REVERT. Esuer clones end BBs if they have
+multiple predecessors (explained in §VII). However, there do
+exist some shared exit code in the source code. As a result,
+there are some FPs in the generated CFGs. We think it is
+acceptable because clones of end BBs do not cause further
+influences. In addition, these FPs only lead to a small loss
+of precision. The loss of recall is because of FNs, which are
+introduced by the different mechanisms of Esuer and assembly
+to identify code reuse. As mentioned before, in assembly, reuse
+is identified by matching the instruction ”push tag”, but not all
+the pushed tag are used in real execution. Meanwhile, Esuer
+identifies code reuse by stack emulation, which is more similar
+to real execution. Therefore, the tags that are only pushed but
+not used are not identified by Esuer, leading to FNs.
+However, these FNs do not actually lead to code reuse in
+generated CFGs. To prove this, we further count polymorphic
+jump targets in CFGs generated by Esuer. The result is that
+there are no polymorphic jump targets in Esuer-generated
+CFGs. In the meantime, there are 11,769 polymorphic jump
+targets in 1,106 CFGs generated by Gigahorse. The CFGs that
+contain polymorphic jump targets account for 11.17% in all
+Gigahorse-generated CFGs, indicating that Gigahorse does not
+eliminate code reuse. The result proves that the method of
+Esuer can eliminate code reuse in generated CFGs.
+Answer to RQ1 Esuer achieves the best precision with
+the fewest paths and highest execution trace coverage
+of 99.94% compared with other tools. The code reuse
+identified by Esuer achieves a F1-score of 97.02% in
+correctness. In addition, there do not exist polymorphic
+jump targets in CFGs generated by Esuer, indicating Esuer
+successfully eliminates code reuse.
+B. Performance
+To answer RQ2, we evaluate performance of all tools on
+separate dockers with 16GB of memory and 4 cores, running
+64-bit Ubuntu 20.04 LTS system. Each tool is given 120
+TABLE II
+THE PERFORMANCE OF ALL TOOLS .
+Performance Ethersolve Mythril Gigahorse Octopus Vandal Rattle Esuer
+Success Rate 98.81% 5.48% 99.04% 60.57% 94.04% 59.87% 99.25%
+Error Rate 1.14% 0.04% 0 35.23% 0.35% 30.29% 0
+Timeout Rate 0.05% 94.48% 0.96% 4.20% 5.61% 9.84% 0.75%
+Average Time (s) 0.86 42.93 7.40 15.23 24.10 22.45 1.06
+seconds to analyze each smart contract and generate CFGs.
+If a tool does not output anything within the time limit, we
+consider it a timeout for that contract. Additionally, some tools
+may raise exceptions during processing for some contracts
+and fail to generate CFGs successfully, which we deem an
+error. Therefore, there are three possible results: success, error,
+and timeout. We also compare execution time of all tools
+and excludes their error and timeout cases for accuracy. The
+performance of all tools is shown in Table II.
+Success rate Esuer achieves a success rate of 99.25%, which
+is the highest compared to other tools. The timeout cases of
+Esuer are due to dynamically changing reuse context, which
+causes Esuer to continuously generate clones for all 120
+seconds. These cases can be resolved by combining dynamic
+analysis, which is outside the scope of this paper and will be
+considered in the future. For Ethersolve and Octopus, most
+failures are caused by compiler conflicts because they rely
+on some magic code to analyze EVM bytecode. For Mythril,
+the symbolic execution and constraint solver make it time-
+consuming when handling most real-world smart contracts.
+As smart contracts become more complex, the necessity of
+static analysis for them is increasing. Gigahorse also has a high
+success rate, but for some cases, it only generates incomplete
+intermediate analysis results without any error information.
+Vandal and Rattle use a backward strategy to construct CFGs
+from the leaf node to the root node, which makes them suffer
+from redundant data-flow dependencies caused by code reuse.
+Time The average execution time of Esuer is 1.06 seconds,
+the second fastest among all tools. The fastest tool is Ether-
+solve, which is implemented in Java while the others are in
+Python. However, as mentioned in §VI-A, the precision of
+Ethersolve is not that good because of its reuse-insensitive
+CFGs. Although Esuer conducts code reuse identification,
+which Ethersolve does not, the average time of Esuer is
+only 0.2 seconds more than Ethersolve. This proves that the
+algorithm used by Esuer to identify code reuse is lightweight,
+and the overhead is negligible. For Gigahorse, the average
+time is 7.40 seconds, nearly seven times of Esuer. Although
+one may think it is just a few seconds, in practice, it is
+crucial for real-world malware and vulnerabilities detection.
+The real-world attacks happen in real-time, so the time period
+between deploying malicious contracts or vulnerable contracts
+and attacks is limited for analysis. This factor requires a high
+speed of tools to generate static primitives, especially when
+analyzing contracts in blockchains with a short block time
+such as BSC. Therefore, the lightweight of Esuer makes it
+more practical in providing CFGs for large-scale static analysis
+towards real-world smart contracts.
+Scalability We evaluate the scalability of all tools by group-
+ing the success rate and execution time by the size of contracts.
+We divide contract sizes into five levels, with an interval of
+
+JOURNAL OF LATEX CLASS FILES, VOL. 14, NO. 8, AUGUST 2021 10
+0%
+10%
+20%
+30%
+40%
+50%
+60%
+70%
+80%
+90%
+100%
+0%
+10%
+20%
+30%
+40%
+50%
+60%
+70%
+80%
+90%
+100%0 5 10 15 20 250
+20
+40
+60
+80
+100
+Ethersolve
+94.2 99.7 99.6 99.6 98.8
+5.8
+0.3 0.4 0.3 1.00.0 0.0 0.0 0.1 0.2
+0 5 10 15 20 25
+Mythril
+20.9
+6.1
+2.0 1.4 0.60.1 0.0 0.1 0.1 0.0
+79.0 93.9 97.9 98.5 99.4
+0 5 10 15 20 25
+Gigahorse
+100.0 99.9 99.0 98.8 96.1
+0.0 0.0 0.0 0.0 0.00.0 0.1 1.0 1.2 3.9
+0 5 10 15 20 25
+Octopus
+93.4
+53.2
+48.3
+63.4 66.1
+6.2
+43.5 46.1
+31.8
+27.3
+0.4 3.3 5.6 4.8 6.6
+0 5 10 15 20 250
+20
+40
+60
+80
+100
+Vandal
+99.4 99.5 99.4 91.5
+61.7
+0.6 0.5 0.6
+8.5
+38.3
+0.0 0.0 0.0 0.0 0.0
+0 5 10 15 20 25
+Rattle
+61.8
+74.7
+67.8
+29.7
+11.7
+38.2
+25.3
+32.2
+70.3
+88.3
+0.0 0.0 0.0 0.0 0.0
+0 5 10 15 20 25
+Esuer
+Execution Time
+Success
+Error
+Timeout
+100.0 99.7 99.3 98.9 97.5
+0.0 0.0 0.0 0.0 0.10.0 0.3 0.7 1.1 2.4
+Contract Bytecode Length (thousands)
+Average Time Used (s)
+Percentage of Contracts (%)
+Fig. 9. The execution results and execution time of smart contracts of different sizes. The red line represents the average execution time for contracts of
+different sizes (using the left y-axis), and the bars indicate the proportions of each execution state for contracts of different sizes (using the right y-axis).
+TABLE III
+RESULTS OF TX .ORIGIN AND REENTRANCY DETECTORS .
+Tools Precision Recall F1-score
+Esuer 99.93% 100% 99.97%
+Ethersolve 99.93% 100% 99.97%
+Vandal 98.86% 98.92% 98.89%tx.origin
+Mythril 75.27% 75.27% 75.27%
+Esuer 99.41% 100% 99.67%
+Ethersolve 84.26% 100% 91.04%
+Vandal 79.39% 31.01% 43.23%reentrancy
+Mythril 42.46% 23.61% 29.07%
+5,000 bytes. The results are shown in Fig. 9. For smart con-
+tracts of different sizes, Esuer all achieves high success rates
+and incurs small execution time. The performance of Esuer
+is slightly influenced by the size of the analyzed contracts.
+Compared with most other tools, for Esuer, contracts in larger
+sizes do not result in an exponential increase in execution
+time or a significant reduction in success rate. The results
+demonstrate that Esuer has excellent scalability, enabling it
+to handle complex smart contracts of any size.
+Answer to RQ2 Esuer has the highest success rate
+of 99.25% , the second fastest speed with an average
+execution time of 1.06s, and great scalability to handle
+real-world smart contracts.
+C. Effectiveness
+To answer RQ3, we implement two detectors based on Esuer
+and evaluate their ability to measure the effectiveness of Esuer.
+A case study is also provided to illustrate how Esuer assists
+in downstream static analysis.
+1) Vulnerability detection: We implement detectors built on
+top of Esuer to detect reentrancy vulnerabilities and tx.origin
+vulnerabilities. We compare Esuer with Ethersolve, Vandal,
+and Mythril these three tools that have the capability to detect
+both reentrancy vulnerabilities and tx.origin vulnerabilities.
+We use SolidiFI dataset, which contains smart contracts in-
+jected with vulnerabilities and ground truths about the loca-
+tions of injected vulnerabilities. All tools target EVM bytecode
+and report vulnerability locations in bytecode level, so we map
+ground truth from the source code to the bytecode, and eval-
+uate the correctness of reports. If the reported vulnerabilities
+are in the ground truth, they are TPs, otherwise, they are FPs.
+If the vulnerabilities in the ground truth are not reported, they
+are FNs. We use the precision, recall, and F1-score metrics to
+measure the effectiveness of all tools.
+The results are shown in Table III. Esuer outperforms all
+other tools. For the tx.origin vulnerabilities whose pattern is
+simple, all tools perform better than reentrancy vulnerabilities.
+Esuer and Ethersolve perform the best, with precision of
+99.93%, recall of 100%, and F1-score of 99.97%. For the
+reentrancy vulnerabilities whose detection is complex, Esuer
+performs better than other tools. That is because the detection
+of reentrancy vulnerabilities requires more precise control-flow
+information and data-flow information, which are provided by
+Esuer’s reuse-sensitive analysis.
+2) Case Study: We use the reentrancy vulnerability in the
+DAO attack [37] as the example, and simplify it for illustration.
+The DAO attack is one of the most famous reentrancy attacks,
+causing a $150 million loss in digital assets. reentrancy
+occurs when the contract exposes external calls that can be
+hijacked by callers to call a function within the contract itself
+several times. C-E-I (Check-Effect-Interaction) [38], [39] is
+a security programming pattern in smart contracts to prevent
+reentrancy attacks. It r

@@ -1,0 +1,785 @@
+# SCDBench: A Benchmark for LLM-Based Smart Contract Decompilers
+DOI: None
+Source: https://arxiv.org/pdf/2605.29059 (pdf)
+
+======================================================================
+
+SCDBench: A Benchmark for LLM-Based Smart
+Contract Decompilers
+Kaihua Qin
+University of Warwick
+Dawn Song
+UC Berkeley
+Arthur Gervais
+University College London
+Abstract
+Smart contract decompilation aims to recover high-level source code from byte-
+code, but evaluating decompilers remains difficult because existing studies use
+narrow datasets, inconsistent metrics, and limited semantic consistency checks.
+This gap is increasingly important as large language models (LLMs) begin to
+generate source-like Solidity that may compile and appear plausible, even when its
+semantics diverge from the original contract. We introduce SCDBench, a dataset
+and benchmark methodology for LLM-based smart contract decompilation. The
+dataset contains 600 real-world Solidity contracts with paired bytecode inputs,
+ground-truth source code, and replayable semantic checkpoints. SCDBench eval-
+uates decompiler outputs through four cumulative stages: format completeness,
+compilability, Application Binary Interface (ABI) recovery, and semantic consis-
+tency via differential replay. We evaluate Claude Opus 4.7, GPT-5.3-Codex, and
+GLM-5 in a zero-shot decompilation setting, including GLM-5 variants with and
+without extended reasoning and a zero-shot compilation-repair setting. The results
+show that frontier LLMs can often produce structured and compilable Solidity,
+but achieving semantic consistency remains far from solved: the best-performing
+frontier model perfectly decompiles only 42/600 contracts. We further show that
+introducing same-model compilation repair substantially improves performance
+at modest additional cost. SCDBench establishes a common ground for rigorous,
+reproducible evaluation and aims to accelerate the development of reliable smart
+contract decompilers for blockchain security and transparency.
+1 Introduction
+Smart contracts Wood et al. [2014] are programs deployed on blockchains that manage digital assets,
+enforce agreements, and underpin decentralized applications. They have transformed the blockchain
+ecosystem from simple value transfer to a programmable financial and computational infrastructure.
+Today, smart contracts secure over160B USD across decentralized finance, non-fungible tokens, and
+governance systems.1
+While the bytecode of smart contracts is publicly accessible on-chain, their source code is not
+always made available. Only a small fraction of contracts are voluntarily verified by developers and
+published in high-level languages such as Solidity. At the time of writing, more than99% of the smart
+contracts on Ethereum, the largest smart contract-enabled blockchain, are unverified, leaving only
+low-level bytecode accessible.2 This opacity hinders transparency, auditability, and accountability,
+as developers, users, and security researchers cannot easily understand or validate the semantics of
+deployed contracts. Recovering high-level representations from bytecode, i.e., decompilation, is
+therefore essential for security analysis and systematic understanding of the blockchain ecosystem.
+1https://defillama.com/
+2https://etherscan.io/contractsverified
+Preprint.
+arXiv:2605.29059v1  [cs.SE]  27 May 2026
+
+Traditional smart contract decompilers Zhou et al. [2018], Grech et al. [2019, 2022], Lagouvardos
+et al. [2025] have relied on program analysis techniques, such as control-flow reconstruction and type
+inference. These tools often stop at producing structured intermediate representations (e.g., annotated
+pseudo-code) that are easier to follow than raw bytecode, but still challenging for developers to
+interpret. More recently, with the rise of large language models (LLMs), LLM-based decompilers
+have emerged. LLMs can greatly enhance readability and even generate source-like output that
+compiles back to bytecode, enabling correctness to be validated automatically. However, the field
+lacks a standardized benchmark. Existing tools are typically evaluated on proprietary or narrowly
+scoped datasets, with inconsistent metrics, making it difficult to compare methods, reproduce results,
+or assess real-world effectiveness. As a result, there is no clear understanding of the relative strengths
+and limitations of different approaches.
+In this paper, we introduce SCDBench, a dataset and benchmark methodology for smart contract
+decompilation. Our contributions are threefold:
+Dataset.We construct a compact but diverse benchmark dataset with 600 real-world Solidity
+contracts sampled from verified Ethereum deployments. The dataset is built from 772,736 exact-
+bytecode-unique contracts, filters near-duplicate template variants, and stratifies examples into easy,
+medium, and hard difficulty levels. Each benchmark instance contains the bytecode input and the
+corresponding Solidity ground truth. To make semantic consistency evaluation reproducible, we also
+generate227,383concrete semantic test cases covering14,553public functions.
+Benchmarking methodology.We define a staged evaluation protocol that measures decompilation
+quality beyond readability. The pipeline checks format completeness, Solidity compilability, ABI
+recovery, and semantic consistency under replayed test cases. This methodology provides a reusable
+evaluation framework for comparing future smart contract decompilers under the same contracts,
+prompts, and semantic checkpoints.
+Evaluations and insights.We benchmark frontier closed-model baselines, represented by Claude
+Opus 4.7 and GPT-5.3-Codex, and an open-weight baseline, represented by GLM-5. Our evaluations
+provide three main insights for future decompiler design: frontier and reasoning-capable models are
+substantially stronger, compilation repair is a simple but effective step toward agentic decompilation,
+and achieving semantic consistency remains the central open challenge.
+By establishing a common ground for evaluation, our benchmark aims to accelerate progress in
+smart contract decompilation. We believe it will foster reproducibility, enable fair comparison, and
+ultimately drive the development of more reliable tools for blockchain security and transparency. We
+provide the benchmark dataset and evaluation artifacts, including prompts, scripts, and model outputs,
+to support reproduction and future comparison.
+2 Related Work
+There has been a growing line of research on smart contract decompilation, aiming to lift low-level
+Ethereum Virtual Machine (EVM) bytecode into more comprehensible high-level representations.
+Zhou et al. [2018] introduce Erays, which reconstructs control-flow graphs from EVM bytecode,
+lifts stack operations into a register-based form, and applies compiler-style optimizations to generate
+human-readable pseudocode. Grech et al. [2019] present Gigahorse, a declarative decompiler that
+translates bytecode into a three-address intermediate representation using Datalog rules for stack
+analysis, control-flow reconstruction, and function inference. Further advancing precision, Grech
+et al. [2022] propose Elipmoc, which extends Gigahorse with transactional context sensitivity and
+path-sensitive function reconstruction, enabling the recovery of private functions, arguments, and
+return values. Alongside these academic efforts, industry tools have emerged, such as Panoramix,3
+which relies on pattern matching, and Heimdall-rs, 4 which combines symbolic execution with
+decompilation. Complementing these decompiler designs, Liu et al. [2023] conduct a large-scale
+empirical study of five smart contract decompilers, systematically comparing their success rates,
+performance, ABI recovery, and resilience against compiler optimizations. Moreover, Lagouvardos
+et al. [2025] propose Shrnkr, a static-analysis-based decompiler that introduces shrinking context
+3https://github.com/eveem-org/panoramix
+4https://github.com/Jon-Becker/heimdall-rs
+2
+
+sensitivity and control-flow normalization, striking a balance between scalability and precision, and
+outperforming both static (Elipmoc) and symbolic (Heimdall-rs) approaches.
+The advancement of LLMs has also opened new directions for smart contract decompilation. David
+et al. [2025] first fine-tuned an LLM specifically for smart contract decompilation, using contracts
+lifted into structured three-address code to enable source-like Solidity recovery with improved
+readability. Su et al. [2025] present DiSCo, which forgoes additional model training and instead
+designs a frozen-LLM pipeline. DiSCo introduces semantic-unit intermediate representations, a
+type-aware graph neural network for variable name inference, and a prompt-synthesis framework that
+turns bytecode into structured natural-language descriptions.
+Despite these advances, there remains a significant gap in how smart contract decompilers are
+evaluated. Prior evaluations of smart contract decompilers have mainly emphasized syntactic and
+structural aspects such as pseudocode readability and control-flow reconstruction. While these metrics
+provide valuable insights, they are largely syntactic or structural in nature, and the evaluation datasets
+are often ad-hoc and not transparently documented. With the advent of LLM-based decompilers, the
+research focus is shifting toward compilability and semantic consistency, which demand more rigorous
+and standardized evaluation. This motivates the need for a unified and transparent benchmarking
+methodology that can fairly compare emerging approaches. Among prior efforts, DiSCo’s evaluation
+is closest in spirit to this goal with its use of explicit metrics, but the lack of transparency in dataset
+design and evaluation protocols prevents reproducibility and systematic comparison.
+3 Dataset
+Although fewer than 1% of Ethereum contracts are source-verified, this subset still contains hundreds
+of thousands of public Solidity programs. These contracts provide a useful basis for benchmarking:
+they cover diverse application domains, coding styles, compiler versions, optimization settings, and
+complexity levels, while reflecting code actually deployed on chain.
+In this work, we construct a benchmark dataset with 600 real-world Solidity contracts sampled from
+these verified Ethereum deployments. Each contract defines a bytecode-to-source decompilation task:
+the input is EVM bytecode, and the ground truth is the corresponding Solidity source code. The
+benchmark is split into three equal difficulty levels: easy, medium, and hard, with200 contracts in
+each level. In addition to bytecode and ground-truth source code, we also generate test cases for
+every public function to support semantic consistency checking, a critical step in our benchmark
+pipeline (Section 4.1). Across the 600 contracts, which expose 14,553 public functions in total, we
+generate 227,383 concrete test cases (15.6 test cases per public function on average). In the following,
+we detail our methodology for creating this benchmark dataset.
+3.1 Design Principles
+We design the dataset to be compact enough for expensive model-based evaluation while still covering
+diverse real-world contracts. This prioritizes the following three principles.
+Real-world grounding.The dataset should consist of contracts that were actually deployed on
+Ethereum,5 not synthetic programs or toy examples. This keeps the decompilation tasks close to the
+code encountered by users, auditors, and security researchers.
+Controlled diversity.The dataset should measure decompilation ability across compiler generations,
+contract families, bytecode sizes, interface sizes, and state-interaction patterns. At the same time,
+common templates and mass-generated variants should not dominate the evaluation.
+Reproducible semantic consistency evaluation.To support our benchmark methodology, the
+dataset should enable semantic consistency evaluation. Public-function-level inputs and semantic
+checkpoints should be reusable for any decompiler output, and the generated tests should achieve
+high code coverage so that semantic consistency results are meaningful.
+5We focus on Ethereum because it is the largest smart contract blockchain by application ecosystem, and its verified
+contracts provide the most diverse public source corpus for this benchmark.
+3
+
+3.2 Dataset Construction
+Corpus.We crawled all verified Solidity smart contracts on Ethereum deployed before January 1,
+2026. After removing exact bytecode duplicates, the source corpus contains 772,736 unique bytecode
+and source pairs. This gives a large pool of realistic decompilation tasks while avoiding literal
+duplicate deployments. However, the corpus is still highly skewed: Solidity v0.8 accounts for77.45%
+of rows, and ERC20-like contracts account for 63.46%. This skew reflects real deployment practice,
+but direct sampling would allow a few common templates to dominate a compact benchmark.
+Near-duplicate filtering.We intend to construct the benchmark dataset in a diverse manner, covering
+different compiler settings, bytecode lengths, interface sizes, control-flow complexity, and state-
+interaction patterns. To do so, we avoid minor template variants that differ only in constants, addresses,
+names, or small wrapper edits. We therefore apply near-duplicate filtering before sampling, retaining
+at most one representative from each near-duplicate group. The goal is not to infer semantic classes,
+but to avoid spending benchmark budget on near-identical decompilation tasks. We present the details
+of near-duplicate filtering in Appendix A.1.
+Sampling.To understand model performance under different levels of decompilation difficulty, we
+define three difficulty levels that capture complexity across bytecode size, interface size, control
+flow, storage operations, external calls, and low-level Solidity features. These proxies are motivated
+by traditional program-analysis and decompiler evaluation, and it is not obvious a priori that they
+also predict LLM decompilation difficulty. We therefore use them as interpretable stratification axes
+rather than as a ground-truth hardness measure. We present the detailed scoring rule in Appendix A.2.
+From the filtered corpus, we sample 200 contracts from each difficulty level, for 600 contracts
+in total. Although 600 contracts is not large compared with the source corpus, it is a deliberate
+balance between diversity and evaluation cost: frontier-model decompilation, repair, compilation,
+ABI extraction, and semantic replay must all be run on the same contracts for paired comparison.
+We present the detailed sampling rules in Appendix A.3. The resulting sample covers all Solidity
+compiler minor versions from v0.4 to v0.8, and the median bytecode size increases from 2,924 bytes
+in the easy split to15,342bytes in the hard split (details are presented in Appendix A.4).
+3.3 Semantic Test Cases
+The benchmark dataset includes executable semantic checkpoints for evaluating whether decompiled
+source code remains semantically consistent with the original contract. We package test cases directly
+with the dataset, so decompilers can be directly evaluated against the same semantic evidence. Our
+approach is similar in spirit to differential fuzzing Yang et al. [2021]: we execute the ground-truth
+contract on concrete inputs, record the observed execution outcomes, and later replay the same inputs
+on the recompiled decompiler output. A replay succeeds only when the decompiler output matches
+the recorded return data or revert status, emitted logs, and state changes. Test cases are organized
+by function, which allows semantic comparison at the function level rather than requiring the entire
+contract interface to be recovered first.
+At a high level, the generator combines deterministic random inputs, literals and constants extracted
+from the contract, boundary values for common guards, and short stateful setup sequences for
+functions that require prior state. Appendix B gives the detailed construction and replay format.
+For the 600 smart contracts, we generate 227,383 concrete cases covering 14,553 public functions.
+These cases reach 77.8% code coverage on average. Note that our goal is not to prove semantic
+consistency for all possible executions, but to provide reusable semantic checkpoints that are strong
+enough to make semantic comparison informative. State-of-the-art smart contract fuzzers Wu et al.
+[2024] and symbolic execution Xia et al. [2026] with proper modifications may be used to further
+increase coverage, which we leave to future work.
+4 Benchmark and Evaluation
+SCDBench evaluates source-level decompilation from EVM bytecode to Solidity. For each contract,
+a decompiler receives the bytecode representation and may use non-unique public signature hints
+when they are available. The expected output is a self-contained Solidity implementation that can be
+compiled, exposes the correct external interface, and preserves the semantics of recovered functions.
+4
+
+4.1 Metrics
+Evaluating smart contract decompilers requires both syntactic and semantic consistency checks. We
+define four stages, ordered from basic output validity to semantic consistency.
+Format completeness.This metric checks whether the decompiler output contains all fields needed
+for evaluation: compiler settings, self-contained Solidity code, and an unambiguous target contract
+name. It measures whether the output is structurally complete, not whether the code is correct.
+Compilability.This metric checks whether the recovered Solidity is executable as a real program. A
+contract passes only if the generated code compiles successfully and produces a valid target artifact.
+It separates compilable Solidity from source-like pseudocode that may look plausible but cannot
+support downstream checks.
+ABI recovery.This metric evaluates whether the decompiler reconstructs the public interface. We
+compare recovered public function signatures against the ground-truth ABI and report precision,
+recall, and F1. Extra generated functions count as false positives, while missing ground-truth functions
+count as false negatives.
+Semantic consistency.This metric checks whether recovered functions remain semantically con-
+sistent with the original bytecode. For each recovered public function, we replay the fixed test
+cases described in Section 3.3 and compare them against ground-truth checkpoints. A function is
+considered semantically consistent only if all replayed cases match, including return data, revert
+status, emitted logs, and touched storage-slot changes. This stage is intentionally strict: passing
+compilation and ABI recovery does not imply semantic consistency.
+Together, these stages form a progressive evaluation pipeline. Format completeness checks whether
+the output is usable, compilability checks whether it is executable, ABI recovery checks whether the
+interface is correct, and semantic consistency checks whether recovered execution outcomes match
+the original contract.
+We use cumulative scoring for the staged metrics: results are reported on the original benchmark
+denominator, not only on contracts or functions that survive previous stages. If a contract or function
+fails an earlier stage, it is counted as failed in every later applicable stage. Thus, a non-compiling
+output contributes no recovered ABI entries, and a public function missing from ABI recovery is
+counted as not semantically consistent. This convention prevents later metrics from being inflated by
+filtering out difficult failures.
+4.2 Evaluation Setup
+Zero-shot decompilation.We evaluate models in a zero-shot decompilation setting. Each model
+receives the contract bytecode rendered as EVM assembly and is asked to produce self-contained
+Solidity code. The assembly is an exact textual rendering of the bytecode: it preserves the opcode
+sequence while presenting operations more clearly than a raw hexadecimal string. When available,
+the input also includes public function-selector hints. In the EVM ABI, each public function is called
+through a four-byte selector, computed as the first four bytes of the hash of its function signature,
+e.g., transfer(address,uint256) maps to 0xa9059cbb. Mappings from common selectors to
+candidate signatures are publicly available, 6 but they are non-unique and uncertain: one selector
+may correspond to multiple possible signatures, and the model must decide which hints to use.
+Figure 1 shows the prompt format used for evaluation, and Appendix C.1 gives the complete zero-
+shot decompilation prompt. The prompt asks the model to return Solidity code, compiler settings,
+and a target contract name. Together, these fields define an unambiguous compilation target: the
+code must contain all definitions needed for compilation, the compiler block gives the specified
+compiler version and configurations, and the contract name identifies which compiled artifact should
+correspond to the input bytecode, since Solidity compilation may produce multiple artifacts from
+contracts, libraries, interfaces, or dependencies.
+Zero-shot compilation repair.During evaluation, we observe that some compilation failures from
+the initial zero-shot decompilation are minor issues, such as invalid literals, duplicate declarations,
+or small type inconsistencies. We therefore add a zero-shot compilation-repair variant at the com-
+pilability stage. For each model, if the initial output has the required format but fails compilation,
+6https://4byte.sourcify.dev/
+5
+
+♂serverSystem:
+You are a specialized engine for decompiling EVM assembly into Solidity. Respond with exactly
+three XML-style blocks in this order: <compiler>, <code>, and <contract_name>. The <compiler>
+block is one JSON object, e.g., {"version":"v0.8.20","settings":{...}}. The <code> block must be
+complete, self-contained Solidity with no imports.
+/userHuman:
+Decompile the following EVM assembly into Solidity.\n\n Assembly:\n <assembly>\n PUSH1 0x80 PUSH1
+0x40 MSTORE ...\n </assembly>
+♂robotAI:
+<compiler>{\"version\": \"v0.8.20\", \"settings\": ...}</compiler>
+<code>pragma solidity ˆ0.8.20;\n contract Decompiled {\n function withdraw() external
+{...}\n}</code>
+<contract_name>Decompiled</contract_name>
+Figure 1: Zero-shot decompilation prompt format. The model receives EVM assembly and optional
+non-unique signature hints, and must return compiler settings, self-contained Solidity code, and the
+target contract name in fixed blocks.
+we invoke the same model once with the generated Solidity code and compiler error message. The
+complete repair prompt is shown in Appendix C.2. The repaired setting evaluates the final artifact
+after this single repair opportunity, using the repaired output when available and otherwise retaining
+the original output. We denote variants with repair enabled using the superscript †. This design
+tests whether a decompiler can use compiler feedback without changing the model family or adding
+task-specific training.
+Model selection.We select three of the best-performing models on SWE-bench Jimenez et al. [2024]:
+Claude Opus 4.7 Anthropic [2026] and GPT-5.3-Codex OpenAI [2026] as closed-source frontier
+baselines, and GLM-5 Zeng et al. [2026] as the open-weight baseline. The two frontier models
+are evaluated with high reasoning effort. GLM-5 is evaluated in both instruct (non-thinking) and
+high-thinking modes to assess the impact of extended reasoning on smart contract decompilation.
+Throughout the paper, Opus 4.7, GPT-5.3-Codex, and GLM-5 refer to the high-thinking configura-
+tions, while GLM-5 (instruct) denotes the non-thinking variant. All models are accessed through
+OpenRouter.7 Reported costs reflect OpenRouter pricing at the time of evaluation and are subject to
+change. Detailed token usage and cost are provided in Appendix D.
+Evaluation tools.For compilation and semantic replay, we use solc8 and foundry.9 Semantic
+replay requires access to an Ethereum archive node. Archive-node hardware and storage requirements
+depend on the node implementation and network state, and we refer readers to Reth’s system
+requirements as one concrete reference.10
+4.3 Benchmark Results
+Overall, the closed frontier models outperform the open-weight baseline across the benchmark.
+GPT-5.3-Codex† is the strongest model on the structural stages, achieving the best compilation
+rate and ABI F1. The end-to-end semantic consistency results are more mixed: Opus 4.7† obtains
+the best total semantic consistency rate, while GPT-5.3-Codex † performs best on hard contracts,
+showing that the best model for producing compilable source and interfaces is not necessarily the best
+model for preserving semantics. Reasoning helps after the format stage: GLM-5 with high thinking
+substantially outperforms GLM-5 (instruct) on compilation, ABI recovery, and semantic consistency.
+In the following, we report detailed results at each stage.
+Format completeness.Table 1 shows that GPT-5.3-Codex is the most reliable model at following
+the required output protocol, producing complete outputs for 564/600 contracts (94.0%). GLM-5
+7https://openrouter.ai/
+8https://docs.soliditylang.org/en/latest/installing-solidity.html
+9https://github.com/foundry-rs/foundry
+10https://reth.rs/run/system-requirements/
+6
+
+Table 1: Format completeness by difficulty. A contract passes if the response contains parseable
+compiler settings, self-contained code, and a target contract name. Each difficulty bin contains 200
+contracts. Highlighted cells indicate the best result in the split.
+Model Easy Medium Hard Total
+Opus 4.7167(83.5%)143(71.5%)125(62.5%)435(72.5%)
+GPT-5.3-Codex 196(98.0%) 186(93.0%) 182(91.0%) 564(94.0%)
+GLM-5169(84.5%)177(88.5%)174(87.0%)520(86.7%)
+GLM-5 (instruct)180(90.0%)185(92.5%)175(87.5%)540(90.0%)
+Table 2: Compilation success by difficulty. A contract passes if the recovered Solidity compiles to a
+valid target artifact. Each difficulty bin contains 200 contracts. Blue highlights the best unrepaired
+result, and green highlights the best result after zero-shot repair.
+Model Easy Medium Hard Total
+Opus 4.7149(74.5%)113(56.5%)79(39.5%)341(56.8%)
+Opus 4.7† 164(82.0%)140(70.0%)111(55.5%)415(69.2%)
+GPT-5.3-Codex 162(81.0%) 142(71.0%) 117(58.5%) 421(70.2%)
+GPT-5.3-Codex† 193(96.5%) 178(89.0%) 171(85.5%) 542(90.3%)
+GLM-5110(55.0%)67(33.5%)44(22.0%)221(36.8%)
+GLM-5† 152(76.0%)137(68.5%)114(57.0%)403(67.2%)
+GLM-5 (instruct)74(37.0%)50(25.0%)20(10.0%)144(24.0%)
+GLM-5 (instruct)† 153(76.5%)132(66.0%)101(50.5%)386(64.3%)
+(instruct) is slightly better than GLM-5 on this purely format-oriented stage, suggesting that extended
+reasoning does not necessarily improve instruction-format compliance. Opus 4.7 is more likely to
+return an output that cannot be automatically parsed. Format failures mostly arise from instruction-
+following issues, such as malformed XML-style blocks, extra text, or placeholder code, rather than
+from Solidity compilation errors. The drop from easy to hard is most visible for Opus 4.7, whose
+format rate falls from83.5%to62.5%.
+Compilability.Table 2 shows that compilation is the first stage where model differences become
+large. In the initial zero-shot decompilation setting, GPT-5.3-Codex compiles on 421/600 contracts
+(70.2%), followed by Opus 4.7 at 341/600 (56.8%). GLM-5 and GLM-5 (instruct) are much weaker,
+compiling 36.8% and 24.0% of contracts. The most common compilation failures are localized
+Solidity issues, including invalid address literals, duplicate declarations, type or mutability errors,
+unresolved identifiers, and stack-too-deep failures. Appendix E provides the full failure breakdown.
+As discussed in Section 4.2, we also evaluate a one-step zero-shot repair variant for outputs that have
+the required format but fail compilation. Repair improves every model. GPT-5.3-Codex† remains
+the strongest, reaching 542/600 compilable contracts ( 90.3%). Opus 4.7 † improves to 69.2%,
+while GLM-5† and GLM-5 (instruct) † improve by more than 30 percentage points. These gains
+suggest that many failures are not complete decompilation failures but repairable compiler-level
+inconsistencies. Nevertheless, the repaired frontier models still outperform the repaired open-weight
+baselines, indicating that repair narrows but does not close the model-quality gap.
+ABI recovery.Table 3 reports ABI recovery by difficulty. GPT-5.3-Codex† achieves the highest F1
+in every split, with total micro-F1 0.896, while Opus 4.7† and GLM-5† also improve substantially
+after repair. Across models, precision is generally higher than recall, indicating that models are
+more likely to miss ground-truth functions than to hallucinate many extra callable functions. Repair
+consistently improves recall because more outputs compile and expose interfaces for comparison, but
+precision can decrease when the repaired code also introduces extra public functions. Figure 2 shows
+the per-contract distribution behind these averages. GPT-5.3-Codex† has the largest mass of high-F1
+and perfect-recovery contracts, while all models shift toward lower F1 as difficulty increases. The
+remaining gap suggests that ABI recovery is limited both by compilation success and by the model’s
+ability to infer missing public entry points from bytecode.
+Semantic consistency.Table 4 shows the largest gap between interface recovery and semantic
+consistency. Opus 4.7 † achieves the highest total semantic consistency rate, with 4,284/14,553
+7
+
+Table 3: ABI recovery by difficulty, reported as micro precision/recall/F1. Blue marks the best
+unrepaired F1 in each split, and green marks the best repaired F1.
+Model Easy Medium Hard Total
+Opus 4.70.931/0.707/0.803 0.950/0.529/0.680 0.898/0.347/0.500 0.924/0.461/0.615
+Opus 4.7† 0.930/0.752/0.832 0.940/0.658/0.774 0.903/0.506/0.649 0.921/0.593/0.721
+GPT-5.3-Codex0.944/0.803/ 0.868 0.973/0.713/0.823 0.943/0.546/0.691 0.954/0.639/0.766
+GPT-5.3-Codex† 0.950/0.935/0.942 0.971/0.889/0.928 0.928/0.802/0.861 0.946/0.851/0.896
+GLM-50.924/0.535/0.677 0.940/0.332/0.491 0.894/0.172/0.289 0.920/0.279/0.428
+GLM-5† 0.910/0.710/0.798 0.909/0.651/0.759 0.846/0.493/0.623 0.880/0.578/0.697
+GLM-5 (instruct)0.914/0.361/0.517 0.731/0.217/0.335 0.871/0.093/0.168 0.819/0.174/0.287
+GLM-5 (instruct)† 0.880/0.722/0.793 0.824/0.615/0.704 0.844/0.440/0.578 0.844/0.540/0.658
+Easy
+200 contracts Medium200 contracts Hard200 contracts Total600 contractsPrecision
+Opus 4.7 105 68 32 205
+Opus 4.7† 117 80 42 239
+GPT-5.3-Codex 138 112 78 328
+GPT-5.3-Codex† 164 140 109 413
+GLM-5 78 36 19 133
+GLM-5† 104 56 34 194
+GLM-5 (instruct) 47 19 5 71
+GLM-5 (instruct)† 90 55 16 161
+Recall
+Opus 4.7 127 91 53 271
+Opus 4.7† 140 108 72 320
+GPT-5.3-Codex 132 118 82 332
+GPT-5.3-Codex† 160 147 120 427
+GLM-5 89 41 20 150
+GLM-5† 121 74 43 238
+GLM-5 (instruct) 54 19 7 80
+GLM-5 (instruct)† 112 57 24 193
+F1
+Opus 4.7 105 66 30 201
+Opus 4.7† 117 77 40 234
+GPT-5.3-Codex 129 106 69 304
+GPT-5.3-Codex† 155 134 99 388
+GLM-5 76 30 14 120
+GLM-5† 101 48 24 173
+GLM-5 (instruct) 41 11 4 56
+GLM-5 (instruct)† 79 33 9 121
+Bins 0 (0,0.5) [0.5,0.9) [0.9,1) 1
+perfect count
+Figure 2: Per-contract ABI recovery distributions by difficulty. Each stacked bar groups contracts by
+precision, recall, or F1 bin. The number at the right of each bar is the count of contracts with perfect
+score in that metric. The highlighted model has the best ABI F1.
+public functions consistent (29.4%). GPT-5.3-Codex† is close overall (28.0%) and performs best on
+the hard split (25.2%), but its stronger compilation and ABI recovery do not translate into the best
+overall semantic consistency score. The open-weight models remain substantially behind the frontier
+models, although GLM-5 with reasoning improves over GLM-5 (instruct). Semantic consistency also
+drops sharply with difficulty, reflecting the challenge of preserving state updates, access-control logic,
+revert conditions, and event emissions in larger contracts. Table 5 gives the stricter contract-level
+view. Even the best setting perfectly recovers only42/600 contracts, and almost no hard contracts are
+recovered perfectly. These results show why SCDBench reports semantic consistency as a separate
+final stage: high compilation and ABI recovery are necessary but far from sufficient for faithful
+decompilation.
+Traditional decompilers generally do not produce self-contained, compilable Solidity, so they do not
+fit the full SCDBench pipeline. We nevertheless run two representative tools on our dataset and report
+scope-limited ABI recovery results in Appendix F.
+8
+
+Table 4: Semantic consistency by difficulty. Denominators are 2,226 easy, 4,774 medium, 7,553
+hard, and14,553total public functions.
+Model Easy Medium Hard Total
+Opus 4.7 865(38.9%) 1158(24.3%) 1248(16.5%) 3271(22.5%)
+Opus 4.7† 936(42.0%) 1521(31.9%)1827(24.2%) 4284(29.4%)
+GPT-5.3-Codex732(32.9%)943(19.8%)1176(15.6%)2851(19.6%)
+GPT-5.3-Codex† 842(37.8%)1334(27.9%) 1902(25.2%)4078(28.0%)
+GLM-5533(23.9%)565(11.8%)344(4.6%)1442(9.9%)
+GLM-5† 740(33.2%)1170(24.5%)1105(14.6%)3015(20.7%)
+GLM-5 (instruct)340(15.3%)317(6.6%)183(2.4%)840(5.8%)
+GLM-5 (instruct)† 654(29.4%)903(18.9%)1013(13.4%)2570(17.7%)
+Table 5: Perfect semantic consistency by difficulty. A contract is counted as perfect only if all
+benchmarked public functions are recovered, all replayed semantic checkpoints match, and no
+spurious function is recovered.
+Model Easy Medium Hard Total
+Opus 4.725(12.5%) 6(3.0%) 2(1.0%) 33(5.5%)
+Opus 4.7† 33(16.5%) 7(3.5%) 2(1.0%) 42(7.0%)
+GPT-5.3-Codex 30(15.0%)3(1.5%)0(0.0%) 33(5.5%)
+GPT-5.3-Codex† 37(18.5%)4(2.0%)0(0.0%)41(6.8%)
+GLM-514(7.0%)0(0.0%)0(0.0%)14(2.3%)
+GLM-5† 17(8.5%)1(0.5%)0(0.0%)18(3.0%)
+GLM-5 (instruct)4(2.0%)0(0.0%)0(0.0%)4(0.7%)
+GLM-5 (instruct)† 6(3.0%)0(0.0%)0(0.0%)6(1.0%)
+5 Conclusion and Discussion
+We present a systematic benchmark for smart contract decompilation, combining a curated dataset
+of 600 real-world contracts with a staged evaluation framework. The dataset balances real-world
+grounding with controlled diversity, spans multiple difficulty levels, and supports reproducible
+semantic consistency testing through function-level semantic checkpoints. The four metrics, format
+completeness, compilability, ABI recovery accuracy, and semantic consistency, form a progressive
+pipeline that reveals both syntactic and semantic strengths and weaknesses.
+Our results provide three main insights. First, smart contract decompilation benefits from the devel-
+opment of reasoning capacities in frontier models. The closed-source frontier models substantially
+outperform the open-weight baseline, and the high-thinking GLM-5 configuration consistently out-
+performs its non-thinking variant after the format stage. This suggests that decompilation benefits
+from extended reasoning over bytecode structure, compiler constraints, and interface hints. Second,
+zero-shot compilation repair significantly improves performance while adding only a modest amount
+of cost, as shown by the token and cost analysis in Appendix D. This indicates that many failures are
+repairable compiler-level inconsistencies rather than complete decompilation failures, and points to
+the potential of agentic decompiler designs that decompose decompilation into subtasks such as initial
+source recovery, compiler-guided repair, ABI checking, and semantic replay. Third, structural success
+is not semantic success, and perfect semantic consistency remains an open problem. The model with
+the strongest compilation and ABI recovery is not necessarily the model with the strongest semantic
+consistency, and even the best repaired model perfectly recovers only a small fraction of contracts,
+especially in the hard split.
+Overall, SCDBench establishes a common ground for reproducible evaluation and highlights where
+future smart contract decompilers need to improve: robust compilation, accurate interface recovery,
+and above all semantic consistency.
+9
+
+References
+Anthropic. Claude opus 4.7.https://www.anthropic.com/news/claude-opus-4-7, 2026.
+Isaac David, Liyi Zhou, Dawn Song, Arthur Gervais, and Kaihua Qin. Decompiling smart contracts with a large
+language model.arXiv preprint arXiv:2506.19624, 2025.
+Neville Grech, Lexi Brent, Bernhard Scholz, and Yannis Smaragdakis. Gigahorse: thorough, declarative
+decompilation of smart contracts. In2019 IEEE/ACM 41st International Conference on Software Engineering
+(ICSE), pages 1176–1186. IEEE, 2019.
+Neville Grech, Sifis Lagouvardos, Ilias Tsatiris, and Yannis Smaragdakis. Elipmoc: Advanced decompilation of
+ethereum smart contracts.Proceedings of the ACM on Programming Languages, 6(OOPSLA1):1–27, 2022.
+Carlos E Jimenez, John Yang, Alexander Wettig, Shunyu Yao, Kexin Pei, Ofir Press, and Karthik R Narasimhan.
+SWE-bench: Can language models resolve real-world github issues? InThe Twelfth International Conference
+on Learning Representations, 2024. URLhttps://openreview.net/forum?id=VTF8yNQM66.
+Sifis Lagouvardos, Yannis Bollanos, Neville Grech, and Yannis Smaragdakis. The incredible shrinking context...
+in a decompiler near you.Proceedings of the ACM on Software Engineering, 2(ISSTA):1350–1373, 2025.
+Xia Liu, Baojian Hua, Yang Wang, and Zhizhong Pan. An empirical study of smart contract decompilers. In
+2023 IEEE international conference on Software Analysis, Evolution and Reengineering (SANER), pages
+1–12. IEEE, 2023.
+OpenAI. Introducing gpt-5.3-codex. https://openai.com/index/introducing-gpt-5-3-codex/ , 2026.
+Xing Su, Hanzhong Liang, Hao Wu, Ben Niu, Fengyuan Xu, and Sheng Zhong. Disco: Towards decompiling
+evm bytecode to source code using large language models.Proceedings of the ACM on Software Engineering,
+2(FSE):2311–2334, 2025.
+Gavin Wood et al. Ethereum: A secure decentralised generalised transaction ledger.Ethereum project yellow
+paper, 151(2014):1–32, 2014.
+Shuohan Wu, Zihao Li, Luyi Yan, Weimin Chen, Muhui Jiang, Chenxu Wang, Xiapu Luo, and Hao Zhou. Are
+we there yet? unraveling the state-of-the-art smart contract fuzzers. InProceedings of the IEEE/ACM 46th
+International Conference on Software Engineering, pages 1–13, 2024.
+Shihao Xia, Mengting He, Shuai Shao, Tingting Yu, Yiying Zhang, Nobuko Yoshida, and Linhai Song. Symgpt:
+Auditing smart contracts via combining symbolic execution with large language models.Proceedings of the
+ACM on Programming Languages, 10(OOPSLA1):482–512, 2026.
+Youngseok Yang, Taesoo Kim, and Byung-Gon Chun. Finding consensus bugs in ethereum via multi-transaction
+differential fuzzing. In15th USENIX Symposium on Operating Systems Design and Implementation (OSDI
+21), pages 349–365, 2021.
+Aohan Zeng, Xin Lv, Zhenyu Hou, Zhengxiao Du, Qinkai Zheng, Bin Chen, Da Yin, Chendi Ge, Chenghua
+Huang, Chengxing Xie, et al. Glm-5: From vibe coding to agentic engineering.arXiv preprint
+arXiv:2602.15763, 2026.
+Yi Zhou, Deepak Kumar, Surya Bakshi, Joshua Mason, Andrew Miller, and Michael Bailey. Erays: reverse
+engineering ethereum’s opaque smart contracts. In27th USENIX security symposium (USENIX Security 18),
+pages 1371–1385, 2018.
+A Dataset Construction Details
+A.1 Near-Duplicate Filtering
+We use deterministic fingerprints rather than neural embeddings for hard duplicate exclusion. The
+bytecode fingerprints are computed after stripping Solidity metadata. The strict bytecode-structure
+hash removes all PUSH operands while preserving opcode identities, so PUSH1 and PUSH32 remain
+distinct. The coarse bytecode-structure hash also removes operands, but maps opcode families such
+as PUSHx, DUPx, SWAPx, and LOGx to shared family symbols. The source-skeleton hash tokenizes
+Solidity source while replacing identifiers and literals with placeholders.
+Near-duplicate clusters are formed by unioning exact fingerprint collisions. The selected profile
+always merges exact strict bytecode-structure matches, and also merges exact coarse-bytecode or
+10
+
+source-skeleton matches when the contracts fall within the same 10% logarithmic bytecode-length
+band. The length guard prevents a shared template skeleton from merging contracts with materially
+different compiled scale. This selected profile yields333,062 near-duplicate clusters from the772,736
+exact-bytecode-deduplicated contracts, and no two benchmark contracts are allowed to share a cluster.
+A.2 Difficulty Scoring
+We assign difficulty scores to one deterministic representative from each near-duplicate cluster.
+Continuous features are transformed by log1p and robustly scaled between their 5th and 95th
+percentiles over the cluster-representative universe:
+zm(x) = clip
+ log(1 +x)−p05 m
+p95m −p05 m
+,0,1
+
+.
+The final score ranges from0to100:
+score = 100·(0.30B+ 0.20C+ 0.20I+ 0.15S+ 0.15L),
+where B is bytecode scale, C is control flow, I is interface and source structure, S is state interaction,
+and L is low-level Solidity features. Table 6 lists the feature groups. Source-derived features are used
+only for benchmark construction and are not provided as model input during decompilation.
+Table 6: Difficulty-score components used for benchmark stratification.
+Component Features
+Bytecode scale bytecode bytes, opcode count
+Control flow cyclomatic proxy, block-count proxy, control-flow opcode count
+Interface/source signature count, declaration count, nonblank source lines
+State interaction storage ops, external calls, create ops, log ops
+Low-level Solidity features inline assembly, delegatecall, fallback, receive, create2, selfdestruct
+A.3 Sampling
+The cluster-representative universe is split into three equal-sized difficulty bins by score tertiles,
+producing 111,021 easy candidates, 111,020 medium candidates, and 111,021 hard candidates.
+Before sampling, candidates with no nontrivial bytecode or source signal are excluded, and selected
+contracts with empty or no-op-like externally callable functions are rejected and resampled.
+Within each difficulty bin, candidates are stratified by compiler minor version and coarse contract label.
+The 200 contracts per bin are allocated across strata using largest-remainder rounding with square-
+root stratum weights, ws = √ns. This compresses dominant strata while avoiding over-allocation to
+rare strata. Within each stratum, selected contracts are spread across the local difficulty-score range
+using quantile positions with deterministic hash tie-breaks.
+A.4 Sample Characteristics
+The final sample covers all five Solidity compiler minor versions from v0.4 to v0.8 and spans a
+broad range of code characteristics. Table 7 shows that the difficulty split increases monotonically in
+public functions, bytecode size, source length, control-flow complexity, and storage operations. This
+indicates that the benchmark contains both small contracts and substantially larger stateful contracts
+rather than a narrow slice of the corpus.
+B Semantic Test Case Construction
+For each benchmark contract, we compile the ground-truth Solidity source to obtain its ABI and
+enumerate its public functions. Test cases are stored as a map from function signature to a list of
+concrete cases. This organization supports the staged evaluation pipeline: semantic replay is applied
+to each function whose signature is recovered by the decompiler, even when other functions in the
+same contract are missing.
+11
+
+Table 7: Code-characteristic diversity indicators for the 600-contract benchmark sample. Complexity
+columns report medians within each split.
+Split Contracts Public functions Compiler minors Bytecode bytes Source lines CFG proxy Storage ops
+Easy200 2,226 5 2,924 152 49.5 20
+Medium200 4,774 5 7,699 419 132 72.5
+Hard200 7,553 5 15,342 918 252 120.5
+Total600 14,553 5 7,782 441 130.5 60
+The input generator combines four sources. It creates deterministic random values for supported
+ABI types, extracts static hints from constants and literals in the contract, adds boundary values
+such as zero, one, empty byte strings, and threshold-like integers, and creates short stateful setup
+sequences for functions that require prior state. These setup sequences target common smart contract
+patterns such as owner checks, role checks, allowance updates, balance updates, and write-then-read
+workflows.
+Each case records the information needed to replay the same execution on a decompiler output and
+compare it against the ground-truth execution. The recorded checkpoint includes the concrete call
+input, any required setup calls, the execution result, revert status, emitted logs, and observed storage
+changes. Reverts are kept as valid execution outcomes and are compared during semantic replay.
+C Prompt Templates
+This appendix lists the complete prompt templates used in the zero-shot decompilation and zero-shot
+compilation-repair experiments. Braced placeholders denote benchmark-specific content inserted by
+the evaluation script.
+C.1 Zero-Shot Decompilation Prompt
+System prompt.
+You are a specialized engine for decompiling EVM assembly into Solidity.
+Your entire response must consist of exactly three XML-style blocks in this exact order:
+<compiler></compiler>
+<code></code>
+<contract_name></contract_name>
+The <compiler> block must contain a single JSON object. Example:
+<compiler>
+{"version":"v0.8.20","settings":{"optimizer":{"enabled":true,"runs":200},"evmVersion":"shanghai"}}
+</compiler>
+Rules:
+- Do not output Markdown fences, explanations, notes, or any text outside the three required blocks.
+- The three blocks must be top-level blocks. Do not place <compiler>, <code>, or <contract_name> tags
+inside another block.
+- Close the <code> block before starting the <contract_name> block.
+- Put complete, self-contained Solidity source in the <code> block, including the pragma and the main
+contract.
+- Do not use import statements. Do not reference external packages such as OpenZeppelin, Solmate, Uniswap,
+Chainlink, or project-local files.
+- If a library, interface, base contract, or error type is needed, define the minimal required version
+directly inside the <code> block.
+- The <code> block must be compilable as a single Solidity file using only built-in Solidity/EVM features
+and definitions present in that same block.
+- Infer a plausible compiler version and settings from the assembly when possible. If a field cannot be
+inferred, use null for that field in the compiler JSON.
+- Use the function and event signature mappings only as uncertain hints. They may be incomplete, ambiguous,
+or non-unique.
+- Prefer readable, compiling Solidity over literal opcode-by-opcode comments.
+User prompt.
+Decompile the following EVM assembly into Solidity.
+Assembly:
+<assembly>
+{assembly}
+12
+
+</assembly>
+Possible non-unique, uncertain function/event signature mappings:
+Functions:
+{selector}: {signature_1} | {signature_2} | ...
+Events:
+{event_hash}: {event_signature_1} | {event_signature_2} | ...
+The signature-mapping block is omitted when no function or event hints are available.
+C.2 Zero-Shot Compilation-Repair Prompt
+System prompt.
+You are a specialized Solidity compilation repair engine.
+Your entire response must consist of exactly three XML-style blocks in this exact order:
+<compiler></compiler>
+<code></code>
+<contract_name></contract_name>
+The <compiler> block must contain a single JSON object. Example:
+<compiler>
+{"version":"v0.8.20","settings":{"optimizer":{"enabled":true,"runs":200},"evmVersion":"shanghai"}}
+</compiler>
+Rules:
+- Do not output Markdown fences, explanations, notes, or any text outside the three required blocks.
+- Repair the provided decompilation so it compiles as a single self-contained Solidity file.
+- Do not use import statements or external packages.
+- If a library, interface, base contract, or error type is needed, define a minimal version directly in
+the <code> block.
+- Fix compiler JSON mistakes when the compiler error indicates invalid settings.
+- Preserve the intended ABI and semantics of the initial decompilation as much as possible.
+- The <contract_name> block must name the contract artifact that should be compiled and evaluated.
+User prompt.
+A previous EVM-to-Solidity decompilation failed to compile. Repair it using the compiler diagnostics below.
+Initial decompilation output:
+<initial_output>
+{initial_decompilation_output}
+</initial_output>
+Compilation error from solc:
+<compilation_error>
+{solc_compilation_error}
+</compilation_error>
+Return only the repaired <compiler>, <code>, and <contract_name> blocks. Do not explain the changes.
+D Model Cost and Token Usage
+Tables 8 and 9 report OpenRouter pricing, average token usage, and average API cost per benchmark
+contract. Costs are in U.S. dollars and are computed from recorded token usage and provider pricing
+at the time of evaluation. For † rows, averages include initial decompilation and, when applicable,
+one zero-shot repair call.
+Table 8: OpenRouter pricing used for the cost calculation. Prices are in dollars per one million input
+or output tokens.
+Model Input price Output price
+Opus 4.7$1.70 $25.00
+GPT-5.3-Codex$1.75 $14.00
+GLM-5$0.60 $2.00
+GLM-5 (instruct)$0.60 $2.00
+13
+
+Table 9: Average token usage and API cost by difficulty level and overall. Token usage is average
+input/output tokens per contract.
+Easy Medium Hard Total
+Model Tokens Cost Tokens Cost Tokens Cost Tokens Cost
+Opus 4.714.1K/17.4K$0.460 35.6K/23.3K$0.643 66.8K/8.0K$0.313 38.8K/16.2K$0.472
+Opus 4.7† 14.3K/17.6K$0.464 36.4K/23.9K$0.661 68.4K/9.4K$0.351 39.7K/17.0K$0.492
+GPT-5.3-Codex7.8K/13.4K$0.201 19.1K/17.4K$0.276 35.8K/19.8K$0.340 20.9K/16.9K$0.273
+GPT-5.3-Codex† 8.1K/13.6K$0.205 19.7K/18.0K$0.287 37.3K/21.3K$0.364 21.7K/17.6K$0.285
+GLM-58.4K/17.8K$0.041 20.1K/14.6K$0.041 37.4K/10.7K$0.044 22.0K/14.4K$0.042
+GLM-5† 8.9K/18.4K$0.042 21.5K/16.9K$0.047 39.8K/14.7K$0.053 23.4K/16.6K$0.047
+GLM-5 (instruct)8.1K/1.2K$0.007 20.3K/2.2K$0.017 38.4K/3.9K$0.031 22.2K/2.4K$0.018
+GLM-5 (instruct)† 8.9K/1.8K$0.009 22.2K/3.7K$0.021 41.4K/6.4K$0.038 24.1K/3.9K$0.022
+One notable pattern is that Opus 4.7 is cheaper on the hard split than on the medium split, despite
+receiving longer inputs. This is because it produces much shorter hard-split outputs on average. This
+behavior is consistent with the format-completeness results, where Opus 4.7 drops more sharply
+on hard contracts, suggesting that lower cost in this case partly reflects incomplete or truncated
+decompilations rather than greater efficiency.
+Table 10: Compilation failure reasons before repair and failures fixed by zero-shot repair. Each cell
+reports failures before repair, with fixed failures in parentheses. Model rows omitted within a failure
+reason have zero failures in that class.
+Failure reason Model Easy Medium Hard Total
+Invalid address literal/checksum Opus 4.711(10)10(9)13(5)34(24)
+GPT-5.3-Codex13(12)24(22)30(24)67(58)
+GLM-511(9)22(16)14(9)47(34)
+GLM-5 (instruct)8(7)12(7)14(10)34(24)
+Duplicate declarations/name collisions Opus 4.71(0)1(1)7(4)9(5)
+GPT-5.3-Codex – –3(2)3(2)
+GLM-514(7)44(33)35(21)93(61)
+GLM-5 (instruct)41(31)52(30)64(33)157(94)
+Type/mutability errors Opus 4.71(1)4(4)10(9)15(14)
+GPT-5.3-Codex2(1)3(2)6(6)11(9)
+GLM-514(10)10(8)25(14)49(32)
+GLM-5 (instruct)20(18)26(21)21(14)67(53)
+Unresolved identifiers/members Opus 4.71(1)2(2)6(5)9(8)
+GPT-5.3-Codex –1(1)4(3)5(4)
+GLM-57(6)17(7)37(19)61(32)
+GLM-5 (instruct)19(15)22(13)25(16)66(44)
+Parser errors Opus 4.71(1)2(2)2(2)5(5)
+GPT-5.3-Codex3(2) –3(2)6(4)
+GLM-58(7)12(4)14(4)34(15)
+GLM-5 (instruct)15(6)14(3)26(6)55(15)
+Invalid compiler settings Opus 4.7 –2(2) –2(2)
+GPT-5.3-Codex13(13)7(4) –20(17)
+GLM-54(2)2(0)3(1)9(3)
+GLM-5 (instruct)2(1)4(3)2(0)8(4)
+Stack too deep Opus 4.72(1)8(6)7(6)17(13)
+GPT-5.3-Codex3(3)8(6)19(17)30(26)
+GLM-5 –2(1)2(2)4(3)
+GLM-5 (instruct) –4(4)3(2)7(6)
+Inheritance/override/abstractness Opus 4.71(1)1(1)1(1)3(3)
+Syntax errors GPT-5.3-Codex –1(1) –1(1)
+GLM-5 (instruct)1(1) – –1(1)
+Target artifact/bytecode errors GLM-51(1) – –1(1)
+Other GLM-5 –1(1) –1(1)
+GLM-5 (instruct) –1(1) –1(1)
+14
+
+E Compilation Failure Analysis
+Table 10 reports the primary compiler failure reason for each before-repair output that passed format
+validation but failed Solidity compilation. The dominant failures are localized Solidity issues such as
+invalid address literals, duplicate declarations, type or mutability errors, unresolved identifiers, and
+parser errors. Many of these failures are fixed by a single same-model repair call, which supports the
+observation that compilation repair often resolves surface-level inconsistencies rather than requiring
+a full redecompilation.
+F Traditional Decompiler ABI Baselines
+Traditional smart contract decompilers remain strong at recovering function entry points from
+bytecode. This is expected because many four-byte selectors are embedded directly in dispatcher
+logic and can often be matched precisely against public signature databases. However, these tools
+usually emit low-level intermediate representations or pseudocode rather than self-contained Solidity.
+As a result, readability remains a concern, and their outputs cannot generally be compiled or passed
+through the semantic consistency stages of SCDBench.
+We therefore evaluate Gigahorse and Heimdall-rs only as scope-limited ABI recovery baselines, with
+results shown in Table 11. Selector-level evaluation compares recovered four-byte function selectors
+against ground-truth selectors. When typed prototypes are available, prototype-level evaluation also
+requires the recovered argument type sequence to match.
+Table 11: ABI recovery for traditional decompilers. These tools recover function selectors precisely,
+but they do not generally produce compilable Solidity for the full SCDBench pipeline.
+Tool Successful runs Selector micro F1 Prototype micro F1
+Gigahorse600/600 0.991n/a
+Heimdall-rs599/600 0.996 0.777
+Table 11 confirms that selector recovery is comparatively mature for traditional decompilers. Giga-
+horse successfully runs on all 600 contracts and reaches selector micro-F1 0.991, while Heimdall-rs
+runs on 599/600 contracts and reaches selector micro-F1 0.996. Heimdall-rs also recovers typed
+prototypes with micro-F1 0.777, showing that argument-type recovery is harder than recovering four-
+byte selectors alone. These results indicate that traditional decompilers remain useful for recovering
+callable interfaces, but selector recovery alone does not address the central goals of source-level de-
+compilation: readable Solidity, successful recompilation, and semantic consistency with the original
+bytecode.
+G Broader Impact and Responsible Release
+SCDBench is intended to support reproducible evaluation, security auditing, and transparency for
+deployed smart contracts. Better decompilation can also lower the effort required to inspect deployed
+contracts, which may support legitimate audits but could also assist malicious reverse engineering.
+We mitigate this risk by using only source-verified contracts whose bytecode and source code are
+already public, by releasing evaluation artifacts rather than an exploit-generation system, and by
+documenting semantic replay as an evaluation tool rather than a proof of correctness. The released
+dataset does not contain private keys, private transactions, or non-public contract sources.
+15

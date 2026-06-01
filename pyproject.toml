@@ -1,0 +1,103 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "abi-reconstructor"
+version = "0.1.0"
+description = "Neural network for reconstructing contract ABIs from bytecode"
+readme = "README.md"
+authors = [{name = "RL Attacker Team"}]
+license = "MIT"
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+]
+requires-python = ">=3.8"
+dependencies = [
+    "numpy>=1.24.0",
+    "requests>=2.31.0",
+    "pandas>=2.0.0",
+    "torch>=2.0.0",
+    "web3>=6.0.0",
+    "pyarrow>=14.0.0",
+    "python-dotenv>=1.0.0",
+    "tqdm>=4.64.0",
+    "scikit-learn>=1.0.0",
+    "psutil>=7.2.2",
+    "fastparquet>=2024.2.0",
+    "evmole>=0.8.4",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.0.0",
+    "pytest-mock>=3.10.0",
+    "pytest-cov>=4.0.0",
+    "black>=23.0.0",
+    "ruff>=0.1.0",
+    "mypy>=1.0.0",
+]
+web = [
+    "fastapi>=0.104.0",
+    "uvicorn[standard]>=0.24.0",
+    "python-multipart>=0.0.6",
+    "python-jose[cryptography]>=3.3.0",
+    "passlib[bcrypt]>=1.7.4",
+    "pydantic>=2.0.0",
+    "pydantic-settings>=2.0.0",
+    "aiofiles>=23.0.0",
+    "redis>=5.0.0",
+    "httpx>=0.25.0",
+]
+
+[project.scripts]
+abi-reconstruct = "abi_reconstructor.cli:main"
+
+[tool.setuptools]
+packages = ["abi_reconstructor", "abi_reconstructor.models", "abi_reconstructor.data", "abi_reconstructor.training", "abi_reconstructor.features", "abi_reconstructor.utils"]
+
+[tool.black]
+line-length = 88
+target-version = ['py38']
+
+[tool.ruff]
+line-length = 88
+target-version = "py38"
+select = [
+    "E",  # pycodestyle errors
+    "W",  # pycodestyle warnings
+    "F",  # pyflakes
+    "I",  # isort
+    "B",  # flake8-bugbear
+    "C4", # flake8-comprehensions
+]
+ignore = [
+    "E501",  # line too long, handled by black
+    "B008",  # do not perform function calls in argument defaults
+]
+
+[tool.mypy]
+python_version = "3.8"
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = true
+disallow_incomplete_defs = true
+check_untyped_defs = true
+disallow_untyped_decorators = true
+no_implicit_optional = true
+warn_redundant_casts = true
+warn_unused_ignores = true
+warn_no_return = true
+
+[dependency-groups]
+dev = [
+    "pandas>=2.0.3",
+]

@@ -1,0 +1,986 @@
+"""EVM Bytecode parser for extracting function selectors and reconstructing ABIs."""
+
+import os
+import re
+from dataclasses import dataclass
+from pathlib import Path
+from typing import Any, Dict, List, Optional, Tuple
+
+import torch
+
+from .database import FourByteDatabase
+
+CHECKPOINT_DIR = Path(__file__).parent.parent / "checkpoints"
+
+
+@dataclass
+class FunctionSelector:
+    """Represents an extracted function selector."""
+    selector: str
+    position: int
+    confidence: float
+    source: str
+
+
+@dataclass
+class Parameter:
+    """Represents a function parameter."""
+    name: str
+    param_type: str
+    indexed: bool = False
+
+
+@dataclass
+class FunctionABI:
+    """Represents a reconstructed function ABI."""
+    name: str
+    selector: str
+    inputs: List[Parameter]
+    state_mutability: str = "nonpayable"
+    anonymous: bool = False
+
+    def to_dict(self) -> Dict[str, Any]:
+        """Convert to ABI dictionary format."""
+        inputs = []
+        for inp in self.inputs:
+            input_dict = {"name": inp.name, "type": inp.param_type}
+            if inp.indexed:
+                input_dict["indexed"] = True
+            inputs.append(input_dict)
+
+        result = {
+            "type": "function",
+            "name": self.name,
+            "inputs": inputs,
+            "outputs": [],
+        }
+
+        if self.state_mutability != "nonpayable":
+            result["stateMutability"] = self.state_mutability
+
+        return result
+
+    def to_json(self) -> str:
+        """Convert to JSON string."""
+        import json
+        return json.dumps(self.to_dict(), indent=2)
+
+
+class BytecodeParser:
+    """Parse EVM bytecode to extract function selectors and context."""
+
+    PUSH4_OPCODE = "63"
+    EQ_OPCODE = "14"
+    JUMPI_OPCODE = "57"
+    DUP1_OPCODE = "80"
+
+    COMMON_SELECTORS = {
+        "a9059cbb": "transfer(address,uint256)",
+        "095ea7b3": "approve(address,uint256)",
+        "70a08231": "balanceOf(address)",
+        "23b872dd": "transferFrom(address,address,uint256)",
+        "18160ddd": "totalSupply()",
+        "06fdde03": "name()",
+        "95d89b41": "symbol()",
+        "313ce567": "decimals()",
+        "dd62ed3e": "allowance(address,address)",
+        "40c10f19": "mint(address,uint256)",
+        "d0e30db0": "deposit()",
+        "2e1a7d4d": "withdraw(uint256)",
+        "8da5cb5b": "owner()",
+        "f2fde38b": "transferOwnership(address)",
+        "715018a6": "renounceOwnership()",
+        "6352211e": "ownerOf(uint256)",
+        "42842e0e": "safeTransferFrom(address,address,uint256)",
+        "b88d4fde": "safeTransferFrom(address,address,uint256,bytes)",
+        "a22cb465": "setApprovalForAll(address,bool)",
+        "e985e9c5": "isApprovedForAll(address,address)",
+        "081812fc": "getApproved(uint256)",
+    }
+
+    VIEW_PURE_SELECTORS = {
+        "06fdde03", "95d89b41", "313ce567",
+        "18160ddd", "70a08231", "dd62ed3e",
+        "6352211e", "e985e9c5", "081812fc",
+    }
+
+    def __init__(self):
+        """Initialize bytecode parser."""
+        self.pattern_cache: Dict[str, List[FunctionSelector]] = {}
+
+    def clean_bytecode(self, bytecode: str) -> str:
+        """Clean and normalize bytecode string."""
+        if bytecode.startswith("0x"):
+            bytecode = bytecode[2:]
+        bytecode = re.sub(r"[^0-9a-f]", "", bytecode.lower())
+        if len(bytecode) % 2 != 0:
+            bytecode = bytecode[:-1]
+        return bytecode
+
+    def extract_selectors(self, bytecode: str) -> List[FunctionSelector]:
+        """Extract function selectors from bytecode using PUSH4+EQ pattern matching.
+
+        Args:
+            bytecode: Raw bytecode (hex string or with 0x prefix)
+
+        Returns:
+            List of FunctionSelector objects
+        """
+        bytecode = self.clean_bytecode(bytecode)
+        selectors = []
+        seen = set()
+
+        for i in range(0, len(bytecode) - 10, 2):
+            if bytecode[i:i+2] != self.PUSH4_OPCODE:
+                continue
+
+            selector = bytecode[i+2:i+10]
+            if len(selector) != 8:
+                continue
+
+            if selector in seen:
+                continue
+            if selector == "00000000":
+                continue
+            if all(c == selector[0] for c in selector):
+                continue
+
+            try:
+                sel_int = int(selector, 16)
+                if sel_int < 0x10000000:
+                    continue
+            except ValueError:
+                continue
+
+            eq_pos = -1
+            search_end = min(len(bytecode), i + 24)
+            for j in range(i + 10, search_end, 2):
+                if bytecode[j:j+2] == self.EQ_OPCODE:
+                    eq_pos = j
+                    break
+
+            if eq_pos == -1:
+                continue
+
+            position = i + 2
+            confidence = 0.7
+
+            if selector in self.COMMON_SELECTORS:
+                confidence = 0.95
+            elif selector in self.VIEW_PURE_SELECTORS:
+                confidence = 0.9
+
+            source = "push4_eq_pattern"
+            if i >= 2 and bytecode[i-2:i] == self.DUP1_OPCODE:
+                source = "dup1_push4_eq_pattern"
+                confidence += 0.05
+
+            selectors.append(FunctionSelector(
+                selector=selector,
+                position=position,
+                confidence=confidence,
+                source=source,
+            ))
+            seen.add(selector)
+
+        selectors.sort(key=lambda x: -x.confidence)
+        return selectors
+
+    def extract_events(self, bytecode: str, db: Optional["FourByteDatabase"] = None) -> List[Dict[str, Any]]:
+        """Extract event signatures from bytecode.
+
+        Extracts events by identifying LOG opcodes (0xa0-0xa4) and their topic data.
+        LOG1 (0xa1) has exactly 1 topic - these are NOT anonymous events.
+        Truly anonymous events have no topic0 selector encoded.
+
+        Args:
+            bytecode: Contract bytecode
+            db: Optional 4byte database for signature lookup
+
+        Returns:
+            List of event dictionaries with detected topics and signatures
+        """
+        events = []
+        seen_topics = set()
+
+        for i in range(0, len(bytecode) - 10, 2):
+            if i + 2 >= len(bytecode):
+                continue
+
+            opcode = bytecode[i:i+2]
+
+            if opcode not in ("a0", "a1", "a2", "a3", "a4"):
+                continue
+
+            num_topics = int(opcode, 16) - 0xa0
+
+            if num_topics == 0:
+                continue
+
+            topic0_pos = i + 2
+            if topic0_pos + 40 > len(bytecode):
+                continue
+
+            topic0 = bytecode[topic0_pos:topic0_pos + 40]
+            if len(topic0) != 40:
+                continue
+
+            if topic0 in seen_topics:
+                continue
+            seen_topics.add(topic0)
+
+            anonymous = False
+
+            event_entry = {
+                "type": "event",
+                "name": f"UnknownEvent_{topic0[:8]}",
+                "inputs": [],
+                "anonymous": anonymous,
+                "topic0": topic0,
+            }
+
+            if db is not None:
+                try:
+                    event_sigs = db.fetch_event_signature_from_api(topic0)
+                    if event_sigs:
+                        sig = event_sigs[0]
+                        event_entry["name"] = sig.get("text_signature", event_entry["name"])
+                        event_entry["source"] = sig.get("source", "unknown")
+                except Exception:
+                    pass
+
+            events.append(event_entry)
+
+        return events
+
+    def extract_errors(self, bytecode: str) -> List[Dict[str, Any]]:
+        """Extract error signatures from bytecode.
+
+        Custom errors in Solidity are ABI-encoded with selector = keccak256("ErrorName(types...)")[:4]
+        followed by encoded parameters. Error selectors appear before REVERT (0xfd) opcodes.
+
+        Args:
+            bytecode: Contract bytecode
+
+        Returns:
+            List of error dictionaries with detected selectors
+        """
+        errors = []
+        seen_selectors = set()
+
+        for i in range(0, len(bytecode) - 10, 2):
+            if i + 2 >= len(bytecode):
+                continue
+
+            opcode = bytecode[i:i+2]
+
+            if opcode not in ("60", "61", "62", "63", "64", "65", "66", "67", "68", "69",
+                             "70", "71", "72", "73", "74", "75", "76", "77", "78", "79",
+                             "7a", "7b", "7c", "7d", "7e", "7f"):
+                continue
+
+            push_len = int(opcode, 16) - 0x5f
+            if push_len < 1 or push_len > 32:
+                continue
+
+            if i + 2 + (push_len * 2) > len(bytecode):
+                continue
+
+            selector = bytecode[i+2:i+2+(push_len * 2)]
+            if len(selector) != push_len * 2:
+                continue
+
+            if selector in seen_selectors:
+                continue
+
+            j = i + 2 + (push_len * 2)
+            if j >= len(bytecode):
+                continue
+
+            if bytecode[j:j+2] == "fd":
+                try:
+                    sel_int = int(selector, 16)
+                    if sel_int >= 0x10000000:
+                        seen_selectors.add(selector)
+                        errors.append({
+                            "type": "error",
+                            "name": f"UnknownError_{selector}",
+                            "inputs": [],
+                            "selector": selector,
+                        })
+                except ValueError:
+                    continue
+
+        return errors
+
+    def extract_selector_context(
+        self,
+        bytecode: str,
+        position: int,
+        context_size: int = 100
+    ) -> str:
+        """Extract context around a selector position.
+
+        Args:
+            bytecode: Clean hex bytecode
+            position: Position of selector in hex chars
+            context_size: Number of hex chars before/after
+
+        Returns:
+            Context string
+        """
+        start = max(0, position - context_size)
+        end = min(len(bytecode), position + 8 + context_size)
+        return bytecode[start:end]
+
+    def extract_function_signatures(
+        self,
+        bytecode: str,
+        selectors: Optional[List[FunctionSelector]] = None
+    ) -> List[Tuple[str, str, float]]:
+        """Extract selectors with known signatures from bytecode.
+
+        Args:
+            bytecode: Contract bytecode
+            selectors: Optional list of pre-extracted selectors
+
+        Returns:
+            List of (selector, signature, confidence) tuples
+        """
+        if selectors is None:
+            selectors = self.extract_selectors(bytecode)
+
+        results = []
+        for sel in selectors:
+            sig = self.COMMON_SELECTORS.get(sel.selector)
+            if sig:
+                results.append((sel.selector, sig, sel.confidence))
+            else:
+                results.append((sel.selector, f"unknown_{sel.selector}()", sel.confidence))
+
+        return results
+
+    def bytecode_to_tokens(
+        self,
+        bytecode: str,
+        max_len: int = 512,
+        pad_token: int = 256
+    ) -> List[int]:
+        """Convert bytecode to token list for ML models.
+
+        Args:
+            bytecode: Hex bytecode string
+            max_len: Maximum sequence length
+            pad_token: Token to use for padding
+
+        Returns:
+            List of token IDs (0-255)
+        """
+        bytecode = self.clean_bytecode(bytecode)
+
+        tokens = []
+        for i in range(0, len(bytecode), 2):
+            if i + 1 < len(bytecode):
+                try:
+                    token = int(bytecode[i:i+2], 16)
+                    tokens.append(token)
+                except ValueError:
+                    tokens.append(0)
+
+        if len(tokens) > max_len:
+            tokens = tokens[:max_len]
+        else:
+            tokens = tokens + [pad_token] * (max_len - len(tokens))
+
+        return tokens
+
+    def detect_state_mutability(self, bytecode: str, selector: str) -> str:
+        """Detect function state mutability from bytecode context.
+
+        Analyzes the bytecode for opcodes that indicate state modification:
+        - CALL, DELEGATECALL, CALLCODE, STATICCALL (0xF1, 0xF4, 0xFA, 0xFB)
+        - SLOAD, SSTORE (0x54, 0x55) for state reads/writes
+        - Self-delegation patterns that may bypass static checks
+
+        Args:
+            bytecode: Contract bytecode
+            selector: Function selector
+
+        Returns:
+            State mutability string (view, pure, payable, nonpayable)
+        """
+        bytecode_lower = bytecode.lower()
+        pos = bytecode_lower.find(selector)
+        if pos == -1:
+            return "nonpayable"
+
+        context = bytecode_lower[max(0, pos-20):pos+50]
+
+        has_staticcall = "fb" in context
+        has_call = "f1" in context and "fb" not in context
+        has_delegatecall = "f4" in context
+        has_callcode = "f3" in context
+
+        if has_staticcall and not has_call and not has_delegatecall and not has_callcode:
+            return "view"
+        if has_delegatecall or has_callcode:
+            return "nonpayable"
+        if has_call:
+            return "payable"
+
+        if "548a" in context or "6020" in context or "6011" in context or "5af43" in context:
+            return "nonpayable"
+        if "524f" in context or "5f35" in context:
+            return "view"
+
+        if selector in self.VIEW_PURE_SELECTORS:
+            return "pure" if selector in ["06fdde03", "95d89b41", "313ce567", "18160ddd"] else "view"
+
+        return "nonpayable"
+
+
+class ParameterReconstructor:
+    """Reconstruct function parameters from bytecode context using rule-based inference.
+
+    NOTE: This class uses rule-based heuristics for parameter reconstruction.
+    ML-based inference is planned for future implementation, which would enable
+    better parameter type inference for unknown selectors based on bytecode patterns.
+    """
+
+    COMMON_TYPES = [
+        "address", "uint256", "bool", "bytes32", "string", "bytes",
+        "uint8", "uint16", "uint32", "uint64", "uint128", "int256",
+        "address[]", "uint256[]", "bytes32[]", "string[]", "bytes[]",
+    ]
+
+    FUNCTION_PARAM_COUNTS = {
+        "transfer": 2, "approve": 2, "balanceOf": 1, "totalSupply": 0,
+        "transferFrom": 3, "name": 0, "symbol": 0, "decimals": 0,
+        "allowance": 2, "mint": 2, "burn": 1, "deposit": 0, "withdraw": 1,
+        "owner": 0, "transferOwnership": 1, "renounceOwnership": 0,
+    }
+
+    def __init__(self):
+        """Initialize parameter reconstructor.
+
+        NOTE: ML model support is planned for future implementation.
+        Currently uses rule-based inference only.
+        """
+        pass
+
+    def predict_parameter_types(
+        self,
+        bytecode: str,
+        selector: str,
+        function_name: str,
+        context: Optional[str] = None
+    ) -> List[str]:
+        """Predict parameter types for a function using rule-based inference.
+
+        Args:
+            bytecode: Contract bytecode
+            selector: Function selector
+            function_name: Function name
+            context: Optional selector context for analysis
+
+        Returns:
+            List of parameter type strings
+        """
+        param_count = self.FUNCTION_PARAM_COUNTS.get(function_name, 1)
+
+        if param_count == 0:
+            return []
+
+        type_map = {
+            "address": "address",
+            "uint256": "uint256",
+            "bool": "bool",
+            "bytes32": "bytes32",
+            "string": "string",
+            "bytes": "bytes",
+        }
+
+        if function_name in ["transfer", "approve", "mint"]:
+            return ["address", "uint256"]
+        elif function_name == "balanceOf":
+            return ["address"]
+        elif function_name == "transferFrom":
+            return ["address", "address", "uint256"]
+        elif function_name in ["deposit", "withdraw", "owner", "totalSupply", "name", "symbol", "decimals"]:
+            return []
+        elif function_name == "safeTransferFrom":
+            return ["address", "address", "uint256"]
+        elif function_name == "setApprovalForAll":
+            return ["address", "bool"]
+        elif function_name == "isApprovedForAll":
+            return ["address", "address"]
+        elif function_name == "ownerOf":
+            return ["uint256"]
+        elif function_name == "getApproved":
+            return ["uint256"]
+        elif function_name.startswith("unknown_"):
+            return self._infer_types_from_context(bytecode, selector, context)
+
+        return [type_map.get(function_name, "uint256")] * max(1, param_count)
+
+    def _infer_types_from_context(
+        self,
+        bytecode: str,
+        selector: str,
+        context: Optional[str] = None
+    ) -> List[str]:
+        """Infer parameter types from bytecode context patterns.
+
+        Args:
+            bytecode: Contract bytecode
+            selector: Function selector
+            context: Optional selector context
+
+        Returns:
+            List of inferred parameter types
+        """
+        if context is None:
+            pos = bytecode.lower().find(selector)
+            if pos != -1:
+                context = bytecode[max(0, pos-50):pos+100]
+            else:
+                return ["uint256"]
+
+        address_patterns = 0
+        uint256_patterns = 0
+
+        if "73" in context or "73" in bytecode.lower():
+            address_patterns += 1
+        pos_63 = context.find("63")
+        slice_end = pos_63 if pos_63 != -1 else len(context)
+        if "60" in context and "80" not in context[:slice_end]:
+            uint256_patterns += 1
+
+        if address_patterns > uint256_patterns:
+            return ["address", "uint256"]
+        return ["uint256"]
+
+    def predict_parameter_names(
+        self,
+        types: List[str],
+        function_name: str
+    ) -> List[str]:
+        """Generate parameter names based on types and function.
+
+        Args:
+            types: List of parameter types
+            function_name: Function name
+
+        Returns:
+            List of parameter names
+        """
+        names = []
+        for i, param_type in enumerate(types):
+            if param_type == "address":
+                names.append(f"account_{i}")
+            elif param_type == "uint256" or param_type == "uint128":
+                names.append(f"amount_{i}")
+            elif param_type == "bool":
+                names.append(f"flag_{i}")
+            elif param_type == "bytes32":
+                names.append(f"hash_{i}")
+            elif param_type == "string" or param_type == "bytes":
+                names.append(f"data_{i}")
+            else:
+                names.append(f"param_{i}")
+
+        if function_name == "transfer":
+            names = ["to", "amount"]
+        elif function_name == "approve":
+            names = ["spender", "amount"]
+        elif function_name == "balanceOf":
+            names = ["account"]
+        elif function_name == "transferFrom":
+            names = ["from", "to", "amount"]
+
+        return names
+
+
+class ABIReconstructor:
+    """Main ABI reconstruction system combining all components."""
+
+    FUNCTION_NAME_VOCAB = [
+        "transfer", "approve", "balanceOf", "totalSupply", "allowance",
+        "transferFrom", "name", "symbol", "decimals", "ownerOf",
+        "safeTransferFrom", "setApprovalForAll", "isApprovedForAll", "tokenURI",
+        "mint", "burn", "pause", "unpause", "renounceOwnership",
+        "transferOwnership", "upgradeTo", "upgradeToAndCall", "admin",
+        "changeAdmin", "implementation", "getBalance", "sendCoin", "convert",
+        "execute", "close", "update", "set", "get", "add", "remove", "create",
+        "delete", "deploy", "initialize", "withdraw", "deposit", "claim",
+        "stake", "unstake", "vote", "propose", "unknown",
+    ]
+
+    TYPE_NAMES = [
+        "address", "uint256", "bool", "bytes32", "string", "bytes",
+        "uint8", "uint16", "uint32", "uint64", "uint128", "int256",
+        "int8", "int16", "int32", "int64", "int128",
+        "address[]", "uint256[]", "bytes32[]", "string[]", "bytes[]", "bool[]",
+        "unknown",
+    ]
+
+    def __init__(
+        self,
+        db_path: str = "./cache/4byte.db",
+        model_path: Optional[str] = None,
+        use_cuda: bool = False,
+    ):
+        """Initialize ABI reconstructor.
+
+        Args:
+            db_path: Path to 4byte SQLite database
+            model_path: Path to directory containing ML model checkpoints
+            use_cuda: Whether to use CUDA for ML inference
+        """
+        self.db = FourByteDatabase(db_path=db_path)
+        self.parser = BytecodeParser()
+        self.param_reconstructor = ParameterReconstructor()
+        self.model_path = model_path or CHECKPOINT_DIR
+        self.use_cuda = use_cuda and torch.cuda.is_available()
+
+        self.function_classifier = None
+        self.parameter_predictor = None
+        self._ml_initialized = False
+        self._ml_init_error = None
+
+        self._func_to_idx = {f: i for i, f in enumerate(self.FUNCTION_NAME_VOCAB)}
+        self._idx_to_func = {i: f for i, f in enumerate(self.FUNCTION_NAME_VOCAB)}
+        self._type_to_idx = {t: i for i, t in enumerate(self.TYPE_NAMES)}
+        self._idx_to_type = {i: t for i, t in enumerate(self.TYPE_NAMES)}
+        self._type_to_idx["unknown"] = len(self.TYPE_NAMES) - 1
+
+        self._lowercase_vocab = {k.lower(): v for k, v in self._func_to_idx.items()}
+
+    def _init_ml_models(self):
+        """Initialize ML models from checkpoints."""
+        if self._ml_initialized:
+            return
+
+        try:
+            from abi_reconstructor.models.function_name_classifier import FunctionNameClassifier
+            from abi_reconstructor.models.parameter_prediction_model import ParameterPredictionModel
+
+            func_path = os.path.join(self.model_path, "function_classifier_final.pth")
+            param_path = os.path.join(self.model_path, "parameter_predictor_final.pth")
+
+            if os.path.exists(func_path):
+                self.function_classifier = FunctionNameClassifier.load_model(
+                    func_path, use_cuda=self.use_cuda
+                )
+                self.function_classifier.eval()
+
+            if os.path.exists(param_path):
+                self.parameter_predictor = ParameterPredictionModel.load_model(
+                    param_path,
+                    num_type_classes=len(self.TYPE_NAMES),
+                    use_cuda=self.use_cuda,
+                )
+                self.parameter_predictor.eval()
+
+            self._ml_initialized = True
+        except Exception as e:
+            import logging
+            logging.warning(f"ML model initialization failed: {e}. Falling back to rule-based inference.")
+            self._ml_init_error = str(e)
+            self._ml_initialized = False
+
+    def ml_available(self) -> bool:
+        """Check if ML models are available for inference."""
+        return self._ml_initialized and self.function_classifier is not None
+
+    def _bytecode_to_features(
+        self,
+        bytecode: str,
+        selector: str,
+        max_len: int = 512,
+        pad_token: int = 256
+    ) -> Dict[str, Any]:
+        """Convert bytecode to tensor features for ML models."""
+        bytecode_clean = self.parser.clean_bytecode(bytecode)
+        pos = bytecode_clean.lower().find(selector.lower())
+        if pos == -1:
+            pos = 0
+
+        context_start = max(0, pos - 250)
+        context_end = min(len(bytecode_clean), pos + 250)
+        context = bytecode_clean[context_start:context_end]
+
+        tokens = []
+        for i in range(0, len(context), 2):
+            if i + 1 < len(context):
+                try:
+                    token = int(context[i:i+2], 16)
+                    tokens.append(token)
+                except ValueError:
+                    tokens.append(0)
+
+        num_real_tokens = len(tokens)
+        if len(tokens) > max_len:
+            tokens = tokens[:max_len]
+            num_real_tokens = max_len
+        else:
+            tokens = tokens + [pad_token] * (max_len - len(tokens))
+
+        tokens_tensor = torch.tensor(tokens, dtype=torch.long).unsqueeze(0)
+        attention_mask = torch.zeros(max_len, dtype=torch.float)
+        attention_mask[:num_real_tokens] = 1.0
+        attention_mask = attention_mask.unsqueeze(0)
+
+        if self.use_cuda:
+            tokens_tensor = tokens_tensor.cuda()
+            attention_mask = attention_mask.cuda()
+
+        return {
+            "bytecode_tokens": tokens_tensor,
+            "attention_mask": attention_mask,
+        }
+
+    def _predict_function_name_ml(
+        self,
+        features: Dict[str, Any]
+    ) -> Tuple[str, float]:
+        """Use function classifier to predict function name."""
+        if self.function_classifier is None:
+            return "unknown", 0.0
+
+        with torch.no_grad():
+            outputs = self.function_classifier(
+                features["bytecode_tokens"],
+                features.get("attention_mask")
+            )
+            probs = outputs["probs"]
+            confidence, pred_idx = torch.max(probs, dim=-1)
+
+        idx = pred_idx.item()
+        confidence = confidence.item()
+
+        if idx < len(self.FUNCTION_NAME_VOCAB):
+            return self.FUNCTION_NAME_VOCAB[idx], confidence
+        return "unknown", confidence
+
+    def _predict_parameters_ml(
+        self,
+        features: Dict[str, Any],
+        function_name: str
+    ) -> Tuple[List[str], List[float]]:
+        """Use parameter predictor to predict parameter types."""
+        if self.parameter_predictor is None:
+            return [], []
+
+        lowercase_name = function_name.lower()
+        function_idx = self._lowercase_vocab.get(lowercase_name, self._func_to_idx.get("unknown", 0))
+
+        function_ids = torch.tensor([function_idx], dtype=torch.long)
+        if self.use_cuda:
+            function_ids = function_ids.cuda()
+
+        with torch.no_grad():
+            outputs = self.parameter_predictor(
+                features["bytecode_tokens"],
+                function_ids=function_ids,
+                attention_mask=features.get("attention_mask"),
+            )
+
+        type_logits = outputs["type_logits"]
+        mask_logits = outputs["mask_logits"]
+        type_probs = torch.softmax(type_logits, dim=-1)
+        mask_probs = torch.sigmoid(mask_logits)
+
+        _, type_preds = torch.max(type_probs, dim=-1)
+        mask_preds = (mask_probs > 0.5).float()
+
+        param_types = []
+        confidences = []
+
+        for i in range(type_preds.size(1)):
+            if i < mask_preds.size(1) and mask_preds[0, i] > 0.5:
+                type_idx = type_preds[0, i].item()
+                type_name = self._idx_to_type.get(type_idx, "unknown")
+                conf = type_probs[0, i, type_idx].item()
+                param_types.append(type_name)
+                confidences.append(conf)
+
+        return param_types, confidences
+
+    def reconstruct_function(
+        self,
+        bytecode: str,
+        selector: str,
+        use_ml: bool = False
+    ) -> Dict[str, Any]:
+        """Reconstruct a single function ABI from bytecode.
+
+        Args:
+            bytecode: Contract bytecode
+            selector: Function selector (8 hex chars)
+            use_ml: Whether to use ML-based parameter inference
+
+        Returns:
+            Dictionary with reconstructed ABI information
+        """
+        bytecode_clean = self.parser.clean_bytecode(bytecode)
+
+        sigs = self.db.lookup(selector, fetch_api=True)
+        signature = None
+        function_name = None
+
+        if sigs:
+            sig = sigs[0]
+            signature = sig.text_signature
+            if "(" in signature:
+                function_name = signature.split("(")[0]
+        else:
+            function_name = f"unknown_{selector}"
+            signature = f"{function_name}()"
+
+        if function_name is None:
+            function_name = f"unknown_{selector}"
+
+        if use_ml:
+            self._init_ml_models()
+            features = self._bytecode_to_features(bytecode_clean, selector)
+
+            if self.function_classifier is not None:
+                ml_name, ml_conf = self._predict_function_name_ml(features)
+                if ml_conf > 0.3:
+                    function_name = ml_name
+                    if "(" not in signature or signature.startswith("unknown_"):
+                        signature = f"{function_name}()"
+
+            if self.parameter_predictor is not None:
+                ml_types, ml_confs = self._predict_parameters_ml(features, function_name)
+                if ml_types:
+                    param_types = ml_types
+                else:
+                    param_types = self.param_reconstructor.predict_parameter_types(
+                        bytecode_clean, selector, function_name
+                    )
+            else:
+                param_types = self.param_reconstructor.predict_parameter_types(
+                    bytecode_clean, selector, function_name
+                )
+        else:
+            param_types = self.param_reconstructor.predict_parameter_types(
+                bytecode_clean, selector, function_name
+            )
+
+        state_mutability = self.parser.detect_state_mutability(bytecode_clean, selector)
+
+        abi = FunctionABI(
+            name=function_name,
+            selector=selector,
+            inputs=[
+                Parameter(name=name, param_type=pt)
+                for name, pt in zip(
+                    self.param_reconstructor.predict_parameter_names(param_types, function_name),
+                    param_types
+                )
+            ],
+            state_mutability=state_mutability,
+        )
+
+        return {
+            "selector": selector,
+            "signature": signature,
+            "function_name": function_name,
+            "state_mutability": state_mutability,
+            "parameters": [{"name": p.name, "type": p.param_type} for p in abi.inputs],
+            "abi": abi.to_dict(),
+            "source": "4byte_db" if sigs else "inferred",
+        }
+
+    def reconstruct_abi(
+        self,
+        bytecode: str,
+        max_selectors: int = 50,
+        use_ml: bool = False
+    ) -> Dict[str, Any]:
+        """Reconstruct complete ABI from bytecode.
+
+        Args:
+            bytecode: Contract bytecode
+            max_selectors: Maximum number of selectors to extract
+            use_ml: Reserved for ML-based inference (not yet implemented)
+
+        Returns:
+            Dictionary with complete reconstructed ABI
+        """
+        selectors = self.parser.extract_selectors(bytecode)
+
+        if max_selectors > 0:
+            selectors = selectors[:max_selectors]
+
+        functions = []
+        errors = []
+        events = []
+
+        bytecode_clean = self.parser.clean_bytecode(bytecode)
+        for sel in selectors:
+            try:
+                func = self.reconstruct_function(bytecode, sel.selector, use_ml=use_ml)
+                func["confidence"] = sel.confidence
+                func["source_detail"] = sel.source
+                functions.append(func)
+            except Exception as e:
+                errors.append({
+                    "selector": sel.selector,
+                    "error": str(e)
+                })
+
+        try:
+            events = self.parser.extract_events(bytecode_clean, db=self.db)
+        except Exception:
+            pass
+
+        try:
+            errs = self.parser.extract_errors(bytecode_clean)
+            errors.extend(errs)
+        except Exception:
+            pass
+
+        return {
+            "success": len(functions) > 0,
+            "functions": functions,
+            "events": events,
+            "errors": errors,
+            "metadata": {
+                "selectors_found": len(selectors),
+                "functions_reconstructed": len(functions),
+                "events_found": len(events),
+                "errors_count": len(errors),
+            }
+        }
+
+    def to_json(self, abi_result: Dict[str, Any]) -> str:
+        """Convert ABI result to JSON string.
+
+        Args:
+            abi_result: Result from reconstruct_abi
+
+        Returns:
+            JSON string
+        """
+        import json
+
+        abi_list = [f["abi"] for f in abi_result.get("functions", [])]
+
+        events = abi_result.get("events", [])
+        if events:
+            for event in events:
+                abi_list.append(event)
+
+        output = {
+            "abi": abi_list,
+            "metadata": abi_result.get("metadata", {}),
+        }
+
+        return json.dumps(output, indent=2)
+
+    def close(self) -> None:
+        """Close database connection."""
+        self.db.close()
