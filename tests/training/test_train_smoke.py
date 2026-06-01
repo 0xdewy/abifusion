@@ -114,3 +114,16 @@ class TestCheckpointRoundTrip:
         # Weights match the saved model after load.
         for k, v in model.state_dict().items():
             assert torch.equal(v, fresh.state_dict()[k])
+
+    def test_load_model_with_class_weights_roundtrips(self, tmp_path):
+        # Models trained with class weights carry a type_criterion_weighted
+        # buffer; load_model must reconstruct it instead of failing on an
+        # unexpected key.
+        model = _tiny_model()
+        model.set_type_class_weights(torch.rand(NUM_TYPES))
+        path = tmp_path / "weighted.pth"
+        model.save_model(str(path))
+
+        loaded = ParameterPredictionModel.load_model(str(path), use_cuda=False)
+        assert loaded.num_type_classes == NUM_TYPES
+        assert hasattr(loaded, "type_criterion_weighted")

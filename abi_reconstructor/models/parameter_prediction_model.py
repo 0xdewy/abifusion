@@ -773,6 +773,8 @@ class ParameterPredictionModel(nn.Module):
         # Handle both dict format (with model_state_dict key) and plain state_dict
         if isinstance(checkpoint, dict) and "model_state_dict" in checkpoint:
             state_dict = checkpoint["model_state_dict"]
+            if "encoder_type" in checkpoint:
+                encoder_type = checkpoint["encoder_type"]
             if "encoder_config" in checkpoint:
                 encoder_config = checkpoint["encoder_config"]
             if "hidden_dim" in checkpoint:
