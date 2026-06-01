@@ -1,6 +1,5 @@
 """EVM Bytecode parser for extracting function selectors and reconstructing ABIs."""
 
-import os
 import re
 from dataclasses import dataclass
 from pathlib import Path
@@ -772,9 +771,9 @@ class ABIReconstructor:
         self.model_path = model_path or CHECKPOINT_DIR
 
         self._func_to_idx = {f: i for i, f in enumerate(self.FUNCTION_NAME_VOCAB)}
-        self._idx_to_func = {i: f for i, f in enumerate(self.FUNCTION_NAME_VOCAB)}
+        self._idx_to_func = dict(enumerate(self.FUNCTION_NAME_VOCAB))
         self._type_to_idx = {t: i for i, t in enumerate(self.TYPE_NAMES)}
-        self._idx_to_type = {i: t for i, t in enumerate(self.TYPE_NAMES)}
+        self._idx_to_type = dict(enumerate(self.TYPE_NAMES))
         self._type_to_idx["unknown"] = len(self.TYPE_NAMES) - 1
 
         self._lowercase_vocab = {k.lower(): v for k, v in self._func_to_idx.items()}

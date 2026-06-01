@@ -312,7 +312,7 @@ class ParameterPredictionModel(nn.Module):
         type_probs_list = []
         type_confidences_list = []
         predicted_types_list = []
-        for i, classifier in enumerate(self.type_classifiers):
+        for i in range(len(self.type_classifiers)):
             type_prob = F.softmax(type_logits[:, i, :], dim=-1)
             type_conf, type_pred = torch.max(type_prob, dim=-1)
             type_probs_list.append(type_prob)
@@ -381,8 +381,6 @@ class ParameterPredictionModel(nn.Module):
         # The dataset might have more parameters than our model can handle
         parameter_types = parameter_types[:, : self.max_parameters]
         parameter_mask = parameter_mask[:, : self.max_parameters]
-
-        batch_size = type_logits.size(0)
 
         # Default loss weights
         if loss_weights is None:
@@ -529,7 +527,6 @@ class ParameterPredictionModel(nn.Module):
                         valid_types.append(t)
                         valid_type_probs.append(prob)
 
-                type_conf = type_confidences[i, pos].item()
                 best_type = predicted_types[i, pos].item()
                 best_type_prob = type_prob[best_type].item()
 
@@ -591,8 +588,6 @@ class ParameterPredictionModel(nn.Module):
             for batch in val_loader:
                 bytecode_tokens = batch["bytecode_tokens"]
                 parameter_count = batch["parameter_count"]
-                parameter_types = batch["parameter_types"]
-                parameter_mask = batch["parameter_mask"]
                 attention_mask = batch.get("attention_mask")
 
                 outputs = self(bytecode_tokens, attention_mask)

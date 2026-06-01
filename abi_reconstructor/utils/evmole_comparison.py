@@ -1,7 +1,7 @@
 """EVMole comparison module for validating selector extraction."""
 
-from typing import Dict, List, Set, Any, Optional
 import json
+from typing import Any, Dict, List, Optional
 
 
 def extract_selectors_with_evmole(bytecode: str) -> List[str]:
@@ -74,11 +74,11 @@ def compare_selectors(
         f1_score = 2 * (precision * recall) / (precision + recall)
 
     return {
-        "our_selectors": sorted(list(our_set)),
-        "evmole_selectors": sorted(list(evmole_set)),
-        "common_selectors": sorted(list(common)),
-        "only_our_selectors": sorted(list(only_ours)),
-        "only_evmole_selectors": sorted(list(only_evmole)),
+        "our_selectors": sorted(our_set),
+        "evmole_selectors": sorted(evmole_set),
+        "common_selectors": sorted(common),
+        "only_our_selectors": sorted(only_ours),
+        "only_evmole_selectors": sorted(only_evmole),
         "metrics": {
             "our_count": len(our_set),
             "evmole_count": len(evmole_set),

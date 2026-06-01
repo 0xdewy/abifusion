@@ -1,6 +1,5 @@
 """Dataset creation for bytecode + selector → signature training."""
 
-import hashlib
 import os
 from collections import defaultdict
 from typing import Any, Dict, List, Tuple
@@ -14,7 +13,6 @@ try:
     HAS_KECCAK = True
 except ImportError:
     HAS_KECCAK = False
-    import hashlib
 
 
 class BytecodeDataset:
@@ -151,7 +149,6 @@ class BytecodeDataset:
         Returns:
             Tuple of (selector_hex, position) or (None, -1) if not found
         """
-        from typing import Tuple
 
         if not bytecode_hex or bytecode_hex == "0x":
             return None, -1
@@ -415,7 +412,7 @@ class BytecodeDataset:
         print(f"Created {len(negative_samples)} negative samples")
         return negative_samples
 
-    
+
 
 
 def test_dataset():

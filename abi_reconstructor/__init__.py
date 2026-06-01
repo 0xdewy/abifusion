@@ -4,8 +4,8 @@ __version__ = "1.0.0"
 __author__ = "ABI Reconstructor Team"
 __description__ = "Reconstruct ABIs from bytecode with >99% correctness"
 
-from .reconstructor import ABIReconstructor
 from .database import FourByteDatabase
+from .reconstructor import ABIReconstructor
 from .selector_extractor import SelectorExtractor
 
 __all__ = [

@@ -3,7 +3,6 @@
 import hashlib
 import json
 import os
-import pickle
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
@@ -185,11 +184,6 @@ class ParameterDataset:
                     if pos == -1:
                         # Selector not found in this bytecode (might be different version)
                         continue
-
-                    # Calculate selector for reference (might be different from found selector)
-                    calculated_selector = self.bytecode_dataset.calculate_selector(
-                        true_signature
-                    )
 
                     # Extract context window around selector
                     start = max(0, pos - context_size)

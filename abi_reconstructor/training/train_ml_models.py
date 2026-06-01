@@ -9,10 +9,8 @@ import argparse
 import gc
 import json
 import os
-import signal
 import sys
 import time
-from contextlib import contextmanager
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
@@ -23,13 +21,13 @@ import torch.nn as nn
 import torch.optim as optim
 from torch.utils.data import DataLoader
 
+from abi_reconstructor.device import batch_to_device
 from abi_reconstructor.models.function_name_classifier import FunctionNameClassifier
 from abi_reconstructor.models.parameter_prediction_model import ParameterPredictionModel
 from abi_reconstructor.training.parameter_dataset import (
     ParameterDataset,
     ParameterDatasetTorch,
 )
-from abi_reconstructor.device import batch_to_device
 
 
 class TimeoutException(Exception):

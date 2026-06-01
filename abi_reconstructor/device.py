@@ -10,8 +10,7 @@ This module provides consistent device management across the ABI Reconstructor:
 import gc
 import warnings
 from contextlib import contextmanager
-from dataclasses import dataclass
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Dict, Optional, Union
 
 import torch
 import torch.nn as nn
@@ -156,7 +155,10 @@ class DeviceManager:
                 self._device = torch.device("cpu")
         else:
             if device.type == "cuda" and not torch.cuda.is_available():
-                warnings.warn("CUDA device requested but not available, using CPU")
+                warnings.warn(
+                    "CUDA device requested but not available, using CPU",
+                    stacklevel=2,
+                )
                 self._device = torch.device("cpu")
             else:
                 self._device = device
@@ -222,7 +224,10 @@ class DeviceManager:
             >>> # dm.device is restored after context
         """
         if device.type == "cuda" and not torch.cuda.is_available():
-            warnings.warn("CUDA device requested but not available, using CPU")
+            warnings.warn(
+                "CUDA device requested but not available, using CPU",
+                stacklevel=2,
+            )
             device = torch.device("cpu")
 
         original_device = self._device

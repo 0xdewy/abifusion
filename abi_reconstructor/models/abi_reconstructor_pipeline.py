@@ -6,14 +6,14 @@ from typing import Any, Dict, List, Optional
 
 import torch
 
-from abi_reconstructor.utils.bytecode_utils import (
-    clean_bytecode,
-    extract_selector_context,
-)
 from abi_reconstructor.features.bytecode_features import BytecodeFeatureExtractor
 from abi_reconstructor.features.selector_extractor import NeuralSelectorExtractor
 from abi_reconstructor.models.function_name_classifier import FunctionNameClassifier
 from abi_reconstructor.models.parameter_prediction_model import ParameterPredictionModel
+from abi_reconstructor.utils.bytecode_utils import (
+    clean_bytecode,
+    extract_selector_context,
+)
 from abi_reconstructor.utils.signature_lookup import SignatureLookup
 
 

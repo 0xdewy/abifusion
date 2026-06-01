@@ -4,7 +4,6 @@
 import argparse
 import json
 import sys
-from pathlib import Path
 
 from abi_reconstructor import ABIReconstructor, FourByteDatabase
 from abi_reconstructor.reconstructor import BytecodeParser
@@ -12,8 +11,6 @@ from abi_reconstructor.reconstructor import BytecodeParser
 
 def cmd_reconstruct(args) -> int:
     """Reconstruct ABI from bytecode."""
-    db = FourByteDatabase(db_path=args.db)
-
     if args.bytecode_file:
         with open(args.bytecode_file, "r") as f:
             bytecode = f.read().strip()
@@ -133,7 +130,7 @@ def main():
     populate_parser = subparsers.add_parser("populate", help="Populate database from API")
     populate_parser.add_argument("--selectors", help="Comma-separated list of selectors to fetch, or omit for full pagination")
 
-    stats_parser = subparsers.add_parser("stats", help="Show database statistics")
+    subparsers.add_parser("stats", help="Show database statistics")
 
     export_parser = subparsers.add_parser("export", help="Export database to JSON")
     export_parser.add_argument("--output", required=True, help="Output JSON file path")
