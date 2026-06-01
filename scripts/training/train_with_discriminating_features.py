@@ -26,9 +26,9 @@ Examples:
   python scripts/training/train_with_discriminating_features.py \
       --max-contracts 20 --epochs 3
 
-  # Plan #05 target scale:
+  # Plan #05 target scale (discover contracts from Sourcify + ablation):
   python scripts/training/train_with_discriminating_features.py \
-      --addresses-file my_500_addresses.txt --epochs 15
+      --num-contracts 500 --epochs 15 --ablation --checkpoint-dir checkpoints
 """
 
 import argparse
@@ -68,10 +68,50 @@ DEFAULT_ADDRESSES = [
 ]
 
 
+SOURCIFY_V2_CONTRACTS = "https://sourcify.dev/server/v2/contracts/{chain}"
+
+
+def discover_addresses_from_sourcify(n: int, chain_id: int = 1) -> list:
+    """Collect up to `n` verified contract addresses from Sourcify (keyless).
+
+    Pages the Sourcify v2 contracts endpoint with afterMatchId until enough
+    unique addresses are gathered or the listing is exhausted.
+    """
+    import requests
+
+    url = SOURCIFY_V2_CONTRACTS.format(chain=chain_id)
+    seen: list = []
+    seen_set: set = set()
+    after_match_id = None
+    while len(seen) < n:
+        params = {"limit": 200, "sort": "desc"}
+        if after_match_id:
+            params["afterMatchId"] = after_match_id
+        resp = requests.get(url, params=params, timeout=20)
+        resp.raise_for_status()
+        results = resp.json().get("results", [])
+        if not results:
+            break
+        for r in results:
+            addr = r.get("address")
+            if addr and addr.lower() not in seen_set:
+                seen_set.add(addr.lower())
+                seen.append(addr)
+        after_match_id = results[-1].get("matchId")
+        if not after_match_id:
+            break
+        logger.info("Sourcify discovery: %d/%d addresses", len(seen), n)
+    return seen[:n]
+
+
 def load_addresses(args) -> list:
     if args.addresses_file:
         text = Path(args.addresses_file).read_text()
         addrs = [ln.strip() for ln in text.splitlines() if ln.strip() and not ln.startswith("#")]
+    elif args.num_contracts > 0:
+        # Over-collect: some Sourcify-verified contracts aren't Etherscan-verified
+        # and get skipped during fetch.
+        addrs = discover_addresses_from_sourcify(int(args.num_contracts * 1.6))
     else:
         addrs = list(DEFAULT_ADDRESSES)
     if args.max_contracts > 0:
@@ -79,8 +119,11 @@ def load_addresses(args) -> list:
     return addrs
 
 
-def fetch_dataset(addresses: list, data_dir: Path) -> Path:
-    """Fetch contracts from Etherscan and write a training parquet."""
+def fetch_dataset(addresses: list, data_dir: Path, target: int = 0) -> Path:
+    """Fetch contracts from Etherscan and write a training parquet.
+
+    Stops early once `target` contracts are successfully fetched (0 = no limit).
+    """
     import pandas as pd
     from dotenv import load_dotenv
 
@@ -91,7 +134,9 @@ def fetch_dataset(addresses: list, data_dir: Path) -> Path:
 
     rows = []
     for i, address in enumerate(addresses):
-        logger.info("Fetching %d/%d: %s", i + 1, len(addresses), address)
+        if target and len(rows) >= target:
+            break
+        logger.info("Fetching %d/%d (kept %d): %s", i + 1, len(addresses), len(rows), address)
         try:
             contract = client.get_contract(address, include_source_code=True)
         except Exception as e:  # noqa: BLE001 - keep fetching on per-contract errors
@@ -149,9 +194,70 @@ def run_training(args, data_dir: Path) -> int:
     return subprocess.call(cmd, cwd=str(REPO_ROOT))
 
 
+def _type_accuracy(model, loader, zero_discriminating: bool) -> float:
+    """Type accuracy over a loader, optionally zeroing discriminating features."""
+    import torch
+
+    correct = total = 0
+    for batch in loader:
+        disc = batch.get("discriminating_features")
+        if zero_discriminating and disc is not None:
+            disc = torch.zeros_like(disc)
+        out = model.predict(
+            batch["bytecode_tokens"],
+            batch.get("attention_mask"),
+            type_threshold=0.0,
+            mask_threshold=0.5,
+            discriminating_features=disc,
+        )
+        pred_types = out["raw_outputs"]["predicted_types"].cpu()
+        true_types = batch["parameter_types"]
+        true_mask = batch["parameter_mask"]
+        max_params = pred_types.shape[1]
+        for i in range(pred_types.shape[0]):
+            for pos in range(max_params):
+                if pos < true_mask.shape[1] and true_mask[i, pos].item() > 0.5:
+                    total += 1
+                    if int(pred_types[i, pos]) == int(true_types[i, pos]):
+                        correct += 1
+    return correct / total if total else 0.0
+
+
+def run_ablation(args, data_dir: Path) -> None:
+    """Compare test type-accuracy with real vs zeroed discriminating features."""
+    from abi_reconstructor.models.parameter_prediction_model import (
+        ParameterPredictionModel,
+    )
+    from abi_reconstructor.training.train_ml_models import prepare_datasets
+
+    ckpt = Path(args.checkpoint_dir) / "parameter_predictor_final.pth"
+    if not ckpt.exists():
+        logger.warning("Ablation skipped: %s not found", ckpt)
+        return
+
+    _, _, test_loader, _, _ = prepare_datasets(
+        data_dir=str(data_dir), batch_size=args.batch_size, seed=args.seed
+    )
+    model = ParameterPredictionModel.load_model(str(ckpt), use_cuda=True)
+
+    acc_with = _type_accuracy(model, test_loader, zero_discriminating=False)
+    acc_without = _type_accuracy(model, test_loader, zero_discriminating=True)
+    logger.info("=== Discriminating-features ablation (test type accuracy) ===")
+    logger.info("  with features:    %.4f", acc_with)
+    logger.info("  zeroed features:  %.4f", acc_without)
+    logger.info("  degradation:      %.4f", acc_with - acc_without)
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("--addresses-file", help="File with one contract address per line")
+    parser.add_argument(
+        "--num-contracts",
+        type=int,
+        default=0,
+        help="Discover this many verified contracts from Sourcify (0 = use the "
+        "built-in default set or --addresses-file)",
+    )
     parser.add_argument("--max-contracts", type=int, default=0, help="Cap addresses (0 = all)")
     parser.add_argument("--data-dir", default="data", help="Where to write the dataset parquet")
     parser.add_argument(
@@ -173,6 +279,12 @@ def main() -> int:
         "--skip-fetch",
         action="store_true",
         help="Reuse an existing dataset parquet in --data-dir instead of fetching",
+    )
+    parser.add_argument(
+        "--ablation",
+        action="store_true",
+        help="After training, compare test type-accuracy with real vs zeroed "
+        "discriminating features to confirm they are used.",
     )
     parser.add_argument(
         "--dry-run",
@@ -202,11 +314,15 @@ def main() -> int:
         return 0
 
     if not args.skip_fetch:
-        fetch_dataset(addresses, data_dir)
+        fetch_dataset(addresses, data_dir, target=args.num_contracts)
 
     rc = run_training(args, data_dir)
     if rc != 0:
         logger.error("Training exited with code %d", rc)
+        return rc
+
+    if args.ablation:
+        run_ablation(args, data_dir)
     return rc
 
 
