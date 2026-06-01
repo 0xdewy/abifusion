@@ -100,15 +100,16 @@ class ABIReconstructorPipeline:
             "transfer": ["address", "uint256"],
             "transferFrom": ["address", "address", "uint256"],
             "approve": ["address", "uint256"],
-            "balanceOf": ["address"],
             "totalSupply": [],
             "allowance": ["address", "address"],
             "name": [],
             "symbol": [],
             "decimals": [],
+            # NOTE: "balanceOf" and "safeTransferFrom" are overloaded across token
+            # standards (ERC20/721 vs ERC1155) and are resolved by predicted arity
+            # via FUNCTION_TYPE_PRIOR_OVERLOADS below, not here.
             # ERC721 functions
             "ownerOf": ["uint256"],
-            "safeTransferFrom": ["address", "address", "uint256"],
             "setApprovalForAll": ["address", "bool"],
             "isApprovedForAll": ["address", "address"],
             "tokenURI": ["uint256"],
@@ -120,7 +121,6 @@ class ABIReconstructorPipeline:
             "getRoleAdmin": ["bytes32"],
             "DEFAULT_ADMIN_ROLE": [],
             # ERC1155 functions
-            "safeTransferFrom": ["address", "address", "uint256", "uint256", "bytes"],
             "safeBatchTransferFrom": [
                 "address",
                 "address",
@@ -128,9 +128,6 @@ class ABIReconstructorPipeline:
                 "uint256[]",
                 "bytes",
             ],
-            "balanceOf": ["address", "uint256"],  # ERC1155 overload
-            "setApprovalForAll": ["address", "bool"],
-            "isApprovedForAll": ["address", "address"],
             # Pool functions (Curve-like)
             "add_liquidity": ["uint256[]", "uint256"],
             "remove_liquidity": ["uint256", "uint256[]"],
@@ -168,10 +165,21 @@ class ABIReconstructorPipeline:
             "getImplementation": [],
             "getAdmin": [],
             "paused": [],
-            "totalSupply": [],
-            "decimals": [],
-            "symbol": [],
-            "name": [],
+        }
+
+        # Overloaded standard functions: the same name maps to different
+        # signatures across token standards. Keys are lowercase; candidates are
+        # ordered most-common-first and selected by predicted parameter count at
+        # lookup time (see predict_parameters).
+        self.FUNCTION_TYPE_PRIOR_OVERLOADS = {
+            # ERC20/721 balanceOf(address) vs ERC1155 balanceOf(address,uint256)
+            "balanceof": [["address"], ["address", "uint256"]],
+            # ERC721 safeTransferFrom(address,address,uint256) vs
+            # ERC1155 safeTransferFrom(address,address,uint256,uint256,bytes)
+            "safetransferfrom": [
+                ["address", "address", "uint256"],
+                ["address", "address", "uint256", "uint256", "bytes"],
+            ],
         }
 
     @classmethod
@@ -834,6 +842,16 @@ class ABIReconstructorPipeline:
             }
 
         prior_types = self._lowercase_priors.get(lowercase_name, None)
+
+        # Overloaded standard functions (e.g. balanceOf, safeTransferFrom): pick
+        # the candidate whose arity matches the predicted parameter count, falling
+        # back to the most-common variant when no candidate matches.
+        if prior_types is None:
+            overloads = self.FUNCTION_TYPE_PRIOR_OVERLOADS.get(lowercase_name)
+            if overloads:
+                prior_types = next(
+                    (c for c in overloads if len(c) == param_count), overloads[0]
+                )
 
         # Map type indices to type names using vocabulary
         parameters = []
