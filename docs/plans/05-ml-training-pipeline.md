@@ -1,6 +1,18 @@
 # 05 — ML Training Pipeline
 
-**Priority:** Medium | **Status:** Executed (small scale) | **Depends on:** #3 (self-contained checkpoint)
+**Priority:** Medium | **Status:** Executed at scale; ML type head below targets | **Depends on:** #3 (self-contained checkpoint)
+
+## Full-scale result (2026-06-01)
+
+Ran at 500 contracts / 15 epochs — see `eval_output/plan05_fullscale.md`.
+Type accuracy improved 1.9% → **32.1%** and function Top-3 → **85.1%**, but the
+Plan targets (type ≥ 0.995) are **not met**: the ML type head is far below the
+rule-based ~0.97. The **discriminating-features ablation is negative** (zeroing
+them slightly *improves* type accuracy, −0.0095), so they add no value as
+currently wired. Recommendation: keep the rule-based pipeline as the primary
+type source, investigate/redesign the discriminating features, and scale data
+further before relying on the ML head. Inference now passes discriminating
+features (train/serve skew closed) regardless.
 
 ## Run log (2026-06-01)
 
