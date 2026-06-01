@@ -1,11 +1,14 @@
 """Function name classifier model for ABI reconstruction."""
 
+import logging
 import math
 from typing import Any, Dict, Optional
 
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+
+logger = logging.getLogger(__name__)
 
 
 class FunctionNameClassifier(nn.Module):
@@ -297,7 +300,7 @@ class FunctionNameClassifier(nn.Module):
                 total_samples += len(labels)
 
             avg_loss = total_loss / total_samples if total_samples > 0 else 0
-            print(
+            logger.info(
                 f"  Temperature calibration iteration {iteration + 1}/{max_iters}, loss: {avg_loss:.4f}, temperature: {self.temperature.item():.4f}"
             )
 

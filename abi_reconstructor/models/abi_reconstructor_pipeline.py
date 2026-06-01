@@ -1,5 +1,6 @@
 """ABI Reconstruction Pipeline - Orchestrates the complete ABI reconstruction process."""
 
+import logging
 import os
 from pathlib import Path
 from typing import Any, Dict, List, Optional
@@ -15,6 +16,8 @@ from abi_reconstructor.utils.bytecode_utils import (
     extract_selector_context,
 )
 from abi_reconstructor.utils.signature_lookup import SignatureLookup
+
+logger = logging.getLogger(__name__)
 
 
 class ABIReconstructorPipeline:
@@ -207,7 +210,7 @@ class ABIReconstructorPipeline:
             # Try alternative name
             function_classifier_path = checkpoint_dir / "final_function_classifier.pth"
 
-        print(f"Loading function classifier from {function_classifier_path}")
+        logger.info(f"Loading function classifier from {function_classifier_path}")
         function_classifier = FunctionNameClassifier.load_model(
             str(function_classifier_path), use_cuda=use_cuda
         )
@@ -218,7 +221,7 @@ class ABIReconstructorPipeline:
             # Try alternative name
             parameter_predictor_path = checkpoint_dir / "final_parameter_predictor.pth"
 
-        print(f"Loading parameter predictor from {parameter_predictor_path}")
+        logger.info(f"Loading parameter predictor from {parameter_predictor_path}")
 
         parameter_predictor = ParameterPredictionModel.load_model(
             str(parameter_predictor_path),
@@ -775,7 +778,7 @@ class ABIReconstructorPipeline:
             }
 
         if self.verbose:
-            print(f"  Mapping function name: '{function_name}'")
+            logger.info(f"  Mapping function name: '{function_name}'")
 
         # Try to find exact match first (case-insensitive)
         lowercase_name = normalized_name.lower()
@@ -791,14 +794,14 @@ class ABIReconstructorPipeline:
                         original_vocab_name = next(
                             k for k, v in self.function_to_idx.items() if v == idx
                         )
-                        print(f"    Mapped to '{original_vocab_name}' (idx: {idx})")
+                        logger.info(f"    Mapped to '{original_vocab_name}' (idx: {idx})")
                     break
 
             if not found:
                 # Use "unknown" index
                 function_idx = self.function_to_idx.get("unknown", 0)
                 if self.verbose:
-                    print(f"    No match, using 'unknown' (idx: {function_idx})")
+                    logger.info(f"    No match, using 'unknown' (idx: {function_idx})")
 
         function_name_idx = torch.tensor([function_idx], dtype=torch.long)
         if self.use_cuda and torch.cuda.is_available():

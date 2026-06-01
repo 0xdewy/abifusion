@@ -2,6 +2,7 @@
 
 import hashlib
 import json
+import logging
 import os
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
@@ -12,6 +13,8 @@ from torch.utils.data import DataLoader, Dataset
 
 from abi_reconstructor.training.bytecode_dataset import BytecodeDataset
 from abi_reconstructor.utils.signature_lookup import SignatureLookup
+
+logger = logging.getLogger(__name__)
 
 
 class ParameterDataset:
@@ -134,7 +137,7 @@ class ParameterDataset:
         Returns:
             List of parameter samples
         """
-        print("Loading parameter prediction samples...")
+        logger.info("Loading parameter prediction samples...")
 
         # Load contracts from bytecode dataset
         contracts = self.bytecode_dataset.load_contracts()
@@ -242,16 +245,16 @@ class ParameterDataset:
                     processed += 1
 
                     if max_samples > 0 and processed >= max_samples:
-                        print(
+                        logger.info(
                             f"Loaded {len(samples)} parameter samples (max_samples limit reached)"
                         )
                         return samples
 
             except Exception as e:
-                print(f"Error processing contract: {e}")
+                logger.error(f"Error processing contract: {e}")
                 continue
 
-        print(f"Loaded {len(samples)} parameter samples")
+        logger.info(f"Loaded {len(samples)} parameter samples")
         return samples
 
     def _normalize_type(self, type_str: str) -> str:
@@ -456,7 +459,7 @@ class ParameterDataset:
             filtered_samples.append(sample)
 
         if removed > 0:
-            print(
+            logger.info(
                 f"  Filtered out {removed} noisy samples ({len(filtered_samples)} kept)"
             )
 
@@ -478,7 +481,7 @@ class ParameterDataset:
         Returns:
             Tuple of (train_data, val_data, test_data) dictionaries
         """
-        print("Preparing training data splits...")
+        logger.info("Preparing training data splits...")
 
         # Shuffle samples
         np.random.shuffle(samples)
@@ -493,9 +496,9 @@ class ParameterDataset:
         val_samples = samples[n_train : n_train + n_val]
         test_samples = samples[n_train + n_val :]
 
-        print(f"  Training samples: {n_train}")
-        print(f"  Validation samples: {n_val}")
-        print(f"  Test samples: {n_test}")
+        logger.info(f"  Training samples: {n_train}")
+        logger.info(f"  Validation samples: {n_val}")
+        logger.info(f"  Test samples: {n_test}")
 
         # Prepare data dictionaries
         train_data = self._prepare_data_dict(train_samples, "train")
@@ -626,7 +629,7 @@ class ParameterDataset:
         with open(filepath, "w") as f:
             json.dump(save_dict, f, indent=2)
 
-        print(f"Saved dataset to {filepath}")
+        logger.info(f"Saved dataset to {filepath}")
 
     def load_dataset(self, filepath: str) -> Dict[str, Any]:
         """Load dataset from file."""
@@ -745,7 +748,7 @@ class ParameterDatasetTorch(Dataset):
         # Try to load from cache
         if cache_path.exists():
             try:
-                print(f"Loading tokenized bytecode from cache: {cache_path}")
+                logger.info(f"Loading tokenized bytecode from cache: {cache_path}")
                 with open(cache_path, "rb") as f:
                     cached_data = torch.load(f, weights_only=True)
 
@@ -753,24 +756,24 @@ class ParameterDatasetTorch(Dataset):
                 if len(cached_data) == len(self.bytecode_contexts) and all(
                     isinstance(t, torch.Tensor) for t in cached_data
                 ):
-                    print(f"  Cache hit: {len(cached_data)} samples loaded")
+                    logger.info(f"  Cache hit: {len(cached_data)} samples loaded")
                     return cached_data
                 else:
-                    print("  Cache invalid, re-tokenizing")
+                    logger.info("  Cache invalid, re-tokenizing")
             except Exception as e:
-                print(f"  Cache load error: {e}, re-tokenizing")
+                logger.info(f"  Cache load error: {e}, re-tokenizing")
 
         # Tokenize and cache
-        print("Tokenizing bytecode (cache miss)...")
+        logger.info("Tokenizing bytecode (cache miss)...")
         tokens_list = self._tokenize_bytecode_contexts()
 
         # Save to cache
         try:
             with open(cache_path, "wb") as f:
                 torch.save(tokens_list, f)
-            print(f"  Cached {len(tokens_list)} samples to {cache_path}")
+            logger.info(f"  Cached {len(tokens_list)} samples to {cache_path}")
         except Exception as e:
-            print(f"  Warning: Failed to cache tokenized data: {e}")
+            logger.info(f"  Warning: Failed to cache tokenized data: {e}")
 
         return tokens_list
 
@@ -846,22 +849,22 @@ class ParameterDatasetTorch(Dataset):
 
 def test_parameter_dataset():
     """Test the parameter dataset."""
-    print("Testing ParameterDataset...")
+    logger.info("Testing ParameterDataset...")
 
     # Create dataset
     dataset = ParameterDataset()
 
     # Load samples
     samples = dataset.load_parameter_samples(max_samples=100)
-    print(f"Loaded {len(samples)} samples")
+    logger.info(f"Loaded {len(samples)} samples")
 
     if samples:
         # Show sample statistics
         param_counts = [s["parameter_count"] for s in samples]
-        print("Parameter count distribution:")
+        logger.info("Parameter count distribution:")
         for count in range(0, 7):
             count_samples = sum(1 for c in param_counts if c == count)
-            print(f"  {count} parameters: {count_samples} samples")
+            logger.info(f"  {count} parameters: {count_samples} samples")
 
         # Show type distribution
         all_types = []
@@ -872,20 +875,20 @@ def test_parameter_dataset():
         from collections import Counter
 
         type_counts = Counter(all_types)
-        print("\nTop 10 parameter types:")
+        logger.info("\nTop 10 parameter types:")
         for type_name, count in type_counts.most_common(10):
-            print(f"  {type_name}: {count}")
+            logger.info(f"  {type_name}: {count}")
 
         # Prepare training data
         train_data, val_data, test_data = dataset.prepare_training_data(samples)
-        print("\nData splits prepared:")
-        print(f"  Train: {len(train_data['samples'])} samples")
-        print(f"  Val: {len(val_data['samples'])} samples")
-        print(f"  Test: {len(test_data['samples'])} samples")
+        logger.info("\nData splits prepared:")
+        logger.info(f"  Train: {len(train_data['samples'])} samples")
+        logger.info(f"  Val: {len(val_data['samples'])} samples")
+        logger.info(f"  Test: {len(test_data['samples'])} samples")
 
         # Test PyTorch dataset
         torch_dataset = ParameterDatasetTorch(train_data, tokenize_bytecode=True)
-        print(f"\nPyTorch dataset created with {len(torch_dataset)} samples")
+        logger.info(f"\nPyTorch dataset created with {len(torch_dataset)} samples")
 
         # Get a batch
         dataloader = DataLoader(
@@ -896,18 +899,19 @@ def test_parameter_dataset():
         )
 
         batch = next(iter(dataloader))
-        print("\nBatch shapes:")
+        logger.info("\nBatch shapes:")
         for key, value in batch.items():
             if isinstance(value, torch.Tensor):
-                print(f"  {key}: {value.shape}")
+                logger.info(f"  {key}: {value.shape}")
             elif isinstance(value, list):
-                print(f"  {key}: list of {len(value)} items")
+                logger.info(f"  {key}: list of {len(value)} items")
 
         return True
     else:
-        print("No samples loaded")
+        logger.info("No samples loaded")
         return False
 
 
 if __name__ == "__main__":
+    logging.basicConfig(level=logging.INFO, format="%(levelname)s %(name)s: %(message)s")
     test_parameter_dataset()

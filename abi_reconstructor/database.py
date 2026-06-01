@@ -12,6 +12,8 @@ from typing import Any, Dict, List, Optional
 
 import requests
 
+logger = logging.getLogger(__name__)
+
 
 @dataclass
 class Signature:
@@ -219,7 +221,7 @@ class FourByteDatabase:
             return signatures
 
         except requests.exceptions.RequestException as e:
-            print(f"Warning: API request failed for 0x{selector}: {e}")
+            logger.warning(f"API request failed for 0x{selector}: {e}")
             return []
 
     def fetch_event_signature_from_api(self, topic0: str) -> List[Dict]:
@@ -269,7 +271,7 @@ class FourByteDatabase:
             return signatures
 
         except requests.exceptions.RequestException as e:
-            print(f"Warning: Event API request failed for 0x{topic0}: {e}")
+            logger.warning(f"Event API request failed for 0x{topic0}: {e}")
             return []
 
     def insert_signature(self, selector: str, text_signature: str, source: str = "4byte.directory") -> bool:
@@ -416,7 +418,7 @@ class FourByteDatabase:
                         break
 
                 except requests.exceptions.RequestException as e:
-                    print(f"Warning: API pagination failed at page {page}: {e}")
+                    logger.warning(f"API pagination failed at page {page}: {e}")
                     break
 
             results["success"] = results["fetched"]

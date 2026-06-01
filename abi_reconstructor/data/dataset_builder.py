@@ -1,11 +1,14 @@
 """Dataset builder for ABI reconstruction training data."""
 
 import json
+import logging
 import os
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 import pandas as pd
+
+logger = logging.getLogger(__name__)
 
 
 class DatasetBuilder:
@@ -67,7 +70,7 @@ class DatasetBuilder:
                         training_examples.append(example)
 
             except Exception as e:
-                print(f"Error processing contract: {e}")
+                logger.error(f"Error processing contract: {e}")
                 continue
 
         return training_examples
@@ -109,20 +112,20 @@ class DatasetBuilder:
         Returns:
             Dictionary with dataset statistics
         """
-        print("Loading contracts...")
+        logger.info("Loading contracts...")
         df = self.load_contracts(input_file)
 
-        print(f"Loaded {len(df)} contracts")
+        logger.info(f"Loaded {len(df)} contracts")
 
-        print("Extracting training examples...")
+        logger.info("Extracting training examples...")
         examples = self.extract_training_examples(df)
 
         if max_examples:
             examples = examples[:max_examples]
 
-        print(f"Extracted {len(examples)} training examples")
+        logger.info(f"Extracted {len(examples)} training examples")
 
-        print("Saving training data...")
+        logger.info("Saving training data...")
         output_path = self.save_training_data(examples, output_file)
 
         # Calculate statistics
@@ -133,6 +136,6 @@ class DatasetBuilder:
             "unique_functions": len({ex["function_name"] for ex in examples}),
         }
 
-        print(f"Dataset built successfully: {stats}")
+        logger.info(f"Dataset built successfully: {stats}")
 
         return stats

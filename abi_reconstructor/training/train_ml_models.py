@@ -8,6 +8,7 @@ Trains both models:
 import argparse
 import gc
 import json
+import logging
 import os
 import sys
 import time
@@ -28,6 +29,8 @@ from abi_reconstructor.training.parameter_dataset import (
     ParameterDataset,
     ParameterDatasetTorch,
 )
+
+logger = logging.getLogger(__name__)
 
 
 class TimeoutException(Exception):
@@ -74,7 +77,7 @@ def log_memory_usage(prefix: str = ""):
     if "gpu_0_allocated_mb" in memory:
         message += f", GPU0: {memory['gpu_0_allocated_mb']:.1f}MB allocated, {memory['gpu_0_cached_mb']:.1f}MB cached"
 
-    print(message)
+    logger.info(message)
 
 
 class ModelTrainer:
@@ -155,7 +158,7 @@ class ModelTrainer:
 
             # Check timeout before forward pass
             if time.time() - timeout_start > batch_timeout:
-                print(
+                logger.info(
                     f"\n❌ ERROR: Batch {batch_idx + 1} timed out during data loading!"
                 )
                 raise RuntimeError(
@@ -177,14 +180,14 @@ class ModelTrainer:
 
             # Check timeout after forward pass
             if time.time() - timeout_start > batch_timeout:
-                print(
+                logger.info(
                     f"\n❌ ERROR: Batch {batch_idx + 1} timed out during forward pass!"
                 )
-                print("   The parameter model forward pass is taking too long.")
-                print("   This could be due to:")
-                print("   1. Very large model architecture")
-                print("   2. Complex computations in forward()")
-                print("   3. Data shape issues")
+                logger.info("   The parameter model forward pass is taking too long.")
+                logger.info("   This could be due to:")
+                logger.info("   1. Very large model architecture")
+                logger.info("   2. Complex computations in forward()")
+                logger.info("   3. Data shape issues")
                 raise RuntimeError(
                     f"Forward pass timed out after {batch_timeout} seconds"
                 )
@@ -197,7 +200,7 @@ class ModelTrainer:
 
             # Check timeout after backward pass
             if time.time() - timeout_start > batch_timeout:
-                print(
+                logger.info(
                     f"\n❌ ERROR: Batch {batch_idx + 1} timed out during backward pass!"
                 )
                 raise RuntimeError(
@@ -218,13 +221,13 @@ class ModelTrainer:
             if batch_idx == 0:
                 # Estimate total epoch time
                 estimated_epoch_time = batch_time * len(self.train_loader)
-                print(
+                logger.info(
                     f"  Estimated epoch time: ~{estimated_epoch_time / 60:.1f} minutes"
                 )
 
             # Log progress (more frequently for debugging)
             if (batch_idx + 1) % 2 == 0 or batch_idx < 3:
-                print(
+                logger.info(
                     f"  Batch {batch_idx + 1}/{len(self.train_loader)}, "
                     f"Loss: {loss.item():.4f}, Time: {batch_time:.1f}s"
                 )
@@ -306,17 +309,17 @@ class ModelTrainer:
         Returns:
             Training history
         """
-        print(f"Starting training for {self.model_name}...")
-        print(f"  Epochs: {num_epochs}")
-        print(f"  Patience: {patience}")
-        print(f"  Training samples: {len(self.train_loader.dataset)}")
-        print(f"  Validation samples: {len(self.val_loader.dataset)}")
+        logger.info(f"Starting training for {self.model_name}...")
+        logger.info(f"  Epochs: {num_epochs}")
+        logger.info(f"  Patience: {patience}")
+        logger.info(f"  Training samples: {len(self.train_loader.dataset)}")
+        logger.info(f"  Validation samples: {len(self.val_loader.dataset)}")
 
         best_val_loss = float("inf")
         patience_counter = 0
 
         for epoch in range(num_epochs):
-            print(f"\nEpoch {epoch + 1}/{num_epochs}")
+            logger.info(f"\nEpoch {epoch + 1}/{num_epochs}")
 
             # Train
             start_time = time.time()
@@ -343,15 +346,15 @@ class ModelTrainer:
             self.history["learning_rates"].append(current_lr)
 
             # Print progress
-            print(f"  Train Loss: {train_loss:.4f}")
-            print(f"  Val Loss: {val_loss:.4f}")
-            print(f"  Learning Rate: {current_lr:.6f}")
-            print(f"  Time: {train_time:.2f}s")
+            logger.info(f"  Train Loss: {train_loss:.4f}")
+            logger.info(f"  Val Loss: {val_loss:.4f}")
+            logger.info(f"  Learning Rate: {current_lr:.6f}")
+            logger.info(f"  Time: {train_time:.2f}s")
 
             if val_metrics:
-                print("  Validation Metrics:")
+                logger.info("  Validation Metrics:")
                 for key, value in val_metrics.items():
-                    print(f"    {key}: {value:.4f}")
+                    logger.info(f"    {key}: {value:.4f}")
 
             # Check for improvement
             if val_loss < best_val_loss:
@@ -361,14 +364,14 @@ class ModelTrainer:
                 # Save best model
                 if save_best:
                     self.save_checkpoint(f"best_{self.model_name}.pth")
-                    print(f"  ✓ New best model saved (val_loss: {val_loss:.4f})")
+                    logger.info(f"  ✓ New best model saved (val_loss: {val_loss:.4f})")
             else:
                 patience_counter += 1
-                print(f"  No improvement for {patience_counter}/{patience} epochs")
+                logger.info(f"  No improvement for {patience_counter}/{patience} epochs")
 
                 # Early stopping
                 if patience_counter >= patience:
-                    print(f"  Early stopping at epoch {epoch + 1}")
+                    logger.info(f"  Early stopping at epoch {epoch + 1}")
                     break
 
         # Save final model
@@ -389,9 +392,9 @@ class ModelTrainer:
         with open(history_path, "w") as f:
             json.dump(serializable_history, f, indent=2)
 
-        print(f"\nTraining completed for {self.model_name}")
-        print(f"  Best validation loss: {best_val_loss:.4f}")
-        print(f"  Checkpoints saved to: {self.checkpoint_dir}")
+        logger.info(f"\nTraining completed for {self.model_name}")
+        logger.info(f"  Best validation loss: {best_val_loss:.4f}")
+        logger.info(f"  Checkpoints saved to: {self.checkpoint_dir}")
 
         return self.history
 
@@ -434,7 +437,7 @@ class ModelTrainer:
 
         self.history = checkpoint["history"]
 
-        print(f"Loaded checkpoint from {checkpoint_path}")
+        logger.info(f"Loaded checkpoint from {checkpoint_path}")
 
 
 class FunctionNameTrainer(ModelTrainer):
@@ -524,19 +527,19 @@ def prepare_datasets(
     np.random.seed(seed)
 
     # Load dataset
-    print("Loading parameter dataset...")
+    logger.info("Loading parameter dataset...")
     dataset = ParameterDataset(data_dir=data_dir)
     samples = dataset.load_parameter_samples(max_samples=max_samples)
 
-    print(f"Loaded {len(samples)} samples")
+    logger.info(f"Loaded {len(samples)} samples")
 
     # Filter noisy samples before splitting
     if filter_noisy:
-        print("Filtering noisy samples...")
+        logger.info("Filtering noisy samples...")
         samples = dataset.filter_noisy_samples(
             samples, min_params=min_params, max_params=max_params
         )
-        print(f"After filtering: {len(samples)} samples")
+        logger.info(f"After filtering: {len(samples)} samples")
 
     # Prepare training data splits
     train_data, val_data, test_data = dataset.prepare_training_data(
@@ -592,9 +595,9 @@ def prepare_datasets(
         num_workers=0,  # Changed from 2
     )
 
-    print(f"  Training: {len(train_dataset)} samples")
-    print(f"  Validation: {len(val_dataset)} samples")
-    print(f"  Test: {len(test_dataset)} samples")
+    logger.info(f"  Training: {len(train_dataset)} samples")
+    logger.info(f"  Validation: {len(val_dataset)} samples")
+    logger.info(f"  Test: {len(test_dataset)} samples")
 
     return train_loader, val_loader, test_loader, dataset, train_samples
 
@@ -622,9 +625,9 @@ def train_function_name_classifier(
     Returns:
         Trained FunctionNameClassifier
     """
-    print("\n" + "=" * 60)
-    print("Training FunctionNameClassifier (Model 1)")
-    print("=" * 60)
+    logger.info("\n" + "=" * 60)
+    logger.info("Training FunctionNameClassifier (Model 1)")
+    logger.info("=" * 60)
 
     # Log initial memory usage
     log_memory_usage("Before loading function classifier: ")
@@ -661,12 +664,12 @@ def train_function_name_classifier(
     if hidden_dim <= 0:
         hidden_dim = 128  # Default
 
-    print("Creating FunctionNameClassifier with:")
-    print(f"  Encoder type: {encoder_type}")
-    print(f"  Hidden dimension: {hidden_dim}")
-    print(f"  Number of classes: {num_classes}")
+    logger.info("Creating FunctionNameClassifier with:")
+    logger.info(f"  Encoder type: {encoder_type}")
+    logger.info(f"  Hidden dimension: {hidden_dim}")
+    logger.info(f"  Number of classes: {num_classes}")
     if encoder_config and encoder_type == "transformer":
-        print(
+        logger.info(
             f"  Transformer config: d_model={encoder_config.get('d_model', 'N/A')}, "
             f"nhead={encoder_config.get('nhead', 'N/A')}, "
             f"num_layers={encoder_config.get('num_layers', 'N/A')}"
@@ -718,10 +721,10 @@ def train_function_name_classifier(
 
     # Calibrate temperature on validation set (if available)
     if len(val_loader) > 0:
-        print("\nCalibrating temperature parameter...")
+        logger.info("\nCalibrating temperature parameter...")
         model.calibrate_temperature(val_loader, lr=0.01, max_iters=20)
     else:
-        print("\nSkipping temperature calibration (no validation data)")
+        logger.info("\nSkipping temperature calibration (no validation data)")
 
     # Save final model
     model_path = Path(checkpoint_dir) / "function_classifier_final.pth"
@@ -758,9 +761,9 @@ def train_parameter_prediction_model(
     Returns:
         Trained ParameterPredictionModel
     """
-    print("\n" + "=" * 60)
-    print("Training ParameterPredictionModel (Model 2)")
-    print("=" * 60)
+    logger.info("\n" + "=" * 60)
+    logger.info("Training ParameterPredictionModel (Model 2)")
+    logger.info("=" * 60)
 
     # Log initial memory usage
     log_memory_usage("Before loading parameter model: ")
@@ -802,14 +805,14 @@ def train_parameter_prediction_model(
     if max_parameters <= 0:
         max_parameters = 12  # Default
 
-    print("Creating ParameterPredictionModel with:")
-    print(f"  Encoder type: {encoder_type}")
-    print(f"  Hidden dimension: {hidden_dim}")
-    print(f"  Max parameters: {max_parameters}")
-    print(f"  Type classes: {num_type_classes}")
-    print(f"  Function classes: {num_function_classes}")
+    logger.info("Creating ParameterPredictionModel with:")
+    logger.info(f"  Encoder type: {encoder_type}")
+    logger.info(f"  Hidden dimension: {hidden_dim}")
+    logger.info(f"  Max parameters: {max_parameters}")
+    logger.info(f"  Type classes: {num_type_classes}")
+    logger.info(f"  Function classes: {num_function_classes}")
     if encoder_config and encoder_type == "transformer":
-        print(
+        logger.info(
             f"  Transformer config: d_model={encoder_config.get('d_model', 'N/A')}, "
             f"nhead={encoder_config.get('nhead', 'N/A')}, "
             f"num_layers={encoder_config.get('num_layers', 'N/A')}, "
@@ -831,11 +834,11 @@ def train_parameter_prediction_model(
 
     # Compute and set class weights for type prediction if enabled
     if use_class_weights and train_samples is not None:
-        print("  Computing class weights for type prediction...")
+        logger.info("  Computing class weights for type prediction...")
         type_weights = dataset.compute_type_class_weights(train_samples)
         type_weights_tensor = torch.FloatTensor(type_weights)
         model.set_type_class_weights(type_weights_tensor)
-        print(
+        logger.info(
             f"    Type class weights: min={type_weights.min():.2f}, max={type_weights.max():.2f}"
         )
 
@@ -875,10 +878,10 @@ def train_parameter_prediction_model(
 
     # Calibrate temperatures on validation set (if available)
     if len(val_loader) > 0:
-        print("\nCalibrating temperature parameters...")
+        logger.info("\nCalibrating temperature parameters...")
         model.calibrate_temperatures(val_loader, lr=0.01, max_iters=20)
     else:
-        print("\nSkipping temperature calibration (no validation data)")
+        logger.info("\nSkipping temperature calibration (no validation data)")
 
     # Save final model
     model_path = Path(checkpoint_dir) / "parameter_predictor_final.pth"
@@ -903,9 +906,9 @@ def evaluate_models(
         dataset: ParameterDataset for mappings
         use_cuda: Whether to use GPU
     """
-    print("\n" + "=" * 60)
-    print("Evaluating Models on Test Set")
-    print("=" * 60)
+    logger.info("\n" + "=" * 60)
+    logger.info("Evaluating Models on Test Set")
+    logger.info("=" * 60)
 
     # Set models to evaluation mode
     function_model.eval()
@@ -1003,7 +1006,7 @@ def evaluate_models(
                             parameter_metrics["mask_correct"] += 1
 
             if (batch_idx + 1) % 10 == 0:
-                print(f"  Processed {batch_idx + 1}/{len(test_loader)} batches")
+                logger.info(f"  Processed {batch_idx + 1}/{len(test_loader)} batches")
 
     # Calculate metrics
     function_accuracy = (
@@ -1039,15 +1042,15 @@ def evaluate_models(
     )
 
     # Print results
-    print("\nFunction Name Classifier Results:")
-    print(f"  Accuracy: {function_accuracy:.2f}%")
-    print(f"  Top-3 Accuracy: {function_top3_accuracy:.2f}%")
-    print(f"  Average Confidence: {avg_confidence:.4f}")
+    logger.info("\nFunction Name Classifier Results:")
+    logger.info(f"  Accuracy: {function_accuracy:.2f}%")
+    logger.info(f"  Top-3 Accuracy: {function_top3_accuracy:.2f}%")
+    logger.info(f"  Average Confidence: {avg_confidence:.4f}")
 
-    print("\nParameter Prediction Model Results:")
-    print(f"  Count Accuracy: {count_accuracy:.2f}%")
-    print(f"  Type Accuracy: {type_accuracy:.2f}%")
-    print(f"  Mask Accuracy: {mask_accuracy:.2f}%")
+    logger.info("\nParameter Prediction Model Results:")
+    logger.info(f"  Count Accuracy: {count_accuracy:.2f}%")
+    logger.info(f"  Type Accuracy: {type_accuracy:.2f}%")
+    logger.info(f"  Mask Accuracy: {mask_accuracy:.2f}%")
 
     return {
         "function_accuracy": function_accuracy,
@@ -1061,6 +1064,10 @@ def evaluate_models(
 
 def main():
     """Main training function."""
+    logging.basicConfig(
+        level=logging.INFO,
+        format="%(asctime)s %(levelname)s %(name)s: %(message)s",
+    )
     parser = argparse.ArgumentParser(
         description="Train ML models for ABI reconstruction"
     )
@@ -1156,10 +1163,10 @@ def main():
             encoder_config = json.loads(args.encoder_config)
             # Ensure use_cuda is set in encoder config
             encoder_config["use_cuda"] = use_cuda
-            print(f"Using custom encoder config: {encoder_config}")
+            logger.info(f"Using custom encoder config: {encoder_config}")
         except json.JSONDecodeError as e:
-            print(f"Warning: Failed to parse encoder_config JSON: {e}")
-            print("Using default encoder config instead.")
+            logger.warning(f"Failed to parse encoder_config JSON: {e}")
+            logger.info("Using default encoder config instead.")
 
     # Prepare datasets
     train_loader, val_loader, test_loader, dataset, train_samples = prepare_datasets(
@@ -1216,7 +1223,7 @@ def main():
                     str(function_model_path), use_cuda=use_cuda
                 )
             else:
-                print("Function model not found. Please train it first.")
+                logger.info("Function model not found. Please train it first.")
                 return
 
         if parameter_model is None:
@@ -1228,13 +1235,13 @@ def main():
                     str(parameter_model_path), use_cuda=use_cuda
                 )
             else:
-                print("Parameter model not found. Please train it first.")
+                logger.info("Parameter model not found. Please train it first.")
                 return
 
         # Evaluate
         evaluate_models(function_model, parameter_model, test_loader, dataset, use_cuda)
 
-    print("\nTraining completed successfully!")
+    logger.info("\nTraining completed successfully!")
 
 
 if __name__ == "__main__":

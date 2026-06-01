@@ -1,11 +1,14 @@
 """Parameter prediction model for ABI reconstruction."""
 
+import logging
 import math
 from typing import Any, Dict, Optional
 
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+
+logger = logging.getLogger(__name__)
 
 
 class ParameterPredictionModel(nn.Module):
@@ -648,7 +651,7 @@ class ParameterPredictionModel(nn.Module):
             "device": str(self._device),
         }
         torch.save(checkpoint, path)
-        print(f"  Model saved to {path}")
+        logger.info(f"  Model saved to {path}")
 
     @classmethod
     def load_from_checkpoint(
@@ -745,7 +748,7 @@ class ParameterPredictionModel(nn.Module):
             if k.startswith("type_classifiers.") and k.endswith(".3.weight"):
                 inferred_num_types = state_dict[k].shape[0]
                 if inferred_num_types != num_type_classes:
-                    print(f"  Note: Overriding num_type_classes from {num_type_classes} to {inferred_num_types}")
+                    logger.info(f"  Note: Overriding num_type_classes from {num_type_classes} to {inferred_num_types}")
                     num_type_classes = inferred_num_types
 
         # Infer max_parameters from number of type_classifiers
@@ -760,7 +763,7 @@ class ParameterPredictionModel(nn.Module):
                     except ValueError:
                         pass
         if max_params > 0 and max_params != max_parameters:
-            print(f"  Note: Overriding max_parameters from {max_parameters} to {max_params}")
+            logger.info(f"  Note: Overriding max_parameters from {max_parameters} to {max_params}")
             max_parameters = max_params
 
         # Infer vocab_size from encoder.embedding.weight
@@ -769,17 +772,17 @@ class ParameterPredictionModel(nn.Module):
             if encoder_config is None:
                 encoder_config = {}
             if "vocab_size" not in encoder_config or encoder_config.get("vocab_size") != inferred_vocab_size:
-                print(f"  Note: Setting vocab_size to {inferred_vocab_size} based on checkpoint")
+                logger.info(f"  Note: Setting vocab_size to {inferred_vocab_size} based on checkpoint")
                 encoder_config["vocab_size"] = inferred_vocab_size
             elif encoder_config.get("vocab_size") != inferred_vocab_size:
-                print(f"  Note: Overriding vocab_size from {encoder_config.get('vocab_size')} to {inferred_vocab_size}")
+                logger.info(f"  Note: Overriding vocab_size from {encoder_config.get('vocab_size')} to {inferred_vocab_size}")
                 encoder_config["vocab_size"] = inferred_vocab_size
 
         # Infer num_function_classes from function_embedding.weight
         if "function_embedding.weight" in state_dict:
             inferred_num_func_classes = state_dict["function_embedding.weight"].shape[0]
             if inferred_num_func_classes != num_function_classes:
-                print(f"  Note: Overriding num_function_classes from {num_function_classes} to {inferred_num_func_classes}")
+                logger.info(f"  Note: Overriding num_function_classes from {num_function_classes} to {inferred_num_func_classes}")
                 num_function_classes = inferred_num_func_classes
 
         # Infer hidden_dim from concat_projection (more reliable than embedding)
@@ -787,7 +790,7 @@ class ParameterPredictionModel(nn.Module):
             # concat_projection.weight shape: [hidden_dim, hidden_dim + func_dim]
             inferred_hidden_dim = state_dict["concat_projection.weight"].shape[0]
             if inferred_hidden_dim != hidden_dim:
-                print(
+                logger.info(
                     f"  Note: Overriding hidden_dim from {hidden_dim} to {inferred_hidden_dim} based on concat_projection"
                 )
                 hidden_dim = inferred_hidden_dim
@@ -840,7 +843,7 @@ class ParameterPredictionModel(nn.Module):
                         "d_model" not in encoder_config
                         or encoder_config["d_model"] != d_model
                     ):
-                        print(
+                        logger.info(
                             f"  Note: Setting d_model to {d_model} based on checkpoint"
                         )
                         encoder_config["d_model"] = d_model
@@ -848,13 +851,13 @@ class ParameterPredictionModel(nn.Module):
                         "num_layers" not in encoder_config
                         or encoder_config["num_layers"] != num_layers
                     ):
-                        print(
+                        logger.info(
                             f"  Note: Setting num_layers to {num_layers} based on checkpoint"
                         )
                         encoder_config["num_layers"] = num_layers
                 if dim_feedforward is not None:
                     encoder_config["dim_feedforward"] = dim_feedforward
-                    print(f"  Note: Setting dim_feedforward to {dim_feedforward} based on checkpoint")
+                    logger.info(f"  Note: Setting dim_feedforward to {dim_feedforward} based on checkpoint")
                 elif "dim_feedforward" not in encoder_config:
                     encoder_config["dim_feedforward"] = d_model * 4
                 if "dropout" not in encoder_config:

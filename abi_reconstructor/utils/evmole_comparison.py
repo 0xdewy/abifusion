@@ -1,7 +1,10 @@
 """EVMole comparison module for validating selector extraction."""
 
 import json
+import logging
 from typing import Any, Dict, List, Optional
+
+logger = logging.getLogger(__name__)
 
 
 def extract_selectors_with_evmole(bytecode: str) -> List[str]:
@@ -30,10 +33,10 @@ def extract_selectors_with_evmole(bytecode: str) -> List[str]:
         return []
 
     except ImportError:
-        print("Warning: evmole not installed. Install with: pip install evmole")
+        logger.warning("evmole not installed. Install with: pip install evmole")
         return []
     except Exception as e:
-        print(f"Error using evmole: {e}")
+        logger.error(f"Error using evmole: {e}")
         return []
 
 
@@ -155,7 +158,7 @@ def save_comparison_report(comparison: Dict[str, Any], output_path: str) -> None
     with open(output_path, "w") as f:
         json.dump(comparison, f, indent=2, default=str)
 
-    print(f"Comparison report saved to: {output_path}")
+    logger.info(f"Comparison report saved to: {output_path}")
 
 
 def batch_compare_selectors(
@@ -179,7 +182,7 @@ def batch_compare_selectors(
     all_metrics = []
 
     for i, bytecode in enumerate(bytecodes):
-        print(f"Processing {i + 1}/{len(bytecodes)}...")
+        logger.info(f"Processing {i + 1}/{len(bytecodes)}...")
 
         try:
             our_selectors = our_extractor_func(bytecode)
@@ -189,7 +192,7 @@ def batch_compare_selectors(
             all_metrics.append(comparison["metrics"])
 
         except Exception as e:
-            print(f"Error processing bytecode {i + 1}: {e}")
+            logger.error(f"Error processing bytecode {i + 1}: {e}")
             continue
 
     if not all_metrics:

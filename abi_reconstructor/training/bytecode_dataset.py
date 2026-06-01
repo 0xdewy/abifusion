@@ -1,5 +1,6 @@
 """Dataset creation for bytecode + selector → signature training."""
 
+import logging
 import os
 from collections import defaultdict
 from typing import Any, Dict, List, Tuple
@@ -13,6 +14,9 @@ try:
     HAS_KECCAK = True
 except ImportError:
     HAS_KECCAK = False
+
+
+logger = logging.getLogger(__name__)
 
 
 class BytecodeDataset:
@@ -214,20 +218,20 @@ class BytecodeDataset:
                 import numpy as np
                 import pandas as pd
 
-                print(f"Loading contracts from unified parquet: {parquet_path}")
+                logger.info(f"Loading contracts from unified parquet: {parquet_path}")
                 df = pd.read_parquet(parquet_path)
 
                 # Get file size for info
                 file_size = os.path.getsize(parquet_path)
                 file_size_mb = file_size / (1024 * 1024)
-                print(f"  File size: {file_size_mb:.1f} MB")
-                print(f"  Number of rows: {len(df)}")
+                logger.info(f"  File size: {file_size_mb:.1f} MB")
+                logger.info(f"  Number of rows: {len(df)}")
 
                 # Convert DataFrame to list of dictionaries using vectorized operations
                 # This is much faster than iterrows()
                 contracts = df.to_dict("records")
 
-                print(f"  Converted to {len(contracts)} contract dictionaries")
+                logger.info(f"  Converted to {len(contracts)} contract dictionaries")
 
                 # Process ABI fields in batch
                 valid_contracts = []
@@ -276,28 +280,28 @@ class BytecodeDataset:
 
                     valid_contracts.append(contract)
 
-                print(
+                logger.info(
                     f"Loaded {len(valid_contracts)} valid contracts from unified parquet"
                 )
 
                 if missing_fields > 0:
-                    print(
+                    logger.info(
                         f"  Warning: {missing_fields} contracts missing required fields"
                     )
                 if empty_fields > 0:
-                    print(
+                    logger.info(
                         f"  Warning: {empty_fields} contracts have empty bytecode or ABI"
                     )
 
                 return valid_contracts
 
             except Exception as e:
-                print(f"Error loading unified parquet file: {e}")
-                print("Please run scripts/consolidate_all_data.py first")
+                logger.error(f"Error loading unified parquet file: {e}")
+                logger.info("Please run scripts/consolidate_all_data.py first")
                 return []
         else:
-            print(f"Unified parquet file not found at {parquet_path}")
-            print("Please run scripts/consolidate_all_data.py first")
+            logger.info(f"Unified parquet file not found at {parquet_path}")
+            logger.info("Please run scripts/consolidate_all_data.py first")
             return []
 
     def extract_training_samples(
@@ -353,10 +357,10 @@ class BytecodeDataset:
                     samples.append(sample)
 
             except Exception as e:
-                print(f"Error processing contract: {e}")
+                logger.error(f"Error processing contract: {e}")
                 continue
 
-        print(f"Extracted {len(samples)} training samples")
+        logger.info(f"Extracted {len(samples)} training samples")
         return samples
 
     def create_negative_samples(
@@ -409,7 +413,7 @@ class BytecodeDataset:
 
             negative_samples.append(negative_sample)
 
-        print(f"Created {len(negative_samples)} negative samples")
+        logger.info(f"Created {len(negative_samples)} negative samples")
         return negative_samples
 
 
@@ -417,34 +421,35 @@ class BytecodeDataset:
 
 def test_dataset():
     """Test the dataset creation."""
-    print("Testing BytecodeDataset...")
+    logger.info("Testing BytecodeDataset...")
 
     dataset = BytecodeDataset()
 
     try:
         contracts = dataset.load_contracts()
-        print(f"Loaded {len(contracts)} contracts")
+        logger.info(f"Loaded {len(contracts)} contracts")
 
         if contracts:
             samples = dataset.extract_training_samples(contracts[:2])
-            print(f"Extracted {len(samples)} samples")
+            logger.info(f"Extracted {len(samples)} samples")
 
             if samples:
                 negative_samples = dataset.create_negative_samples(
                     samples, negative_ratio=0.5
                 )
-                print(f"Created {len(negative_samples)} negative samples")
+                logger.info(f"Created {len(negative_samples)} negative samples")
 
-                print("prepare_dataset is deprecated - skipping")
+                logger.info("prepare_dataset is deprecated - skipping")
 
     except Exception as e:
-        print(f"Error during testing: {e}")
+        logger.error(f"Error during testing: {e}")
         import traceback
 
         traceback.print_exc()
 
-    print("Test completed!")
+    logger.info("Test completed!")
 
 
 if __name__ == "__main__":
+    logging.basicConfig(level=logging.INFO, format="%(levelname)s %(name)s: %(message)s")
     test_dataset()

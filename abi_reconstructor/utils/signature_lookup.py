@@ -2,12 +2,15 @@
 
 import hashlib
 import json
+import logging
 import os
 import time
 from datetime import datetime
 from typing import Dict, List, Optional, Tuple
 
 import requests
+
+logger = logging.getLogger(__name__)
 
 
 class SignatureLookup:
@@ -164,10 +167,10 @@ class SignatureLookup:
             return signatures
 
         except requests.exceptions.RequestException as e:
-            print(f"Warning: Failed to query 4byte.directory for 0x{selector}: {e}")
+            logger.warning(f"Failed to query 4byte.directory for 0x{selector}: {e}")
             return []
         except json.JSONDecodeError as e:
-            print(f"Warning: Invalid JSON from 4byte.directory for 0x{selector}: {e}")
+            logger.warning(f"Invalid JSON from 4byte.directory for 0x{selector}: {e}")
             return []
 
     def get_standard_signatures(self, selector: str) -> List[str]:
@@ -369,7 +372,7 @@ class SignatureLookup:
         results = {}
 
         for i, selector in enumerate(selectors):
-            print(f"  Looking up 0x{selector} ({i + 1}/{len(selectors)})...")
+            logger.info(f"  Looking up 0x{selector} ({i + 1}/{len(selectors)})...")
             results[selector] = self.analyze_selector(selector)
 
             # Small delay between requests to be nice to the API
@@ -382,8 +385,8 @@ class SignatureLookup:
 # Test function
 def test_signature_lookup():
     """Test the signature lookup."""
-    print("Testing SignatureLookup...")
-    print("=" * 60)
+    logger.info("Testing SignatureLookup...")
+    logger.info("=" * 60)
 
     lookup = SignatureLookup()
 
@@ -396,34 +399,35 @@ def test_signature_lookup():
     ]
 
     for selector in test_selectors:
-        print(f"\nAnalyzing 0x{selector}:")
+        logger.info(f"\nAnalyzing 0x{selector}:")
 
         analysis = lookup.analyze_selector(selector)
 
-        print(f"  Status: {analysis['status']}")
-        print(f"  Total signatures: {analysis['total_signatures']}")
-        print(f"  Has standard: {analysis['has_standard']}")
+        logger.info(f"  Status: {analysis['status']}")
+        logger.info(f"  Total signatures: {analysis['total_signatures']}")
+        logger.info(f"  Has standard: {analysis['has_standard']}")
 
         if analysis["best_signature"]:
-            print(f"  Best signature: {analysis['best_signature']}")
-            print(f"  Confidence: {analysis['confidence']:.2f}")
+            logger.info(f"  Best signature: {analysis['best_signature']}")
+            logger.info(f"  Confidence: {analysis['confidence']:.2f}")
 
         if analysis["signatures"]:
-            print("  All signatures:")
+            logger.info("  All signatures:")
             for i, sig in enumerate(analysis["signatures"][:3]):  # Show first 3
-                print(f"    {i + 1}. {sig}")
+                logger.info(f"    {i + 1}. {sig}")
             if len(analysis["signatures"]) > 3:
-                print(f"    ... and {len(analysis['signatures']) - 3} more")
+                logger.info(f"    ... and {len(analysis['signatures']) - 3} more")
 
     # Test batch lookup
-    print("\n\nBatch lookup test:")
+    logger.info("\n\nBatch lookup test:")
     batch_results = lookup.batch_lookup(test_selectors[:2])
 
     for selector, result in batch_results.items():
-        print(f"  0x{selector}: {result['status']} ({result['total_signatures']} sigs)")
+        logger.info(f"  0x{selector}: {result['status']} ({result['total_signatures']} sigs)")
 
     return lookup
 
 
 if __name__ == "__main__":
+    logging.basicConfig(level=logging.INFO, format="%(levelname)s %(name)s: %(message)s")
     test_signature_lookup()

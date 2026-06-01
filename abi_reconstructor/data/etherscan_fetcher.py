@@ -1,6 +1,7 @@
 """Etherscan API client for fetching contract data."""
 
 import json
+import logging
 import os
 import time
 from dataclasses import dataclass
@@ -8,6 +9,8 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 import requests
+
+logger = logging.getLogger(__name__)
 
 
 class EtherscanAPIError(Exception):
@@ -236,20 +239,20 @@ class EtherscanClient:
         failed = []
 
         for i, address in enumerate(addresses):
-            print(f"Fetching contract {i + 1}/{len(addresses)}: {address}")
+            logger.info(f"Fetching contract {i + 1}/{len(addresses)}: {address}")
 
             try:
                 contract = self.get_contract(address, include_source_code)
                 if contract:
                     contracts.append(contract)
-                    print("  ✓ Success")
+                    logger.info("  ✓ Success")
                 else:
                     failed.append(address)
-                    print("  ✗ Failed (not found or no bytecode)")
+                    logger.info("  ✗ Failed (not found or no bytecode)")
 
             except Exception as e:
                 failed.append(address)
-                print(f"  ✗ Error: {e}")
+                logger.info(f"  ✗ Error: {e}")
 
         # Save results
         if contracts:
@@ -269,7 +272,7 @@ class EtherscanClient:
             with open(output_file, "w") as f:
                 json.dump(contracts_data, f, indent=2)
 
-            print(f"\nSaved {len(contracts)} contracts to {output_file}")
+            logger.info(f"\nSaved {len(contracts)} contracts to {output_file}")
 
         return {
             "total": len(addresses),

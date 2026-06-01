@@ -1,11 +1,14 @@
 """Sourcify API client for fetching verified contract data."""
 
 import json
+import logging
 import time
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 import requests
+
+logger = logging.getLogger(__name__)
 
 
 class SourcifyClient:
@@ -196,20 +199,20 @@ class SourcifyClient:
         failed = []
 
         for i, address in enumerate(addresses):
-            print(f"Fetching contract {i + 1}/{len(addresses)}: {address}")
+            logger.info(f"Fetching contract {i + 1}/{len(addresses)}: {address}")
 
             try:
                 contract = self.get_contract(address, chain_id)
                 if contract:
                     contracts.append(contract)
-                    print("  ✓ Success (verified)")
+                    logger.info("  ✓ Success (verified)")
                 else:
                     failed.append(address)
-                    print("  ✗ Failed (not verified)")
+                    logger.info("  ✗ Failed (not verified)")
 
             except Exception as e:
                 failed.append(address)
-                print(f"  ✗ Error: {e}")
+                logger.info(f"  ✗ Error: {e}")
 
         # Save results
         if contracts:
@@ -237,8 +240,8 @@ class SourcifyClient:
             with open(simplified_output_file, "w") as f:
                 json.dump(simplified_data, f, indent=2)
 
-            print(f"\nSaved {len(contracts)} contracts to {simplified_output_file}")
-            print(f"Full data saved to {full_output_file}")
+            logger.info(f"\nSaved {len(contracts)} contracts to {simplified_output_file}")
+            logger.info(f"Full data saved to {full_output_file}")
 
         return {
             "total": len(addresses),
