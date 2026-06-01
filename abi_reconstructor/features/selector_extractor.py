@@ -1,4 +1,8 @@
-"""Selector extractor for bytecode analysis."""
+"""Neural selector extractor for bytecode analysis.
+
+This is the learned (CNN + attention) selector detector. For the lightweight,
+pattern-based public utility see ``abi_reconstructor.selector_extractor``.
+"""
 
 from typing import Any, Dict, Optional
 
@@ -9,8 +13,8 @@ import torch.nn.functional as F
 from abi_reconstructor.device import get_device_for_cuda_flag, to_device
 
 
-class SelectorExtractor(nn.Module):
-    """Extract function selectors from bytecode."""
+class NeuralSelectorExtractor(nn.Module):
+    """Extract function selectors from bytecode using a learned CNN+attention model."""
 
     def __init__(
         self,

@@ -3,29 +3,29 @@
 import torch
 import pytest
 
-from abi_reconstructor.features.selector_extractor import SelectorExtractor
+from abi_reconstructor.features.selector_extractor import NeuralSelectorExtractor
 
 
-class TestSelectorExtractor:
-    """Test suite for SelectorExtractor class."""
+class TestNeuralSelectorExtractor:
+    """Test suite for NeuralSelectorExtractor class."""
 
     def test_init_default(self):
         """Test initialization with default parameters."""
-        extractor = SelectorExtractor()
+        extractor = NeuralSelectorExtractor()
         assert extractor.vocab_size == 256
         assert extractor.hidden_dim == 128
         assert extractor.dropout == 0.2
 
     def test_init_with_custom_params(self):
         """Test initialization with custom parameters."""
-        extractor = SelectorExtractor(vocab_size=512, hidden_dim=256, dropout=0.3)
+        extractor = NeuralSelectorExtractor(vocab_size=512, hidden_dim=256, dropout=0.3)
         assert extractor.vocab_size == 512
         assert extractor.hidden_dim == 256
         assert extractor.dropout == 0.3
 
     def test_forward_empty_input(self):
         """Test forward pass with empty input."""
-        extractor = SelectorExtractor()
+        extractor = NeuralSelectorExtractor()
         batch_size = 2
         seq_len = 10
         input_ids = torch.zeros(batch_size, seq_len, dtype=torch.long)
@@ -39,7 +39,7 @@ class TestSelectorExtractor:
 
     def test_forward_with_real_bytecode(self):
         """Test forward pass with realistic bytecode tokens."""
-        extractor = SelectorExtractor()
+        extractor = NeuralSelectorExtractor()
 
         bytecode_tokens = [
             0x60, 0x80, 0x60, 0x40, 0x52, 0x60, 0x17, 0x80, 0xfd,
@@ -59,7 +59,7 @@ class TestSelectorExtractor:
 
     def test_extract_selectors_returns_positions(self):
         """Test that extract_selectors returns positions above threshold."""
-        extractor = SelectorExtractor()
+        extractor = NeuralSelectorExtractor()
         extractor.eval()
 
         batch_size = 1
@@ -75,7 +75,7 @@ class TestSelectorExtractor:
 
     def test_selector_logits_shape(self):
         """Test that selector_logits has correct shape."""
-        extractor = SelectorExtractor()
+        extractor = NeuralSelectorExtractor()
         batch_size = 4
         seq_len = 100
 
@@ -89,7 +89,7 @@ class TestSelectorExtractor:
 
     def test_attention_weights_shape(self):
         """Test that attention weights have correct shape."""
-        extractor = SelectorExtractor()
+        extractor = NeuralSelectorExtractor()
         batch_size = 2
         seq_len = 50
 
@@ -103,7 +103,7 @@ class TestSelectorExtractor:
 
     def test_model_trainable(self):
         """Test that model can be set to train mode."""
-        extractor = SelectorExtractor()
+        extractor = NeuralSelectorExtractor()
         extractor.train()
 
         assert extractor.training is True
@@ -113,7 +113,7 @@ class TestSelectorExtractor:
 
     def test_extract_selectors_threshold(self):
         """Test that threshold controls selector detection."""
-        extractor = SelectorExtractor()
+        extractor = NeuralSelectorExtractor()
         extractor.eval()
 
         input_ids = torch.randint(0, 256, (1, 50), dtype=torch.long)

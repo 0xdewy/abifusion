@@ -11,7 +11,7 @@ from abi_reconstructor.utils.bytecode_utils import (
     extract_selector_context,
 )
 from abi_reconstructor.features.bytecode_features import BytecodeFeatureExtractor
-from abi_reconstructor.features.selector_extractor import SelectorExtractor
+from abi_reconstructor.features.selector_extractor import NeuralSelectorExtractor
 from abi_reconstructor.models.function_name_classifier import FunctionNameClassifier
 from abi_reconstructor.models.parameter_prediction_model import ParameterPredictionModel
 from abi_reconstructor.utils.signature_lookup import SignatureLookup
@@ -24,7 +24,7 @@ class ABIReconstructorPipeline:
         self,
         function_classifier: FunctionNameClassifier,
         parameter_predictor: ParameterPredictionModel,
-        selector_extractor: Optional[SelectorExtractor] = None,
+        selector_extractor: Optional[NeuralSelectorExtractor] = None,
         signature_lookup: Optional[SignatureLookup] = None,
         feature_extractor: Optional[BytecodeFeatureExtractor] = None,
         use_cuda: bool = True,
@@ -81,7 +81,7 @@ class ABIReconstructorPipeline:
         self.parameter_predictor.eval()
 
         # Initialize components if not provided
-        self.selector_extractor = selector_extractor or SelectorExtractor(
+        self.selector_extractor = selector_extractor or NeuralSelectorExtractor(
             use_cuda=use_cuda
         )
         self.signature_lookup = signature_lookup or SignatureLookup()

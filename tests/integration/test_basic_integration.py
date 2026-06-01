@@ -18,10 +18,10 @@ def test_import_all_modules():
 def test_basic_feature_extraction_flow(sample_bytecode):
     """Test basic feature extraction flow."""
     from abi_reconstructor.features.bytecode_features import BytecodeFeatureExtractor
-    from abi_reconstructor.features.selector_extractor import SelectorExtractor
+    from abi_reconstructor.features.selector_extractor import NeuralSelectorExtractor
 
     feature_extractor = BytecodeFeatureExtractor()
-    selector_extractor = SelectorExtractor()
+    selector_extractor = NeuralSelectorExtractor()
 
     assert hasattr(feature_extractor, "extract_basic_features")
     assert hasattr(selector_extractor, "extract_selectors")
