@@ -783,7 +783,7 @@ class TestParameterPredictionModel:
         assert model2.encoder_config["vocab_size"] == 257
 
         # Same input → same output
-        tokens = torch.randint(0, 256, (2, 512)).float().unsqueeze(-1).expand(-1, -1, 256)
+        tokens = torch.randint(0, 256, (2, 512))
         with torch.no_grad():
             out1 = model1(tokens)
             out2 = model2(tokens)
@@ -809,7 +809,7 @@ class TestParameterPredictionModel:
         model2 = ParameterPredictionModel.load_from_checkpoint(str(save_path))
 
         # Discriminating layers should be in state dict and produce same output
-        tokens = torch.randint(0, 256, (2, 512)).float().unsqueeze(-1).expand(-1, -1, 256)
+        tokens = torch.randint(0, 256, (2, 512))
         disc = torch.randn(2, 7)
 
         with torch.no_grad():

@@ -48,7 +48,7 @@ def _synthetic_batch(batch_size=2):
     # GPU (via DeviceManager), and compute_loss/forward must align inputs to the
     # model's device. This guards the device-handling fix.
     tokens = (
-        torch.randint(0, 256, (batch_size, SEQ)).float().unsqueeze(-1).expand(-1, -1, 256)
+        torch.randint(0, 256, (batch_size, SEQ))
     )
     return {
         "bytecode_tokens": tokens,

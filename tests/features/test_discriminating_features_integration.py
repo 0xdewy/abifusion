@@ -193,9 +193,9 @@ class TestDiscriminatingFeaturesChangeModelOutput:
     def sample_batch(self):
         """Create a batch of 4 samples with fixed bytecode tokens."""
         torch.manual_seed(42)
-        tokens = torch.randint(0, 256, (4, 512)).float()
+        tokens = torch.randint(0, 256, (4, 512))
         return {
-            "bytecode_tokens": tokens.unsqueeze(-1).expand(-1, -1, 256),
+            "bytecode_tokens": tokens,
             "parameter_count": torch.tensor([2, 1, 0, 2]),
             "parameter_types": torch.randint(0, 22, (4, 12)),
             "parameter_mask": torch.zeros(4, 12),
@@ -257,7 +257,7 @@ class TestDiscriminatingFeaturesChangeModelOutput:
 
     def test_batch_size_one_works(self, model):
         """Batch size 1 with discriminating features works."""
-        tokens = torch.randint(0, 256, (1, 512)).float().unsqueeze(-1).expand(-1, -1, 256)
+        tokens = torch.randint(0, 256, (1, 512))
         disc = torch.tensor([[1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0]])
         out = model(tokens, discriminating_features=disc)
         assert out["type_logits"].shape == (1, 12, 22)
@@ -315,7 +315,7 @@ class TestDiscriminatingFeaturesCheckpointCompatibility:
             hidden_dim=256,
             use_cuda=True,
         )
-        tokens = torch.randint(0, 256, (2, 512)).float().unsqueeze(-1).expand(-1, -1, 256)
+        tokens = torch.randint(0, 256, (2, 512))
         tokens = tokens.cuda()
         disc = torch.randn(2, 7).cuda()
         out = model(tokens, discriminating_features=disc)

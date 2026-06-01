@@ -51,11 +51,13 @@ class FunctionNameClassifier(nn.Module):
         else:
             raise ValueError(f"Unsupported encoder type: {encoder_type}")
 
-        # Projection from encoder output to hidden_dim
-        # Encoder outputs d_model which may differ from hidden_dim
-        self.encoder_projection = nn.Linear(
-            encoder_config.get("d_model", hidden_dim), hidden_dim
-        )
+        # Projection from encoder output to hidden_dim. The transformer outputs
+        # d_model; the CNN encoder always outputs hidden_dim.
+        if encoder_type == "cnn":
+            encoder_out_dim = hidden_dim
+        else:
+            encoder_out_dim = encoder_config.get("d_model", hidden_dim)
+        self.encoder_projection = nn.Linear(encoder_out_dim, hidden_dim)
 
         # Classifier head
         self.classifier = nn.Sequential(
@@ -114,9 +116,16 @@ class FunctionNameClassifier(nn.Module):
         return TransformerWithEmbedding(embedding, transformer_encoder)
 
     def _create_cnn_encoder(self, config: Dict[str, Any]) -> nn.Module:
-        """Create CNN encoder."""
-        return nn.Sequential(
-            nn.Conv1d(config.get("input_channels", 256), 128, kernel_size=3, padding=1),
+        """Create a CNN encoder that embeds token ids, then applies 1D convs.
+
+        Consumes ``(batch, seq)`` integer token ids (same input as the
+        transformer encoder) and returns ``(batch, hidden_dim)``.
+        """
+        vocab_size = config.get("vocab_size", 257)
+        embed_dim = config.get("d_model", self.hidden_dim)
+        embedding = nn.Embedding(vocab_size, embed_dim)
+        conv = nn.Sequential(
+            nn.Conv1d(embed_dim, 128, kernel_size=3, padding=1),
             nn.ReLU(),
             nn.MaxPool1d(2),
             nn.Conv1d(128, 256, kernel_size=3, padding=1),
@@ -127,6 +136,19 @@ class FunctionNameClassifier(nn.Module):
             nn.AdaptiveAvgPool1d(1),
             nn.Flatten(),
         )
+
+        class CNNWithEmbedding(nn.Module):
+            def __init__(self, embedding, conv):
+                super().__init__()
+                self.embedding = embedding
+                self.conv = conv
+
+            def forward(self, input_ids, src_key_padding_mask=None):
+                # (B, S) token ids -> (B, S, embed_dim) -> (B, embed_dim, S)
+                x = self.embedding(input_ids).transpose(1, 2)
+                return self.conv(x)  # (B, hidden_dim)
+
+        return CNNWithEmbedding(embedding, conv)
 
     def forward(
         self,
@@ -142,6 +164,16 @@ class FunctionNameClassifier(nn.Module):
         Returns:
             Dictionary with logits and attention weights
         """
+        # Align inputs with the model's actual parameter device (callers and the
+        # training loop may hand us CPU tensors even when the model is on GPU;
+        # self._device can be stale if the model was moved after construction).
+        from abi_reconstructor.device import to_device
+
+        device = next(self.parameters()).device
+        bytecode_features = to_device(bytecode_features, device)
+        if attention_mask is not None:
+            attention_mask = to_device(attention_mask, device)
+
         # Handle empty batch case - return empty tensors
         if bytecode_features.size(0) == 0:
             return {
@@ -180,9 +212,8 @@ class FunctionNameClassifier(nn.Module):
             else:
                 encoded = encoded.mean(dim=1)
         else:
-            # CNN expects (batch_size, channels, seq_len)
-            encoded = bytecode_features.transpose(1, 2)
-            encoded = self.encoder(encoded)
+            # CNN encoder embeds token ids internally; returns (batch, hidden_dim)
+            encoded = self.encoder(bytecode_features)
 
         # Project encoder output to hidden_dim
         encoded = self.encoder_projection(encoded)
@@ -227,12 +258,17 @@ class FunctionNameClassifier(nn.Module):
         Returns:
             Dictionary with loss and metrics
         """
-        # Forward pass
+        # Forward pass (forward() aligns its inputs with the model device)
         outputs = self(bytecode_tokens, attention_mask)
         logits = outputs["logits"]
 
         # Apply temperature scaling
         scaled_logits = logits / self.temperature.clamp(min=1e-8)
+
+        # Targets must live on the same device as the logits.
+        from abi_reconstructor.device import to_device
+
+        targets = to_device(targets, scaled_logits.device)
 
         # Compute cross-entropy loss
         loss = self.criterion(scaled_logits, targets)

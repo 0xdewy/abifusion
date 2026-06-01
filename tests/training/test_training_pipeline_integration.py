@@ -69,7 +69,7 @@ class TestDatasetToModelRoundtrip:
         )
 
         # convert bytecode tokens to float features expected by CNN encoder
-        tokens = batch["bytecode_tokens"].float().unsqueeze(-1).expand(-1, -1, 256)
+        tokens = batch["bytecode_tokens"]
 
         loss = model.compute_loss(
             tokens,
@@ -106,7 +106,7 @@ class TestDatasetToModelRoundtrip:
             use_cuda=False,
         )
 
-        tokens = batch["bytecode_tokens"].float().unsqueeze(-1).expand(-1, -1, 256)
+        tokens = batch["bytecode_tokens"]
 
         loss = model.compute_loss(
             tokens,
@@ -201,7 +201,7 @@ class TestTrainingStepWithDiscriminatingFeatures:
 
             optimizer.zero_grad()
 
-            tokens = batch["bytecode_tokens"].float().unsqueeze(-1).expand(-1, -1, 256)
+            tokens = batch["bytecode_tokens"]
             loss_dict = model.compute_loss(
                 tokens,
                 batch["parameter_count"],
@@ -247,7 +247,7 @@ class TestTrainingStepWithDiscriminatingFeatures:
         batch = next(iter(loader))
         optimizer.zero_grad()
 
-        tokens = batch["bytecode_tokens"].float().unsqueeze(-1).expand(-1, -1, 256)
+        tokens = batch["bytecode_tokens"]
         loss_dict = model.compute_loss(
             tokens,
             batch["parameter_count"],
@@ -295,7 +295,7 @@ class TestTrainingStepWithDiscriminatingFeatures:
         losses = []
         for batch in loader:
             optimizer.zero_grad()
-            tokens = batch["bytecode_tokens"].float().unsqueeze(-1).expand(-1, -1, 256)
+            tokens = batch["bytecode_tokens"]
             kwargs = {
                 "bytecode_tokens": tokens,
                 "parameter_count": batch["parameter_count"],

@@ -83,10 +83,13 @@ class ParameterPredictionModel(nn.Module):
             self.concat_projection = None
 
         # Projection from encoder output to hidden_dim
-        # Encoder might output d_model (from config) which could be different from hidden_dim
-        self.encoder_projection = nn.Linear(
-            encoder_config.get("d_model", hidden_dim), hidden_dim
-        )
+        # Encoder might output d_model (from config) which could be different
+        # from hidden_dim. The CNN encoder always outputs hidden_dim.
+        if encoder_type == "cnn":
+            encoder_out_dim = hidden_dim
+        else:
+            encoder_out_dim = encoder_config.get("d_model", hidden_dim)
+        self.encoder_projection = nn.Linear(encoder_out_dim, hidden_dim)
 
         # Parameter type classifiers (one per parameter position)
         self.type_classifiers = nn.ModuleList(
@@ -184,9 +187,16 @@ class ParameterPredictionModel(nn.Module):
         return TransformerWithEmbedding(embedding, transformer_encoder)
 
     def _create_cnn_encoder(self, config: Dict[str, Any]) -> nn.Module:
-        """Create CNN encoder."""
-        return nn.Sequential(
-            nn.Conv1d(config.get("input_channels", 256), 128, kernel_size=3, padding=1),
+        """Create a CNN encoder that embeds token ids, then applies 1D convs.
+
+        Consumes ``(batch, seq)`` integer token ids (same input as the
+        transformer encoder) and returns ``(batch, hidden_dim)``.
+        """
+        vocab_size = config.get("vocab_size", 257)
+        embed_dim = config.get("d_model", self.hidden_dim)
+        embedding = nn.Embedding(vocab_size, embed_dim)
+        conv = nn.Sequential(
+            nn.Conv1d(embed_dim, 128, kernel_size=3, padding=1),
             nn.ReLU(),
             nn.MaxPool1d(2),
             nn.Conv1d(128, 256, kernel_size=3, padding=1),
@@ -197,6 +207,19 @@ class ParameterPredictionModel(nn.Module):
             nn.AdaptiveAvgPool1d(1),
             nn.Flatten(),
         )
+
+        class CNNWithEmbedding(nn.Module):
+            def __init__(self, embedding, conv):
+                super().__init__()
+                self.embedding = embedding
+                self.conv = conv
+
+            def forward(self, input_ids, src_key_padding_mask=None):
+                # (B, S) token ids -> (B, S, embed_dim) -> (B, embed_dim, S)
+                x = self.embedding(input_ids).transpose(1, 2)
+                return self.conv(x)  # (B, hidden_dim)
+
+        return CNNWithEmbedding(embedding, conv)
 
     def forward(
         self,
@@ -279,9 +302,8 @@ class ParameterPredictionModel(nn.Module):
             else:
                 encoded = encoded.mean(dim=1)
         else:
-            # CNN expects (batch_size, channels, seq_len)
-            encoded = bytecode_features.transpose(1, 2)
-            encoded = self.encoder(encoded)
+            # CNN encoder embeds token ids internally; returns (batch, hidden_dim)
+            encoded = self.encoder(bytecode_features)
 
         # Project encoder output to hidden_dim
         encoded = self.encoder_projection(encoded)

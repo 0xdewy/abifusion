@@ -183,7 +183,7 @@ class TestFullPipelineSmoke:
         )
 
         # Create dummy input
-        tokens = torch.randint(0, 256, (2, 512)).float().unsqueeze(-1).expand(-1, -1, 256)
+        tokens = torch.randint(0, 256, (2, 512))
         disc = torch.randn(2, 7)
 
         output = model(tokens, discriminating_features=disc)
