@@ -1,23 +1,39 @@
 # ABI Reconstructor
 
-A machine learning system for reconstructing contract ABIs (Application Binary Interfaces) from EVM bytecode using pure ML approaches.
+Reconstruct contract ABIs (Application Binary Interfaces) from EVM bytecode by
+**fusing multiple imperfect signal sources** — signature databases (openchain,
+4byte) and evmole's static analysis — so the result beats any single tool.
 
 ## Overview
 
-The ABI Reconstructor uses a two-model system:
-1. **Function Name Classifier** - Predicts function names from bytecode and selector context
-2. **Parameter Prediction Model** - Predicts function parameters (types and counts)
+No single tool recovers parameter types perfectly:
 
-The system can reconstruct complete ABIs from raw bytecode without relying on traditional decompilation or symbolic execution.
+- **Signature databases** (openchain.xyz, 4byte.directory) know the *exact* types
+  for a selector's real signature (e.g. `bytes32` vs `uint256`), but 4byte is
+  full of spam collisions and neither covers every selector.
+- **evmole** recovers each function's argument *structure* by static analysis
+  (no spam), but can't always distinguish `bytes32`/`uint256` or `address`/
+  `uint160`, and miscounts some arguments.
+
+The **`FusionReconstructor`** uses evmole's structure to pick the correct
+signature-database candidate, and the signature to supply the exact types evmole
+can't infer. On 6,744 functions with ground-truth ABIs it reaches **96.4% exact
+parameter-type accuracy vs evmole's 90.0%** — strictly better, zero regressions
+(see `eval_output/fusion_eval.md`).
 
 ## Features
 
-- **Pure ML Approach**: No traditional decompilation or symbolic execution
-- **Two-Model System**: Separate models for function names and parameters
-- **Signature Disambiguation**: Resolves ambiguous function signatures using ML
-- **Batch Processing**: Process multiple contracts efficiently
-- **API Integration**: Fetches real contract data from Etherscan and Sourcify
-- **Training Pipeline**: Complete pipeline for training models on contract data
+- **Fusion reconstruction**: openchain/4byte signatures disambiguated by evmole
+  (~96% exact parameter types). This is the recommended path.
+- **Rule-based reconstruction**: offline 4byte + bytecode heuristics, no network.
+- **Selector extraction** from bytecode.
+- **Signature database** (local 4byte SQLite + openchain/4byte API, cached).
+- **Data + evaluation tooling**: fetch verified contracts (Etherscan/Sourcify),
+  benchmark against ground truth (`scripts/eval/`).
+
+> Note: an experimental pure-ML path (function-name classifier + parameter
+> model) also exists, but it does **not** beat the fusion approach for types and
+> is not the recommended reconstructor — see `eval_output/` for the analysis.
 
 ## Installation
 
@@ -62,41 +78,32 @@ Required environment variables:
 ### Command Line Interface
 
 ```bash
-# Reconstruct ABI from bytecode
+# Recommended: fusion reconstruction (~96% exact parameter types; needs network)
+abi-reconstruct fusion --bytecode "0x6080..."
+abi-reconstruct fusion --bytecode-file contract.hex
+
+# Offline rule-based reconstruction (4byte + heuristics)
 abi-reconstruct reconstruct --bytecode "0x6080..."
 
-# Reconstruct with specific selector
-abi-reconstruct reconstruct --bytecode "0x6080..." --selector "a9059cbb"
+# Extract function selectors only
+abi-reconstruct extract --bytecode "0x6080..."
 
-# Batch reconstruction from file
-abi-reconstruct batch --input contracts.json --output results.json
-
-# Train models
-abi-reconstruct train --run --max-samples 10000
-
-# Run tests
-abi-reconstruct test
+# Local 4byte signature database
+abi-reconstruct populate            # fill from 4byte.directory
+abi-reconstruct stats               # show DB stats
+abi-reconstruct export --output sigs.json
 ```
 
 ### Python API
 
 ```python
-from abi_reconstructor.models.abi_reconstructor_pipeline import ABIReconstructorPipeline
+from abi_reconstructor.fusion import FusionReconstructor
 
-# Initialize pipeline
-pipeline = ABIReconstructorPipeline()
-
-# Reconstruct ABI from bytecode
-result = pipeline.reconstruct_abi(
-    bytecode="0x6080...",
-    selector="a9059cbb"  # Optional
-)
-
-# Reconstruct complete ABI (extract all selectors)
-result = pipeline.reconstruct_complete_abi(
-    bytecode="0x6080...",
-    max_selectors=20
-)
+result = FusionReconstructor().reconstruct("0x6080...")
+for fn in result["functions"]:
+    types = ",".join(i["type"] for i in fn["inputs"])
+    print(f"{fn['name']}  selector={fn['selector']}  source={fn['source']}")
+# result["functions"]: [{type, name, selector, inputs:[{type,name}], source}, ...]
 ```
 
 ### Training Models
@@ -251,10 +258,18 @@ pytest tests/ --cov=abi_reconstructor --cov-report=html
 
 ## Performance
 
-- **Accuracy**: >80% on function name classification
-- **Parameter Prediction**: >70% exact match on parameter types
-- **Inference Time**: <1 second per contract (CPU)
-- **Training Time**: ~2 hours on GPU for 10k samples
+Measured on 6,744 functions from 500 verified mainnet contracts
+(`eval_output/fusion_eval.md`):
+
+- **Fusion reconstructor**: **96.4%** exact parameter-type accuracy
+- **evmole baseline**: 90.0%
+- The fusion fixes 291 functions evmole gets wrong (mostly `bytes32`/`uint256`
+  and `address`/`uint160`) and breaks none.
+- Ceiling is currently capped near 96.5% by signature-DB coverage; the residual
+  is selectors absent from openchain/4byte where evmole is the only signal.
+
+The experimental pure-ML parameter model reaches only ~32% exact type accuracy
+and is **not** recommended (`eval_output/plan05_fullscale.md`).
 
 ## Limitations
 
