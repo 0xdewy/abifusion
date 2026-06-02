@@ -34,6 +34,25 @@ def cmd_reconstruct(args) -> int:
     return 0
 
 
+def cmd_fusion(args) -> int:
+    """Reconstruct an ABI by fusing openchain/4byte signatures with evmole.
+
+    Highest-accuracy path (~96% exact parameter types vs evmole's ~90%; see
+    eval_output/fusion_eval.md). Requires network for signature lookups (cached).
+    """
+    from abi_reconstructor.fusion import FusionReconstructor
+
+    if args.bytecode_file:
+        with open(args.bytecode_file, "r") as f:
+            bytecode = f.read().strip()
+    else:
+        bytecode = args.bytecode
+
+    result = FusionReconstructor().reconstruct(bytecode)
+    print(json.dumps(result, indent=2))
+    return 0
+
+
 def cmd_extract_selectors(args) -> int:
     """Extract function selectors from bytecode."""
     if args.bytecode_file:
@@ -115,7 +134,14 @@ def main():
 
     subparsers = parser.add_subparsers(dest="command", help="Command to execute")
 
-    reconstruct_parser = subparsers.add_parser("reconstruct", help="Reconstruct ABI from bytecode")
+    fusion_parser = subparsers.add_parser(
+        "fusion",
+        help="Reconstruct ABI by fusing openchain/4byte signatures with evmole (recommended, ~96 pct)",
+    )
+    fusion_parser.add_argument("--bytecode", help="Bytecode as hex string")
+    fusion_parser.add_argument("--bytecode-file", help="File containing bytecode")
+
+    reconstruct_parser = subparsers.add_parser("reconstruct", help="Reconstruct ABI from bytecode (rule-based 4byte)")
     reconstruct_parser.add_argument("--bytecode", help="Bytecode as hex string")
     reconstruct_parser.add_argument("--bytecode-file", help="File containing bytecode")
     reconstruct_parser.add_argument("--selector", help="Specific selector to reconstruct (8 hex chars)")
@@ -137,7 +163,9 @@ def main():
 
     args = parser.parse_args()
 
-    if args.command == "reconstruct":
+    if args.command == "fusion":
+        return cmd_fusion(args)
+    elif args.command == "reconstruct":
         return cmd_reconstruct(args)
     elif args.command == "extract":
         return cmd_extract_selectors(args)

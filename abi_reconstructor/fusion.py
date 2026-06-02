@@ -144,7 +144,7 @@ class FusionReconstructor:
 
             if chosen is not None:
                 name, types = chosen
-                source = "4byte+evmole" if ev is not None else "4byte"
+                source = "signature+evmole" if ev is not None else "signature"
             elif ev is not None:
                 name, types, source = f"function_{selector}", ev, "evmole"
             else:
