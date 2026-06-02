@@ -12,6 +12,7 @@ from abi_reconstructor.fusion import (
     parse_signature,
     split_args,
 )
+from abi_reconstructor.utils.signature_lookup import SignatureLookup
 
 
 class TestParsing:
@@ -62,6 +63,24 @@ class TestChooseCandidate:
         ]
         name, _ = choose_candidate(cands, ("address", "uint256", "uint256"))
         assert name == "y"
+
+
+class TestCandidateSource:
+    def test_prefers_openchain_over_4byte(self):
+        sl = SignatureLookup.__new__(SignatureLookup)  # no network/init
+        with patch.object(sl, "lookup_openchain", return_value=[{"text_signature": "transfer(address,uint256)"}]) as oc, \
+             patch.object(sl, "lookup_4byte", return_value=[{"text_signature": "spam(uint256,uint256)"}]) as fb:
+            cands = FusionReconstructor(sl)._candidates("a9059cbb")
+        assert cands == [("transfer", ("address", "uint256"))]
+        oc.assert_called_once()
+        fb.assert_not_called()  # openchain hit → 4byte never queried
+
+    def test_falls_back_to_4byte_when_openchain_empty(self):
+        sl = SignatureLookup.__new__(SignatureLookup)
+        with patch.object(sl, "lookup_openchain", return_value=[]), \
+             patch.object(sl, "lookup_4byte", return_value=[{"text_signature": "foo(bytes32)"}]):
+            cands = FusionReconstructor(sl)._candidates("deadbeef")
+        assert cands == [("foo", ("bytes32",))]
 
 
 class TestReconstruct:

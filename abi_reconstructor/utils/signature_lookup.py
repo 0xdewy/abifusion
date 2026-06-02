@@ -173,6 +173,52 @@ class SignatureLookup:
             logger.warning(f"Invalid JSON from 4byte.directory for 0x{selector}: {e}")
             return []
 
+    OPENCHAIN_API = "https://api.openchain.xyz/signature-database/v1/lookup"
+
+    def lookup_openchain(self, selector: str) -> List[Dict]:
+        """Look up signatures from openchain.xyz (samczsun's signature DB).
+
+        Higher coverage and far less collision spam than 4byte.directory, which
+        makes it the preferred candidate source for fusion. Cached separately.
+
+        Args:
+            selector: Function selector (hex string without 0x).
+
+        Returns:
+            List of signature dicts with ``text_signature``.
+        """
+        cache_key = f"oc_{selector}"
+        cached = self._load_from_cache(cache_key)
+        if cached is not None:
+            return cached
+
+        self._rate_limit()
+        params = {"function": f"0x{selector}", "filter": "true"}
+        try:
+            response = self.session.get(self.OPENCHAIN_API, params=params, timeout=10)
+            response.raise_for_status()
+            data = response.json()
+            results = (
+                data.get("result", {}).get("function", {}).get(f"0x{selector}") or []
+            )
+            signatures = [
+                {
+                    "text_signature": item.get("name", ""),
+                    "hex_signature": f"0x{selector}",
+                    "source": "openchain.xyz",
+                }
+                for item in results
+                if item.get("name")
+            ]
+            self._save_to_cache(cache_key, signatures)
+            return signatures
+        except requests.exceptions.RequestException as e:
+            logger.warning(f"Failed to query openchain for 0x{selector}: {e}")
+            return []
+        except json.JSONDecodeError as e:
+            logger.warning(f"Invalid JSON from openchain for 0x{selector}: {e}")
+            return []
+
     def get_standard_signatures(self, selector: str) -> List[str]:
         """Get standard signatures for selector from built-in database.
 

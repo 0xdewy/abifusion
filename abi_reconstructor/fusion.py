@@ -92,8 +92,15 @@ class FusionReconstructor:
         self.sig = signature_lookup or SignatureLookup()
 
     def _candidates(self, selector: str) -> List[Tuple[str, Tuple[str, ...]]]:
+        """4byte candidates for a selector, preferring openchain.
+
+        openchain has higher coverage and far less collision spam, so it is the
+        primary source; 4byte.directory is used only when openchain returns
+        nothing (mixing the two re-introduces 4byte's spam and hurts accuracy).
+        """
+        rows = self.sig.lookup_openchain(selector) or self.sig.lookup_4byte(selector)
         out: List[Tuple[str, Tuple[str, ...]]] = []
-        for s in self.sig.lookup_4byte(selector):
+        for s in rows:
             parsed = parse_signature(s.get("text_signature", ""))
             if parsed is not None:
                 out.append(parsed)
