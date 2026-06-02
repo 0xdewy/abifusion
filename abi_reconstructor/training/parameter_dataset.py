@@ -562,19 +562,30 @@ class ParameterDataset:
             "max_parameters": 12,
         }
 
-        # Extract discriminating features for each sample (SigRec R11-R18)
+        # Extract discriminating features (SigRec R11-R18) from each function's
+        # body, located via evmole (opcode-aligned). selector_offsets is memoized
+        # per contract bytecode so evmole runs once per contract, not per sample.
         try:
             from abi_reconstructor.features.discriminating_features import (
                 DiscriminatingFeatureExtractor,
             )
             disc_features = []
-            extractor = DiscriminatingFeatureExtractor()
+            offset_cache: Dict[str, Dict[str, int]] = {}
             for sample in samples:
-                ctx = sample.get("bytecode_context", "")
-                sel = sample.get("selector", "")
-                if ctx and sel:
-                    features = extractor.extract_from_context(ctx, ctx)
-                    disc_features.append(features.to_vector())
+                bytecode = sample.get("bytecode", "")
+                sel = (sample.get("selector", "") or "").lower()
+                offset = None
+                if bytecode and sel:
+                    if bytecode not in offset_cache:
+                        offset_cache[bytecode] = (
+                            DiscriminatingFeatureExtractor.selector_offsets(bytecode)
+                        )
+                    offset = offset_cache[bytecode].get(sel)
+                if offset is not None:
+                    feats = DiscriminatingFeatureExtractor.extract_from_body(
+                        bytecode, offset
+                    )
+                    disc_features.append(feats.to_vector())
                 else:
                     disc_features.append([0.0] * 7)
             data_dict["discriminating_features"] = np.array(disc_features, dtype=np.float32)

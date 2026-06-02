@@ -130,9 +130,61 @@ class DiscriminatingFeatureExtractor:
 
         Returns:
             DiscriminatingFeatures with observed type-revealing patterns.
+
+        Note: the context must start on an opcode boundary, otherwise the
+        disassembly is misaligned. Prefer ``extract_from_body`` with an evmole
+        function offset, which is opcode-aligned by construction.
         """
         raw = bytes.fromhex(context)
         return DiscriminatingFeatureExtractor._analyze_opcodes(raw)
+
+    @staticmethod
+    def selector_offsets(bytecode_hex: str) -> Dict[str, int]:
+        """Map each function selector to its body offset (bytes) via evmole.
+
+        evmole resolves the dispatcher and returns each function's entry point
+        (a JUMPDEST), which is the correct, opcode-aligned place to analyze
+        parameter-handling instructions — unlike the selector's literal
+        position in the dispatcher.
+
+        Args:
+            bytecode_hex: Runtime bytecode (with or without 0x prefix).
+
+        Returns:
+            ``{selector_lower_8hex: byte_offset}``; empty on any failure.
+        """
+        code = bytecode_hex[2:] if bytecode_hex.startswith("0x") else bytecode_hex
+        try:
+            from evmole import contract_info
+
+            info = contract_info(code, selectors=True)
+            return {f.selector.lower(): f.bytecode_offset for f in info.functions}
+        except Exception:
+            return {}
+
+    @staticmethod
+    def extract_from_body(
+        bytecode_hex: str,
+        offset: int,
+        window_bytes: int = 300,
+    ) -> DiscriminatingFeatures:
+        """Extract features from a function body window starting at `offset`.
+
+        Args:
+            bytecode_hex: Runtime bytecode (with or without 0x prefix).
+            offset: Byte offset of the function body (an evmole JUMPDEST).
+            window_bytes: Number of bytes of body to analyze.
+
+        Returns:
+            DiscriminatingFeatures with observed type-revealing patterns.
+        """
+        code = bytecode_hex[2:] if bytecode_hex.startswith("0x") else bytecode_hex
+        try:
+            raw = bytes.fromhex(code)
+        except ValueError:
+            return DiscriminatingFeatures()
+        window = raw[offset : offset + window_bytes]
+        return DiscriminatingFeatureExtractor._analyze_opcodes(window)
 
     @staticmethod
     def _analyze_opcodes(raw: bytes) -> DiscriminatingFeatures:
@@ -203,6 +255,15 @@ class DiscriminatingFeatureExtractor:
             last_push_data = None
             i += 1
 
+        # Address pattern (R16): a 20-byte right-aligned (leading-zero) AND mask
+        # with no signed math — the canonical address-masking idiom.
+        if (
+            features.has_and_mask_leading_zeros
+            and features.and_mask_bytes == 20
+            and not features.has_signed_math
+        ):
+            features.has_address_pattern = True
+
         return features
 
     @staticmethod
@@ -248,4 +309,6 @@ class DiscriminatingFeatureExtractor:
         if not types:
             types.append(default)
 
-        return types
+        # Dedupe while preserving order (address can be appended twice now that
+        # has_address_pattern is set alongside the 20-byte mask branch).
+        return list(dict.fromkeys(types))

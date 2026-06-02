@@ -584,19 +584,26 @@ class ABIReconstructorPipeline:
         attention_mask[:num_real_tokens] = 1.0
         attention_mask = attention_mask.unsqueeze(0)  # Add batch dimension
 
-        # Discriminating features (SigRec R11-R18) from the same context window
-        # used in training, so inference matches the training distribution.
+        # Discriminating features (SigRec R11-R18) from the function body located
+        # via evmole — the same opcode-aligned extraction used in training, so
+        # inference matches the training distribution. Offsets are memoized per
+        # bytecode on the pipeline instance.
         from abi_reconstructor.features.discriminating_features import (
             DiscriminatingFeatureExtractor,
         )
 
-        try:
-            disc_vec = (
-                DiscriminatingFeatureExtractor()
-                .extract_from_context(context, context)
-                .to_vector()
+        if not hasattr(self, "_disc_offset_cache"):
+            self._disc_offset_cache: Dict[str, Dict[str, int]] = {}
+        if bytecode not in self._disc_offset_cache:
+            self._disc_offset_cache[bytecode] = (
+                DiscriminatingFeatureExtractor.selector_offsets(bytecode)
             )
-        except Exception:
+        offset = self._disc_offset_cache[bytecode].get((selector or "").lower())
+        if offset is not None:
+            disc_vec = DiscriminatingFeatureExtractor.extract_from_body(
+                bytecode, offset
+            ).to_vector()
+        else:
             disc_vec = [0.0] * 7
         discriminating_features = torch.tensor(
             disc_vec, dtype=torch.float
