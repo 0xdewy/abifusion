@@ -2,12 +2,9 @@
 
 import re
 from dataclasses import dataclass
-from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
 from .database import FourByteDatabase
-
-CHECKPOINT_DIR = Path(__file__).parent.parent / "checkpoints"
 
 
 def _parse_types_from_signature(signature: str) -> Optional[List[str]]:
@@ -734,97 +731,15 @@ class ParameterReconstructor:
 class ABIReconstructor:
     """Main ABI reconstruction system combining all components."""
 
-    FUNCTION_NAME_VOCAB = [
-        "transfer", "approve", "balanceOf", "totalSupply", "allowance",
-        "transferFrom", "name", "symbol", "decimals", "ownerOf",
-        "safeTransferFrom", "setApprovalForAll", "isApprovedForAll", "tokenURI",
-        "mint", "burn", "pause", "unpause", "renounceOwnership",
-        "transferOwnership", "upgradeTo", "upgradeToAndCall", "admin",
-        "changeAdmin", "implementation", "getBalance", "sendCoin", "convert",
-        "execute", "close", "update", "set", "get", "add", "remove", "create",
-        "delete", "deploy", "initialize", "withdraw", "deposit", "claim",
-        "stake", "unstake", "vote", "propose", "unknown",
-    ]
-
-    TYPE_NAMES = [
-        "address", "uint256", "bool", "bytes32", "string", "bytes",
-        "uint8", "uint16", "uint32", "uint64", "uint128", "int256",
-        "int8", "int16", "int32", "int64", "int128",
-        "address[]", "uint256[]", "bytes32[]", "string[]", "bytes[]", "bool[]",
-        "unknown",
-    ]
-
-    def __init__(
-        self,
-        db_path: str = "./cache/4byte.db",
-        model_path: Optional[str] = None,
-    ):
+    def __init__(self, db_path: str = "./cache/4byte.db"):
         """Initialize ABI reconstructor.
 
         Args:
             db_path: Path to 4byte SQLite database
-            model_path: Reserved for future ML model support (not currently used)
         """
         self.db = FourByteDatabase(db_path=db_path)
         self.parser = BytecodeParser()
         self.param_reconstructor = ParameterReconstructor()
-        self.model_path = model_path or CHECKPOINT_DIR
-
-        self._func_to_idx = {f: i for i, f in enumerate(self.FUNCTION_NAME_VOCAB)}
-        self._idx_to_func = dict(enumerate(self.FUNCTION_NAME_VOCAB))
-        self._type_to_idx = {t: i for i, t in enumerate(self.TYPE_NAMES)}
-        self._idx_to_type = dict(enumerate(self.TYPE_NAMES))
-        self._type_to_idx["unknown"] = len(self.TYPE_NAMES) - 1
-
-        self._lowercase_vocab = {k.lower(): v for k, v in self._func_to_idx.items()}
-
-    def _bytecode_to_features(
-        self,
-        bytecode: str,
-        selector: str,
-        max_len: int = 512,
-        pad_token: int = 256
-    ) -> Dict[str, Any]:
-        """Convert bytecode to tensor features for inference.
-
-        Args:
-            bytecode: Contract bytecode
-            selector: Function selector
-            max_len: Maximum sequence length
-            pad_token: Token to use for padding
-
-        Returns:
-            Dictionary with bytecode features
-        """
-        bytecode_clean = self.parser.clean_bytecode(bytecode)
-        pos = bytecode_clean.lower().find(selector.lower())
-        if pos == -1:
-            pos = 0
-
-        context_start = max(0, pos - 250)
-        context_end = min(len(bytecode_clean), pos + 250)
-        context = bytecode_clean[context_start:context_end]
-
-        tokens = []
-        for i in range(0, len(context), 2):
-            if i + 1 < len(context):
-                try:
-                    token = int(context[i:i+2], 16)
-                    tokens.append(token)
-                except ValueError:
-                    tokens.append(0)
-
-        num_real_tokens = len(tokens)
-        if len(tokens) > max_len:
-            tokens = tokens[:max_len]
-            num_real_tokens = max_len
-        else:
-            tokens = tokens + [pad_token] * (max_len - len(tokens))
-
-        return {
-            "bytecode_tokens": tokens,
-            "num_real_tokens": num_real_tokens,
-        }
 
     def reconstruct_function(
         self,

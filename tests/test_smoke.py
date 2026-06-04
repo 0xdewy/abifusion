@@ -1,7 +1,6 @@
 """Smoke tests for ABI Reconstructor."""
 
 import pytest
-import torch
 
 from abi_reconstructor.reconstructor import BytecodeParser, ABIReconstructor, ParameterReconstructor
 from abi_reconstructor.features.discriminating_features import DiscriminatingFeatureExtractor
@@ -173,24 +172,6 @@ class TestFullPipelineSmoke:
         assert len(vec) == 7
         assert all(isinstance(v, float) for v in vec)
 
-    def test_model_with_discriminating_features_forward(self):
-        """Model accepts discriminating features tensor in forward pass."""
-        from abi_reconstructor.models.parameter_prediction_model import ParameterPredictionModel
-
-        model = ParameterPredictionModel(
-            num_type_classes=22, max_parameters=12, encoder_type="cnn",
-            hidden_dim=256, use_function_conditioning=False, use_cuda=False,
-        )
-
-        # Create dummy input
-        tokens = torch.randint(0, 256, (2, 512))
-        disc = torch.randn(2, 7)
-
-        output = model(tokens, discriminating_features=disc)
-        assert "type_logits" in output
-        assert output["type_logits"].shape == (2, 12, 22)
-        assert output["count_logits"].shape == (2, 13)
-
     def test_benchmark_parse_ground_truth_via_abi(self):
         """Ground-truth function parsing from an ABI entry."""
         from benchmark import parse_ground_truth_functions
@@ -205,59 +186,3 @@ class TestFullPipelineSmoke:
         assert len(funcs) == 1
         assert funcs[0]["selector"] == "a9059cbb"
         assert funcs[0]["arity"] == 2
-
-
-class TestDeviceManagement:
-    """Tests for DeviceManager-based device routing."""
-
-    def test_device_manager_cpu_forced(self):
-        """DeviceManager with enable_cuda=False keeps everything on CPU."""
-        from abi_reconstructor.device import DeviceManager
-        dm = DeviceManager(enable_cuda=False)
-        assert dm.is_cpu
-        assert str(dm.device) == "cpu"
-
-    def test_device_manager_move_model_to_cpu(self):
-        """Model moved via DeviceManager stays on CPU."""
-        from abi_reconstructor.device import DeviceManager
-        from abi_reconstructor.models.parameter_prediction_model import ParameterPredictionModel
-
-        dm = DeviceManager(enable_cuda=False)
-        model = ParameterPredictionModel(
-            num_type_classes=22, max_parameters=6, encoder_type="cnn",
-            hidden_dim=64, use_function_conditioning=False,
-            use_cuda=False,
-        )
-        model = dm.move_model_to_device(model)
-        assert next(model.parameters()).device.type == "cpu"
-
-    def test_parameter_model_no_cuda_init_with_flag_false(self):
-        """Model with use_cuda=False never touches CUDA."""
-        from abi_reconstructor.models.parameter_prediction_model import ParameterPredictionModel
-        model = ParameterPredictionModel(
-            num_type_classes=22, max_parameters=6, encoder_type="cnn",
-            hidden_dim=64, use_function_conditioning=False,
-            use_cuda=False,
-        )
-        assert isinstance(model._device, torch.device)
-        assert next(model.parameters()).device.type == "cpu"
-
-    def test_batch_to_device_cpu_identity(self):
-        """batch_to_device with explicit CPU device returns same tensors."""
-        from abi_reconstructor.device import batch_to_device
-        import torch
-        batch = {
-            "tokens": torch.randint(0, 256, (4, 100)),
-            "mask": torch.ones(4, 100),
-            "name": "test",
-        }
-        moved = batch_to_device(batch, device=torch.device("cpu"))
-        assert moved["tokens"].device.type == "cpu"
-        assert moved["mask"].device.type == "cpu"
-        assert torch.equal(moved["tokens"], batch["tokens"])
-
-    def test_get_device_for_cuda_flag_false_returns_cpu(self):
-        """get_device_for_cuda_flag(False) returns CPU device."""
-        from abi_reconstructor.device import get_device_for_cuda_flag
-        device = get_device_for_cuda_flag(False)
-        assert device.type == "cpu"

@@ -1,50 +1,34 @@
 """Basic integration tests to verify the repository works."""
 
+import importlib
 import os
-import pytest
+
+import abi_reconstructor
 
 
-def test_import_all_modules():
-    """Test that all main modules can be imported."""
-    # Core modules
+def test_public_api_imports():
+    """The package's advertised public API is importable from the root."""
+    from abi_reconstructor import (
+        ABIReconstructor,
+        FourByteDatabase,
+        FusionReconstructor,
+        SelectorExtractor,
+    )
 
-    # Training script
-
-    # Integration example
-
-    assert True  # If we get here, imports succeeded
+    assert all([ABIReconstructor, FourByteDatabase, FusionReconstructor, SelectorExtractor])
 
 
-def test_basic_feature_extraction_flow(sample_bytecode):
-    """Test basic feature extraction flow."""
-    from abi_reconstructor.features.bytecode_features import BytecodeFeatureExtractor
-    from abi_reconstructor.features.selector_extractor import NeuralSelectorExtractor
-
-    feature_extractor = BytecodeFeatureExtractor()
-    selector_extractor = NeuralSelectorExtractor()
-
-    assert hasattr(feature_extractor, "extract_basic_features")
-    assert hasattr(selector_extractor, "extract_selectors")
+def test_submodules_importable():
+    """Core submodules import without side effects."""
+    assert importlib.import_module("abi_reconstructor.data")
+    assert importlib.import_module("abi_reconstructor.features")
+    assert importlib.import_module("abi_reconstructor.utils")
+    assert importlib.import_module("abi_reconstructor.fusion")
 
 
 def test_package_structure():
-    """Test that package structure is correct."""
-    import abi_reconstructor
-
-    # Submodules must be importable (don't rely on import side-effects from
-    # other tests having already populated these attributes).
-    import importlib
-
-    assert importlib.import_module("abi_reconstructor.data")
-    assert importlib.import_module("abi_reconstructor.models")
-
-    # Check that __init__.py files exist (use absolute path)
+    """The package directory matches the declared structure."""
     package_dir = os.path.dirname(abi_reconstructor.__file__)
 
-    assert os.path.exists(os.path.join(package_dir, "__init__.py"))
-    assert os.path.exists(os.path.join(package_dir, "data", "__init__.py"))
-    assert os.path.exists(os.path.join(package_dir, "models", "__init__.py"))
-
-
-# Import numpy for neural model test
-import numpy as np
+    for sub in ("", "data", "features", "utils"):
+        assert os.path.exists(os.path.join(package_dir, sub, "__init__.py"))

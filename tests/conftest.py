@@ -4,7 +4,6 @@ import pytest
 import tempfile
 import os
 from unittest.mock import patch
-import numpy as np
 
 
 @pytest.fixture
@@ -173,17 +172,6 @@ def temp_cache_dir():
         cache_dir = os.path.join(temp_dir, "cache")
         os.makedirs(cache_dir, exist_ok=True)
         yield cache_dir
-
-
-@pytest.fixture
-def sample_training_data():
-    """Sample training data for model tests."""
-    return {
-        "X_train": np.random.randn(100, 100).astype(np.float32),
-        "y_train": np.random.randint(0, 2, (100, 1)).astype(np.float32),
-        "X_test": np.random.randn(20, 100).astype(np.float32),
-        "y_test": np.random.randint(0, 2, (20, 1)).astype(np.float32),
-    }
 
 
 @pytest.fixture

@@ -17,17 +17,13 @@ def cmd_reconstruct(args) -> int:
     else:
         bytecode = args.bytecode
 
-    reconstructor = ABIReconstructor(
-        db_path=args.db,
-        model_path=args.model_path,
-        use_cuda=False,
-    )
+    reconstructor = ABIReconstructor(db_path=args.db)
 
     if args.selector:
-        result = reconstructor.reconstruct_function(bytecode, args.selector, use_ml=args.use_ml)
+        result = reconstructor.reconstruct_function(bytecode, args.selector)
         print(json.dumps(result, indent=2))
     else:
-        result = reconstructor.reconstruct_abi(bytecode, max_selectors=args.max_selectors, use_ml=args.use_ml)
+        result = reconstructor.reconstruct_abi(bytecode, max_selectors=args.max_selectors)
         print(reconstructor.to_json(result))
 
     reconstructor.close()
@@ -146,8 +142,6 @@ def main():
     reconstruct_parser.add_argument("--bytecode-file", help="File containing bytecode")
     reconstruct_parser.add_argument("--selector", help="Specific selector to reconstruct (8 hex chars)")
     reconstruct_parser.add_argument("--max-selectors", type=int, default=50, help="Maximum selectors to extract")
-    reconstruct_parser.add_argument("--use-ml", action="store_true", help="Use ML-based parameter inference")
-    reconstruct_parser.add_argument("--model-path", help="Path to ML model checkpoints")
 
     extract_parser = subparsers.add_parser("extract", help="Extract selectors from bytecode")
     extract_parser.add_argument("--bytecode", help="Bytecode as hex string")
