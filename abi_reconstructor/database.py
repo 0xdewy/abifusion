@@ -109,7 +109,7 @@ class FourByteDatabase:
 
     def _initialize_schema(self) -> None:
         """Initialize database schema."""
-        conn = self._conn
+        conn = self._get_connection()
         conn.execute("""
             CREATE TABLE IF NOT EXISTS signatures (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -135,10 +135,11 @@ class FourByteDatabase:
 
     def _populate_standard_signatures(self) -> None:
         """Populate database with standard signatures."""
+        conn = self._get_connection()
         for selector, sigs in self.STANDARD_SIGNATURES.items():
             for sig in sigs:
                 try:
-                    self._conn.execute("""
+                    conn.execute("""
                         INSERT OR IGNORE INTO signatures (selector, text_signature, source, created_at)
                         VALUES (?, ?, 'standard', ?)
                     """, (selector, sig, datetime.now().isoformat()))

@@ -76,7 +76,7 @@ class MLAbiModel(nn.Module):
             vocab_size=256, embed_dim=embed_dim, num_filters=num_filters, kernel_sizes=kernel_sizes
         )
         self.name_head = NameHead(embed_dim, num_name_classes)
-        self.type_head = TypeHead(feature_dim=8, embed_dim=embed_dim, num_classes=num_type_classes)
+        self.type_head = TypeHead(feature_dim=9, embed_dim=embed_dim, num_classes=num_type_classes)
 
     def forward(
         self,

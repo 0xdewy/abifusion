@@ -45,7 +45,7 @@ known_top3_correct = 0
 for s in test_set:
     fm = s.feature_matrix[:16]
     while len(fm) < 16:
-        fm.append([0.0] * 8)
+        fm.append([0.0] * 9)
 
     tokens = s.bytecode_tokens[:5000]
     while len(tokens) < 5000:

@@ -73,4 +73,4 @@ def build_feature_matrix(
         return []
     features = extract_bytecode_features(bytecode_hex, bytecode_offset, num_params, window_bytes)
     global_vec = features[0].to_vector() if features else [0.0] * 7
-    return [global_vec + [float(num_params)] for _ in range(num_params)]
+    return [global_vec + [float(num_params), float(i)] for i in range(num_params)]

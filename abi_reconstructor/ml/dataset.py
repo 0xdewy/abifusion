@@ -153,7 +153,7 @@ class ContractDataset(Dataset):
         sample = self.samples[idx]
         feature_mat = sample.feature_matrix[: self.max_params]
         while len(feature_mat) < self.max_params:
-            feature_mat.append([0.0] * 8)
+            feature_mat.append([0.0] * 9)
         feature_tensor = torch.tensor(feature_mat, dtype=torch.float32)
 
         tokens = sample.bytecode_tokens[: self.max_len]

@@ -167,7 +167,7 @@ class FusionReconstructor:
                 else:
                     # Tier 3: ML model prediction (family classification)
                     # Uses function family + type predictions from bytecode
-                    ml_resp = self.ml.predict(bytecode)
+                    ml_resp = self.ml.predict(bytecode, selector)
                     if ml_resp.get("family") is not None:
                         name = ml_resp["family"]
                         types = tuple(ml_resp.get("types", []))

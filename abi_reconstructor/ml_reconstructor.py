@@ -39,6 +39,7 @@ class MLReconstructor:
     def get_instance(cls) -> "MLReconstructor":
         if cls._instance is None:
             cls._instance = cls()
+            cls._instance.load_model("cache/family_model.pt")
         return cls._instance
 
     def load_model(self, model_path: str) -> None:
@@ -63,7 +64,9 @@ class MLReconstructor:
         except Exception as e:
             raise RuntimeError(f"Failed to load model from {model_path}: {e}") from e
 
-    def _build_feature_matrix(self, bytecode: str, max_params: int = 16) -> Tuple[List[List[float]], List[int]]:
+    def _build_feature_matrix(
+        self, bytecode: str, num_params: int = 16, selector: Optional[str] = None
+    ) -> Tuple[List[List[float]], List[int]]:
         from abi_reconstructor.features.global_bytecode_features import (
             build_feature_matrix,
         )
@@ -71,37 +74,46 @@ class MLReconstructor:
 
         code = parse_bytecode_hex(bytecode)
         if code is None:
-            return [[0.0] * 8 for _ in range(max_params)], [0] * 5000
+            return [[0.0] * 9 for _ in range(num_params)], [0] * 5000
 
         bytecode_hex = bytecode[2:] if bytecode.startswith("0x") else bytecode
 
         evmole_offset = 0
+        actual_num_params = num_params
         try:
             import evmole
 
             info = evmole.contract_info(bytecode_hex, selectors=True, arguments=True)
-            if info is not None and info.functions is not None and info.functions:
-                evmole_offset = info.functions[0].bytecode_offset
+            if info is not None and info.functions is not None:
+                for f in info.functions:
+                    if selector and f.selector.lower() == selector.lower():
+                        evmole_offset = f.bytecode_offset
+                        if f.arguments:
+                            actual_num_params = len(f.arguments.split(","))
+                        break
+                else:
+                    if info.functions:
+                        evmole_offset = info.functions[0].bytecode_offset
         except Exception:
             pass
 
-        feature_mat = build_feature_matrix(bytecode_hex, evmole_offset, max_params, window_bytes=100)
+        feature_mat = build_feature_matrix(bytecode_hex, evmole_offset, actual_num_params, window_bytes=100)
         tokens = list(code[max(0, evmole_offset) : min(len(code), evmole_offset + 5000)])
         while len(tokens) < 5000:
             tokens.append(0)
         return feature_mat, tokens
 
-    def predict(self, bytecode: str) -> Dict[str, Any]:
+    def predict(self, bytecode: str, selector: Optional[str] = None) -> Dict[str, Any]:
         if self.model is None or not self._loaded:
             return self._stub_response(False)
 
-        feature_mat, tokens = self._build_feature_matrix(bytecode)
+        feature_mat, tokens = self._build_feature_matrix(bytecode, selector=selector)
         max_params = 16
         max_len = 5000
 
         fm = feature_mat[:max_params]
         while len(fm) < max_params:
-            fm.append([0.0] * 8)
+            fm.append([0.0] * 9)
         while len(tokens) < max_len:
             tokens.append(0)
 
