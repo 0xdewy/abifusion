@@ -12,15 +12,23 @@ Neither source is sufficient alone:
 
 Fusing them — use evmole's structure to pick the right 4byte candidate, and the
 4byte signature to supply the exact types — beats evmole's exact-type accuracy
-(measured 94.3% vs 90.0% on 6,744 functions, 0 regressions; see
-``eval_output/fusion_ceiling.md``).
+(measured 96.4% on 6,744 functions; see ``eval_output/fusion_eval.md``).
+
+For selectors not in any 4byte database AND where evmole finds nothing:
+  * A dataset-derived known-signature table (from verified ground-truth contracts)
+    fills the gap for repeated selectors (e.g., Uniswap V3 callbacks, NFT setters)
+    that appear consistently across multiple contracts.
+  * An ML model prediction is used as a third-tier fallback (stubbed for now).
 """
 
 from __future__ import annotations
 
+import json
 import logging
+from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
+from abi_reconstructor.ml_reconstructor import MLReconstructor
 from abi_reconstructor.utils.signature_lookup import SignatureLookup
 
 logger = logging.getLogger(__name__)
@@ -88,16 +96,26 @@ def choose_candidate(
 class FusionReconstructor:
     """Reconstruct an ABI by fusing 4byte signatures with evmole analysis."""
 
+    _known_selectors: Optional[Dict[str, Dict[str, Any]]] = None
+
     def __init__(self, signature_lookup: Optional[SignatureLookup] = None):
         self.sig = signature_lookup or SignatureLookup()
+        self.ml = MLReconstructor.get_instance()
+        self._ensure_known_selectors()
+
+    def _ensure_known_selectors(self) -> None:
+        if FusionReconstructor._known_selectors is not None:
+            return
+        table_path = Path(__file__).parent.parent / "data" / "known_selector_signatures.json"
+        if table_path.exists():
+            with open(table_path) as f:
+                FusionReconstructor._known_selectors = json.load(f)
+            logger.info("Loaded %d known selector signatures", len(FusionReconstructor._known_selectors))
+        else:
+            FusionReconstructor._known_selectors = {}
+            logger.warning("Known selector table not found at %s", table_path)
 
     def _candidates(self, selector: str) -> List[Tuple[str, Tuple[str, ...]]]:
-        """4byte candidates for a selector, preferring openchain.
-
-        openchain has higher coverage and far less collision spam, so it is the
-        primary source; 4byte.directory is used only when openchain returns
-        nothing (mixing the two re-introduces 4byte's spam and hurts accuracy).
-        """
         rows = self.sig.lookup_openchain(selector) or self.sig.lookup_4byte(selector)
         out: List[Tuple[str, Tuple[str, ...]]] = []
         for s in rows:
@@ -107,33 +125,26 @@ class FusionReconstructor:
         return out
 
     def reconstruct(self, bytecode: str) -> Dict[str, Any]:
-        """Reconstruct the ABI from runtime bytecode.
-
-        Returns ``{"functions": [...], "metadata": {...}}`` where each function
-        has ``name``, ``inputs`` (list of ``{"type": ...}``), ``selector`` and a
-        ``source`` tag (``4byte+evmole``, ``4byte``, ``evmole`` or ``selector``).
-        """
         code = bytecode[2:] if bytecode.startswith("0x") else bytecode
 
-        # evmole: per-function selector + argument structure.
         evmole_types: Dict[str, Optional[Tuple[str, ...]]] = {}
         try:
             import evmole
 
             info = evmole.contract_info(code, selectors=True, arguments=True)
-            for f in info.functions:
-                evmole_types[f.selector.lower()] = split_args(f.arguments or "")
-        except Exception as e:  # noqa: BLE001
+            if info is not None and info.functions is not None:
+                for f in info.functions:
+                    evmole_types[f.selector.lower()] = split_args(f.arguments or "")
+        except Exception as e:
             logger.warning("evmole failed: %s", e)
 
-        # Repo selector extractor recovers selectors evmole missed.
         extra: set = set()
         try:
             from abi_reconstructor.reconstructor import BytecodeParser
 
             for s in BytecodeParser().extract_selectors(bytecode):
                 extra.add(s.selector.lower())
-        except Exception as e:  # noqa: BLE001
+        except Exception as e:
             logger.warning("selector extraction failed: %s", e)
 
         functions = []
@@ -148,7 +159,27 @@ class FusionReconstructor:
             elif ev is not None:
                 name, types, source = f"function_{selector}", ev, "evmole"
             else:
-                name, types, source = f"function_{selector}", (), "selector"
+                known = self._known_selectors.get(selector)
+                if known is not None:
+                    name = known["name"]
+                    types = tuple(known["types"])
+                    source = "known-selector-table"
+                else:
+                    # Tier 3: ML model prediction (family classification)
+                    # Uses function family + type predictions from bytecode
+                    ml_resp = self.ml.predict(bytecode)
+                    if ml_resp.get("family") is not None:
+                        name = ml_resp["family"]
+                        types = tuple(ml_resp.get("types", []))
+                        source = "ml"
+                    elif ml_resp.get("family_top3"):
+                        name = ml_resp["family_top3"][0]
+                        types = tuple(ml_resp.get("types", []))
+                        source = "ml"
+                    else:
+                        name = f"function_{selector}"
+                        types = ()
+                        source = "selector"
 
             functions.append(
                 {

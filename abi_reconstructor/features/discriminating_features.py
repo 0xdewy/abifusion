@@ -158,7 +158,9 @@ class DiscriminatingFeatureExtractor:
             from evmole import contract_info
 
             info = contract_info(code, selectors=True)
-            return {f.selector.lower(): f.bytecode_offset for f in info.functions}
+            if info is not None and info.functions is not None:
+                return {f.selector.lower(): f.bytecode_offset for f in info.functions}
+            return {}
         except Exception:
             return {}
 
