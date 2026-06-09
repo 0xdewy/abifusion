@@ -1,0 +1,2676 @@
+{
+  "bc29bafc": [
+    {
+      "ci": 4,
+      "name": "afterAddLiquidity",
+      "types": [
+        "address",
+        "tuple",
+        "tuple",
+        "int256",
+        "int256",
+        "bytes"
+      ],
+      "occurrences": 12
+    },
+    {
+      "ci": 30,
+      "name": "afterAddLiquidity",
+      "types": [
+        "address",
+        "tuple",
+        "tuple",
+        "int256",
+        "int256",
+        "bytes"
+      ],
+      "occurrences": 12
+    },
+    {
+      "ci": 58,
+      "name": "afterAddLiquidity",
+      "types": [
+        "address",
+        "tuple",
+        "tuple",
+        "int256",
+        "int256",
+        "bytes"
+      ],
+      "occurrences": 12
+    },
+    {
+      "ci": 59,
+      "name": "afterAddLiquidity",
+      "types": [
+        "address",
+        "tuple",
+        "tuple",
+        "int256",
+        "int256",
+        "bytes"
+      ],
+      "occurrences": 12
+    },
+    {
+      "ci": 62,
+      "name": "afterAddLiquidity",
+      "types": [
+        "address",
+        "tuple",
+        "tuple",
+        "int256",
+        "int256",
+        "bytes"
+      ],
+      "occurrences": 12
+    },
+    {
+      "ci": 91,
+      "name": "afterAddLiquidity",
+      "types": [
+        "address",
+        "tuple",
+        "tuple",
+        "int256",
+        "int256",
+        "bytes"
+      ],
+      "occurrences": 12
+    },
+    {
+      "ci": 133,
+      "name": "afterAddLiquidity",
+      "types": [
+        "address",
+        "tuple",
+        "tuple",
+        "int256",
+        "int256",
+        "bytes"
+      ],
+      "occurrences": 12
+    },
+    {
+      "ci": 135,
+      "name": "afterAddLiquidity",
+      "types": [
+        "address",
+        "tuple",
+        "tuple",
+        "int256",
+        "int256",
+        "bytes"
+      ],
+      "occurrences": 12
+    },
+    {
+      "ci": 173,
+      "name": "afterAddLiquidity",
+      "types": [
+        "address",
+        "tuple",
+        "tuple",
+        "int256",
+        "int256",
+        "bytes"
+      ],
+      "occurrences": 12
+    },
+    {
+      "ci": 195,
+      "name": "afterAddLiquidity",
+      "types": [
+        "address",
+        "tuple",
+        "tuple",
+        "int256",
+        "int256",
+        "bytes"
+      ],
+      "occurrences": 12
+    },
+    {
+      "ci": 305,
+      "name": "afterAddLiquidity",
+      "types": [
+        "address",
+        "tuple",
+        "tuple",
+        "int256",
+        "int256",
+        "bytes"
+      ],
+      "occurrences": 12
+    },
+    {
+      "ci": 408,
+      "name": "afterAddLiquidity",
+      "types": [
+        "address",
+        "tuple",
+        "tuple",
+        "int256",
+        "int256",
+        "bytes"
+      ],
+      "occurrences": 12
+    }
+  ],
+  "1f29cf9d": [
+    {
+      "ci": 4,
+      "name": "afterDonate",
+      "types": [
+        "address",
+        "tuple",
+        "uint256",
+        "uint256",
+        "bytes"
+      ],
+      "occurrences": 12
+    },
+    {
+      "ci": 30,
+      "name": "afterDonate",
+      "types": [
+        "address",
+        "tuple",
+        "uint256",
+        "uint256",
+        "bytes"
+      ],
+      "occurrences": 12
+    },
+    {
+      "ci": 58,
+      "name": "afterDonate",
+      "types": [
+        "address",
+        "tuple",
+        "uint256",
+        "uint256",
+        "bytes"
+      ],
+      "occurrences": 12
+    },
+    {
+      "ci": 59,
+      "name": "afterDonate",
+      "types": [
+        "address",
+        "tuple",
+        "uint256",
+        "uint256",
+        "bytes"
+      ],
+      "occurrences": 12
+    },
+    {
+      "ci": 62,
+      "name": "afterDonate",
+      "types": [
+        "address",
+        "tuple",
+        "uint256",
+        "uint256",
+        "bytes"
+      ],
+      "occurrences": 12
+    },
+    {
+      "ci": 91,
+      "name": "afterDonate",
+      "types": [
+        "address",
+        "tuple",
+        "uint256",
+        "uint256",
+        "bytes"
+      ],
+      "occurrences": 12
+    },
+    {
+      "ci": 133,
+      "name": "afterDonate",
+      "types": [
+        "address",
+        "tuple",
+        "uint256",
+        "uint256",
+        "bytes"
+      ],
+      "occurrences": 12
+    },
+    {
+      "ci": 135,
+      "name": "afterDonate",
+      "types": [
+        "address",
+        "tuple",
+        "uint256",
+        "uint256",
+        "bytes"
+      ],
+      "occurrences": 12
+    },
+    {
+      "ci": 173,
+      "name": "afterDonate",
+      "types": [
+        "address",
+        "tuple",
+        "uint256",
+        "uint256",
+        "bytes"
+      ],
+      "occurrences": 12
+    },
+    {
+      "ci": 195,
+      "name": "afterDonate",
+      "types": [
+        "address",
+        "tuple",
+        "uint256",
+        "uint256",
+        "bytes"
+      ],
+      "occurrences": 12
+    },
+    {
+      "ci": 305,
+      "name": "afterDonate",
+      "types": [
+        "address",
+        "tuple",
+        "uint256",
+        "uint256",
+        "bytes"
+      ],
+      "occurrences": 12
+    },
+    {
+      "ci": 408,
+      "name": "afterDonate",
+      "types": [
+        "address",
+        "tuple",
+        "uint256",
+        "uint256",
+        "bytes"
+      ],
+      "occurrences": 12
+    }
+  ],
+  "b6d4944a": [
+    {
+      "ci": 4,
+      "name": "afterInitialize",
+      "types": [
+        "address",
+        "tuple",
+        "uint160",
+        "int24"
+      ],
+      "occurrences": 12
+    },
+    {
+      "ci": 30,
+      "name": "afterInitialize",
+      "types": [
+        "address",
+        "tuple",
+        "uint160",
+        "int24"
+      ],
+      "occurrences": 12
+    },
+    {
+      "ci": 58,
+      "name": "afterInitialize",
+      "types": [
+        "address",
+        "tuple",
+        "uint160",
+        "int24"
+      ],
+      "occurrences": 12
+    },
+    {
+      "ci": 59,
+      "name": "afterInitialize",
+      "types": [
+        "address",
+        "tuple",
+        "uint160",
+        "int24"
+      ],
+      "occurrences": 12
+    },
+    {
+      "ci": 62,
+      "name": "afterInitialize",
+      "types": [
+        "address",
+        "tuple",
+        "uint160",
+        "int24"
+      ],
+      "occurrences": 12
+    },
+    {
+      "ci": 91,
+      "name": "afterInitialize",
+      "types": [
+        "address",
+        "tuple",
+        "uint160",
+        "int24"
+      ],
+      "occurrences": 12
+    },
+    {
+      "ci": 133,
+      "name": "afterInitialize",
+      "types": [
+        "address",
+        "tuple",
+        "uint160",
+        "int24"
+      ],
+      "occurrences": 12
+    },
+    {
+      "ci": 135,
+      "name": "afterInitialize",
+      "types": [
+        "address",
+        "tuple",
+        "uint160",
+        "int24"
+      ],
+      "occurrences": 12
+    },
+    {
+      "ci": 173,
+      "name": "afterInitialize",
+      "types": [
+        "address",
+        "tuple",
+        "uint160",
+        "int24"
+      ],
+      "occurrences": 12
+    },
+    {
+      "ci": 195,
+      "name": "afterInitialize",
+      "types": [
+        "address",
+        "tuple",
+        "uint160",
+        "int24"
+      ],
+      "occurrences": 12
+    },
+    {
+      "ci": 305,
+      "name": "afterInitialize",
+      "types": [
+        "address",
+        "tuple",
+        "uint160",
+        "int24"
+      ],
+      "occurrences": 12
+    },
+    {
+      "ci": 408,
+      "name": "afterInitialize",
+      "types": [
+        "address",
+        "tuple",
+        "uint160",
+        "int24"
+      ],
+      "occurrences": 12
+    }
+  ],
+  "606e8192": [
+    {
+      "ci": 4,
+      "name": "afterRemoveLiquidity",
+      "types": [
+        "address",
+        "tuple",
+        "tuple",
+        "int256",
+        "int256",
+        "bytes"
+      ],
+      "occurrences": 12
+    },
+    {
+      "ci": 30,
+      "name": "afterRemoveLiquidity",
+      "types": [
+        "address",
+        "tuple",
+        "tuple",
+        "int256",
+        "int256",
+        "bytes"
+      ],
+      "occurrences": 12
+    },
+    {
+      "ci": 58,
+      "name": "afterRemoveLiquidity",
+      "types": [
+        "address",
+        "tuple",
+        "tuple",
+        "int256",
+        "int256",
+        "bytes"
+      ],
+      "occurrences": 12
+    },
+    {
+      "ci": 59,
+      "name": "afterRemoveLiquidity",
+      "types": [
+        "address",
+        "tuple",
+        "tuple",
+        "int256",
+        "int256",
+        "bytes"
+      ],
+      "occurrences": 12
+    },
+    {
+      "ci": 62,
+      "name": "afterRemoveLiquidity",
+      "types": [
+        "address",
+        "tuple",
+        "tuple",
+        "int256",
+        "int256",
+        "bytes"
+      ],
+      "occurrences": 12
+    },
+    {
+      "ci": 91,
+      "name": "afterRemoveLiquidity",
+      "types": [
+        "address",
+        "tuple",
+        "tuple",
+        "int256",
+        "int256",
+        "bytes"
+      ],
+      "occurrences": 12
+    },
+    {
+      "ci": 133,
+      "name": "afterRemoveLiquidity",
+      "types": [
+        "address",
+        "tuple",
+        "tuple",
+        "int256",
+        "int256",
+        "bytes"
+      ],
+      "occurrences": 12
+    },
+    {
+      "ci": 135,
+      "name": "afterRemoveLiquidity",
+      "types": [
+        "address",
+        "tuple",
+        "tuple",
+        "int256",
+        "int256",
+        "bytes"
+      ],
+      "occurrences": 12
+    },
+    {
+      "ci": 173,
+      "name": "afterRemoveLiquidity",
+      "types": [
+        "address",
+        "tuple",
+        "tuple",
+        "int256",
+        "int256",
+        "bytes"
+      ],
+      "occurrences": 12
+    },
+    {
+      "ci": 195,
+      "name": "afterRemoveLiquidity",
+      "types": [
+        "address",
+        "tuple",
+        "tuple",
+        "int256",
+        "int256",
+        "bytes"
+      ],
+      "occurrences": 12
+    },
+    {
+      "ci": 305,
+      "name": "afterRemoveLiquidity",
+      "types": [
+        "address",
+        "tuple",
+        "tuple",
+        "int256",
+        "int256",
+        "bytes"
+      ],
+      "occurrences": 12
+    },
+    {
+      "ci": 408,
+      "name": "afterRemoveLiquidity",
+      "types": [
+        "address",
+        "tuple",
+        "tuple",
+        "int256",
+        "int256",
+        "bytes"
+      ],
+      "occurrences": 12
+    }
+  ],
+  "c13d1c69": [
+    {
+      "ci": 4,
+      "name": "afterSwap",
+      "types": [
+        "address",
+        "tuple",
+        "tuple",
+        "int256",
+        "bytes"
+      ],
+      "occurrences": 12
+    },
+    {
+      "ci": 30,
+      "name": "afterSwap",
+      "types": [
+        "address",
+        "tuple",
+        "tuple",
+        "int256",
+        "bytes"
+      ],
+      "occurrences": 12
+    },
+    {
+      "ci": 58,
+      "name": "afterSwap",
+      "types": [
+        "address",
+        "tuple",
+        "tuple",
+        "int256",
+        "bytes"
+      ],
+      "occurrences": 12
+    },
+    {
+      "ci": 59,
+      "name": "afterSwap",
+      "types": [
+        "address",
+        "tuple",
+        "tuple",
+        "int256",
+        "bytes"
+      ],
+      "occurrences": 12
+    },
+    {
+      "ci": 62,
+      "name": "afterSwap",
+      "types": [
+        "address",
+        "tuple",
+        "tuple",
+        "int256",
+        "bytes"
+      ],
+      "occurrences": 12
+    },
+    {
+      "ci": 91,
+      "name": "afterSwap",
+      "types": [
+        "address",
+        "tuple",
+        "tuple",
+        "int256",
+        "bytes"
+      ],
+      "occurrences": 12
+    },
+    {
+      "ci": 133,
+      "name": "afterSwap",
+      "types": [
+        "address",
+        "tuple",
+        "tuple",
+        "int256",
+        "bytes"
+      ],
+      "occurrences": 12
+    },
+    {
+      "ci": 135,
+      "name": "afterSwap",
+      "types": [
+        "address",
+        "tuple",
+        "tuple",
+        "int256",
+        "bytes"
+      ],
+      "occurrences": 12
+    },
+    {
+      "ci": 173,
+      "name": "afterSwap",
+      "types": [
+        "address",
+        "tuple",
+        "tuple",
+        "int256",
+        "bytes"
+      ],
+      "occurrences": 12
+    },
+    {
+      "ci": 195,
+      "name": "afterSwap",
+      "types": [
+        "address",
+        "tuple",
+        "tuple",
+        "int256",
+        "bytes"
+      ],
+      "occurrences": 12
+    },
+    {
+      "ci": 305,
+      "name": "afterSwap",
+      "types": [
+        "address",
+        "tuple",
+        "tuple",
+        "int256",
+        "bytes"
+      ],
+      "occurrences": 12
+    },
+    {
+      "ci": 408,
+      "name": "afterSwap",
+      "types": [
+        "address",
+        "tuple",
+        "tuple",
+        "int256",
+        "bytes"
+      ],
+      "occurrences": 12
+    }
+  ],
+  "b772b8cc": [
+    {
+      "ci": 4,
+      "name": "beforeAddLiquidity",
+      "types": [
+        "address",
+        "tuple",
+        "tuple",
+        "bytes"
+      ],
+      "occurrences": 12
+    },
+    {
+      "ci": 30,
+      "name": "beforeAddLiquidity",
+      "types": [
+        "address",
+        "tuple",
+        "tuple",
+        "bytes"
+      ],
+      "occurrences": 12
+    },
+    {
+      "ci": 58,
+      "name": "beforeAddLiquidity",
+      "types": [
+        "address",
+        "tuple",
+        "tuple",
+        "bytes"
+      ],
+      "occurrences": 12
+    },
+    {
+      "ci": 59,
+      "name": "beforeAddLiquidity",
+      "types": [
+        "address",
+        "tuple",
+        "tuple",
+        "bytes"
+      ],
+      "occurrences": 12
+    },
+    {
+      "ci": 62,
+      "name": "beforeAddLiquidity",
+      "types": [
+        "address",
+        "tuple",
+        "tuple",
+        "bytes"
+      ],
+      "occurrences": 12
+    },
+    {
+      "ci": 91,
+      "name": "beforeAddLiquidity",
+      "types": [
+        "address",
+        "tuple",
+        "tuple",
+        "bytes"
+      ],
+      "occurrences": 12
+    },
+    {
+      "ci": 133,
+      "name": "beforeAddLiquidity",
+      "types": [
+        "address",
+        "tuple",
+        "tuple",
+        "bytes"
+      ],
+      "occurrences": 12
+    },
+    {
+      "ci": 135,
+      "name": "beforeAddLiquidity",
+      "types": [
+        "address",
+        "tuple",
+        "tuple",
+        "bytes"
+      ],
+      "occurrences": 12
+    },
+    {
+      "ci": 173,
+      "name": "beforeAddLiquidity",
+      "types": [
+        "address",
+        "tuple",
+        "tuple",
+        "bytes"
+      ],
+      "occurrences": 12
+    },
+    {
+      "ci": 195,
+      "name": "beforeAddLiquidity",
+      "types": [
+        "address",
+        "tuple",
+        "tuple",
+        "bytes"
+      ],
+      "occurrences": 12
+    },
+    {
+      "ci": 305,
+      "name": "beforeAddLiquidity",
+      "types": [
+        "address",
+        "tuple",
+        "tuple",
+        "bytes"
+      ],
+      "occurrences": 12
+    },
+    {
+      "ci": 408,
+      "name": "beforeAddLiquidity",
+      "types": [
+        "address",
+        "tuple",
+        "tuple",
+        "bytes"
+      ],
+      "occurrences": 12
+    }
+  ],
+  "d950bd74": [
+    {
+      "ci": 4,
+      "name": "beforeDonate",
+      "types": [
+        "address",
+        "tuple",
+        "uint256",
+        "uint256",
+        "bytes"
+      ],
+      "occurrences": 12
+    },
+    {
+      "ci": 30,
+      "name": "beforeDonate",
+      "types": [
+        "address",
+        "tuple",
+        "uint256",
+        "uint256",
+        "bytes"
+      ],
+      "occurrences": 12
+    },
+    {
+      "ci": 58,
+      "name": "beforeDonate",
+      "types": [
+        "address",
+        "tuple",
+        "uint256",
+        "uint256",
+        "bytes"
+      ],
+      "occurrences": 12
+    },
+    {
+      "ci": 59,
+      "name": "beforeDonate",
+      "types": [
+        "address",
+        "tuple",
+        "uint256",
+        "uint256",
+        "bytes"
+      ],
+      "occurrences": 12
+    },
+    {
+      "ci": 62,
+      "name": "beforeDonate",
+      "types": [
+        "address",
+        "tuple",
+        "uint256",
+        "uint256",
+        "bytes"
+      ],
+      "occurrences": 12
+    },
+    {
+      "ci": 91,
+      "name": "beforeDonate",
+      "types": [
+        "address",
+        "tuple",
+        "uint256",
+        "uint256",
+        "bytes"
+      ],
+      "occurrences": 12
+    },
+    {
+      "ci": 133,
+      "name": "beforeDonate",
+      "types": [
+        "address",
+        "tuple",
+        "uint256",
+        "uint256",
+        "bytes"
+      ],
+      "occurrences": 12
+    },
+    {
+      "ci": 135,
+      "name": "beforeDonate",
+      "types": [
+        "address",
+        "tuple",
+        "uint256",
+        "uint256",
+        "bytes"
+      ],
+      "occurrences": 12
+    },
+    {
+      "ci": 173,
+      "name": "beforeDonate",
+      "types": [
+        "address",
+        "tuple",
+        "uint256",
+        "uint256",
+        "bytes"
+      ],
+      "occurrences": 12
+    },
+    {
+      "ci": 195,
+      "name": "beforeDonate",
+      "types": [
+        "address",
+        "tuple",
+        "uint256",
+        "uint256",
+        "bytes"
+      ],
+      "occurrences": 12
+    },
+    {
+      "ci": 305,
+      "name": "beforeDonate",
+      "types": [
+        "address",
+        "tuple",
+        "uint256",
+        "uint256",
+        "bytes"
+      ],
+      "occurrences": 12
+    },
+    {
+      "ci": 408,
+      "name": "beforeDonate",
+      "types": [
+        "address",
+        "tuple",
+        "uint256",
+        "uint256",
+        "bytes"
+      ],
+      "occurrences": 12
+    }
+  ],
+  "ebe1cdaf": [
+    {
+      "ci": 4,
+      "name": "beforeInitialize",
+      "types": [
+        "address",
+        "tuple",
+        "uint160"
+      ],
+      "occurrences": 12
+    },
+    {
+      "ci": 30,
+      "name": "beforeInitialize",
+      "types": [
+        "address",
+        "tuple",
+        "uint160"
+      ],
+      "occurrences": 12
+    },
+    {
+      "ci": 58,
+      "name": "beforeInitialize",
+      "types": [
+        "address",
+        "tuple",
+        "uint160"
+      ],
+      "occurrences": 12
+    },
+    {
+      "ci": 59,
+      "name": "beforeInitialize",
+      "types": [
+        "address",
+        "tuple",
+        "uint160"
+      ],
+      "occurrences": 12
+    },
+    {
+      "ci": 62,
+      "name": "beforeInitialize",
+      "types": [
+        "address",
+        "tuple",
+        "uint160"
+      ],
+      "occurrences": 12
+    },
+    {
+      "ci": 91,
+      "name": "beforeInitialize",
+      "types": [
+        "address",
+        "tuple",
+        "uint160"
+      ],
+      "occurrences": 12
+    },
+    {
+      "ci": 133,
+      "name": "beforeInitialize",
+      "types": [
+        "address",
+        "tuple",
+        "uint160"
+      ],
+      "occurrences": 12
+    },
+    {
+      "ci": 135,
+      "name": "beforeInitialize",
+      "types": [
+        "address",
+        "tuple",
+        "uint160"
+      ],
+      "occurrences": 12
+    },
+    {
+      "ci": 173,
+      "name": "beforeInitialize",
+      "types": [
+        "address",
+        "tuple",
+        "uint160"
+      ],
+      "occurrences": 12
+    },
+    {
+      "ci": 195,
+      "name": "beforeInitialize",
+      "types": [
+        "address",
+        "tuple",
+        "uint160"
+      ],
+      "occurrences": 12
+    },
+    {
+      "ci": 305,
+      "name": "beforeInitialize",
+      "types": [
+        "address",
+        "tuple",
+        "uint160"
+      ],
+      "occurrences": 12
+    },
+    {
+      "ci": 408,
+      "name": "beforeInitialize",
+      "types": [
+        "address",
+        "tuple",
+        "uint160"
+      ],
+      "occurrences": 12
+    }
+  ],
+  "5cb32d10": [
+    {
+      "ci": 4,
+      "name": "beforeRemoveLiquidity",
+      "types": [
+        "address",
+        "tuple",
+        "tuple",
+        "bytes"
+      ],
+      "occurrences": 12
+    },
+    {
+      "ci": 30,
+      "name": "beforeRemoveLiquidity",
+      "types": [
+        "address",
+        "tuple",
+        "tuple",
+        "bytes"
+      ],
+      "occurrences": 12
+    },
+    {
+      "ci": 58,
+      "name": "beforeRemoveLiquidity",
+      "types": [
+        "address",
+        "tuple",
+        "tuple",
+        "bytes"
+      ],
+      "occurrences": 12
+    },
+    {
+      "ci": 59,
+      "name": "beforeRemoveLiquidity",
+      "types": [
+        "address",
+        "tuple",
+        "tuple",
+        "bytes"
+      ],
+      "occurrences": 12
+    },
+    {
+      "ci": 62,
+      "name": "beforeRemoveLiquidity",
+      "types": [
+        "address",
+        "tuple",
+        "tuple",
+        "bytes"
+      ],
+      "occurrences": 12
+    },
+    {
+      "ci": 91,
+      "name": "beforeRemoveLiquidity",
+      "types": [
+        "address",
+        "tuple",
+        "tuple",
+        "bytes"
+      ],
+      "occurrences": 12
+    },
+    {
+      "ci": 133,
+      "name": "beforeRemoveLiquidity",
+      "types": [
+        "address",
+        "tuple",
+        "tuple",
+        "bytes"
+      ],
+      "occurrences": 12
+    },
+    {
+      "ci": 135,
+      "name": "beforeRemoveLiquidity",
+      "types": [
+        "address",
+        "tuple",
+        "tuple",
+        "bytes"
+      ],
+      "occurrences": 12
+    },
+    {
+      "ci": 173,
+      "name": "beforeRemoveLiquidity",
+      "types": [
+        "address",
+        "tuple",
+        "tuple",
+        "bytes"
+      ],
+      "occurrences": 12
+    },
+    {
+      "ci": 195,
+      "name": "beforeRemoveLiquidity",
+      "types": [
+        "address",
+        "tuple",
+        "tuple",
+        "bytes"
+      ],
+      "occurrences": 12
+    },
+    {
+      "ci": 305,
+      "name": "beforeRemoveLiquidity",
+      "types": [
+        "address",
+        "tuple",
+        "tuple",
+        "bytes"
+      ],
+      "occurrences": 12
+    },
+    {
+      "ci": 408,
+      "name": "beforeRemoveLiquidity",
+      "types": [
+        "address",
+        "tuple",
+        "tuple",
+        "bytes"
+      ],
+      "occurrences": 12
+    }
+  ],
+  "468ead2c": [
+    {
+      "ci": 4,
+      "name": "beforeSwap",
+      "types": [
+        "address",
+        "tuple",
+        "tuple",
+        "bytes"
+      ],
+      "occurrences": 18
+    },
+    {
+      "ci": 30,
+      "name": "beforeSwap",
+      "types": [
+        "address",
+        "tuple",
+        "tuple",
+        "bytes"
+      ],
+      "occurrences": 18
+    },
+    {
+      "ci": 58,
+      "name": "beforeSwap",
+      "types": [
+        "address",
+        "tuple",
+        "tuple",
+        "bytes"
+      ],
+      "occurrences": 18
+    },
+    {
+      "ci": 59,
+      "name": "beforeSwap",
+      "types": [
+        "address",
+        "tuple",
+        "tuple",
+        "bytes"
+      ],
+      "occurrences": 18
+    },
+    {
+      "ci": 62,
+      "name": "beforeSwap",
+      "types": [
+        "address",
+        "tuple",
+        "tuple",
+        "bytes"
+      ],
+      "occurrences": 18
+    },
+    {
+      "ci": 91,
+      "name": "beforeSwap",
+      "types": [
+        "address",
+        "tuple",
+        "tuple",
+        "bytes"
+      ],
+      "occurrences": 18
+    },
+    {
+      "ci": 133,
+      "name": "beforeSwap",
+      "types": [
+        "address",
+        "tuple",
+        "tuple",
+        "bytes"
+      ],
+      "occurrences": 18
+    },
+    {
+      "ci": 135,
+      "name": "beforeSwap",
+      "types": [
+        "address",
+        "tuple",
+        "tuple",
+        "bytes"
+      ],
+      "occurrences": 18
+    },
+    {
+      "ci": 173,
+      "name": "beforeSwap",
+      "types": [
+        "address",
+        "tuple",
+        "tuple",
+        "bytes"
+      ],
+      "occurrences": 18
+    },
+    {
+      "ci": 195,
+      "name": "beforeSwap",
+      "types": [
+        "address",
+        "tuple",
+        "tuple",
+        "bytes"
+      ],
+      "occurrences": 18
+    },
+    {
+      "ci": 228,
+      "name": "beforeSwap",
+      "types": [
+        "address",
+        "tuple",
+        "tuple",
+        "bytes"
+      ],
+      "occurrences": 18
+    },
+    {
+      "ci": 248,
+      "name": "beforeSwap",
+      "types": [
+        "address",
+        "tuple",
+        "tuple",
+        "bytes"
+      ],
+      "occurrences": 18
+    },
+    {
+      "ci": 257,
+      "name": "beforeSwap",
+      "types": [
+        "address",
+        "tuple",
+        "tuple",
+        "bytes"
+      ],
+      "occurrences": 18
+    },
+    {
+      "ci": 265,
+      "name": "beforeSwap",
+      "types": [
+        "address",
+        "tuple",
+        "tuple",
+        "bytes"
+      ],
+      "occurrences": 18
+    },
+    {
+      "ci": 305,
+      "name": "beforeSwap",
+      "types": [
+        "address",
+        "tuple",
+        "tuple",
+        "bytes"
+      ],
+      "occurrences": 18
+    },
+    {
+      "ci": 395,
+      "name": "beforeSwap",
+      "types": [
+        "address",
+        "tuple",
+        "tuple",
+        "bytes"
+      ],
+      "occurrences": 18
+    },
+    {
+      "ci": 408,
+      "name": "beforeSwap",
+      "types": [
+        "address",
+        "tuple",
+        "tuple",
+        "bytes"
+      ],
+      "occurrences": 18
+    },
+    {
+      "ci": 490,
+      "name": "beforeSwap",
+      "types": [
+        "address",
+        "tuple",
+        "tuple",
+        "bytes"
+      ],
+      "occurrences": 18
+    }
+  ],
+  "ac12fecf": [
+    {
+      "ci": 30,
+      "name": "startRace",
+      "types": [
+        "tuple",
+        "uint256"
+      ],
+      "occurrences": 2
+    },
+    {
+      "ci": 133,
+      "name": "startRace",
+      "types": [
+        "tuple",
+        "uint256"
+      ],
+      "occurrences": 2
+    }
+  ],
+  "17ca339c": [
+    {
+      "ci": 32,
+      "name": "execute",
+      "types": [
+        "tuple[]",
+        "tuple[]",
+        "address",
+        "address"
+      ],
+      "occurrences": 1
+    }
+  ],
+  "c7e2c207": [
+    {
+      "ci": 32,
+      "name": "executeAndSendBalance",
+      "types": [
+        "tuple[]",
+        "tuple",
+        "address"
+      ],
+      "occurrences": 1
+    }
+  ],
+  "d5fffb7f": [
+    {
+      "ci": 32,
+      "name": "executeFinalCall",
+      "types": [
+        "tuple",
+        "tuple",
+        "address"
+      ],
+      "occurrences": 1
+    }
+  ],
+  "262b74c9": [
+    {
+      "ci": 84,
+      "name": "swapExactInputSingle",
+      "types": [
+        "tuple"
+      ],
+      "occurrences": 1
+    }
+  ],
+  "e9e3ea46": [
+    {
+      "ci": 87,
+      "name": "addLiquidity",
+      "types": [
+        "tuple",
+        "int24",
+        "int24",
+        "uint256"
+      ],
+      "occurrences": 1
+    }
+  ],
+  "9128d1b1": [
+    {
+      "ci": 87,
+      "name": "claimFees",
+      "types": [
+        "tuple",
+        "int24",
+        "int24"
+      ],
+      "occurrences": 1
+    }
+  ],
+  "9148af05": [
+    {
+      "ci": 87,
+      "name": "positionLiquidity",
+      "types": [
+        "tuple",
+        "int24",
+        "int24"
+      ],
+      "occurrences": 1
+    }
+  ],
+  "6f5820fa": [
+    {
+      "ci": 87,
+      "name": "removeLiquidity",
+      "types": [
+        "tuple",
+        "int24",
+        "int24",
+        "uint128"
+      ],
+      "occurrences": 1
+    }
+  ],
+  "b503dfa3": [
+    {
+      "ci": 98,
+      "name": "ccipReceive",
+      "types": [
+        "tuple"
+      ],
+      "occurrences": 1
+    }
+  ],
+  "6971af8f": [
+    {
+      "ci": 112,
+      "name": "updateState",
+      "types": [
+        "tuple"
+      ],
+      "occurrences": 1
+    }
+  ],
+  "479476d8": [
+    {
+      "ci": 112,
+      "name": "updateStateAndDeposit",
+      "types": [
+        "address",
+        "address",
+        "tuple"
+      ],
+      "occurrences": 1
+    }
+  ],
+  "8d4c30c0": [
+    {
+      "ci": 112,
+      "name": "updateStateAndDepositAndMintOsToken",
+      "types": [
+        "address",
+        "uint256",
+        "address",
+        "tuple"
+      ],
+      "occurrences": 1
+    }
+  ],
+  "1aff7a92": [
+    {
+      "ci": 147,
+      "name": "batchUpdatePhases",
+      "types": [
+        "uint256[]",
+        "tuple[]"
+      ],
+      "occurrences": 1
+    }
+  ],
+  "f63c8122": [
+    {
+      "ci": 147,
+      "name": "deployPhases",
+      "types": [
+        "tuple[]"
+      ],
+      "occurrences": 1
+    }
+  ],
+  "95498386": [
+    {
+      "ci": 147,
+      "name": "updatePhase",
+      "types": [
+        "uint256",
+        "tuple"
+      ],
+      "occurrences": 1
+    }
+  ],
+  "a5b143bd": [
+    {
+      "ci": 152,
+      "name": "buyIndexWithEth",
+      "types": [
+        "tuple",
+        "uint256"
+      ],
+      "occurrences": 1
+    }
+  ],
+  "c2b384ee": [
+    {
+      "ci": 152,
+      "name": "buyIndexWithUsdc",
+      "types": [
+        "tuple",
+        "uint256",
+        "uint256"
+      ],
+      "occurrences": 1
+    }
+  ],
+  "a0d1fa96": [
+    {
+      "ci": 152,
+      "name": "sellIndexForEth",
+      "types": [
+        "tuple",
+        "uint256",
+        "uint256"
+      ],
+      "occurrences": 1
+    }
+  ],
+  "64d9cded": [
+    {
+      "ci": 152,
+      "name": "sellIndexForUsdc",
+      "types": [
+        "tuple",
+        "uint256",
+        "uint256"
+      ],
+      "occurrences": 1
+    }
+  ],
+  "0b3893fb": [
+    {
+      "ci": 152,
+      "name": "swapExactIn",
+      "types": [
+        "tuple",
+        "bool",
+        "uint256",
+        "uint256"
+      ],
+      "occurrences": 1
+    }
+  ],
+  "a660668a": [
+    {
+      "ci": 160,
+      "name": "generateSvg",
+      "types": [
+        "tuple"
+      ],
+      "occurrences": 4
+    },
+    {
+      "ci": 161,
+      "name": "generateSvg",
+      "types": [
+        "tuple"
+      ],
+      "occurrences": 4
+    },
+    {
+      "ci": 162,
+      "name": "generateSvg",
+      "types": [
+        "tuple"
+      ],
+      "occurrences": 4
+    },
+    {
+      "ci": 164,
+      "name": "generateSvg",
+      "types": [
+        "tuple"
+      ],
+      "occurrences": 4
+    }
+  ],
+  "71edd89d": [
+    {
+      "ci": 160,
+      "name": "setAccessories",
+      "types": [
+        "tuple[]"
+      ],
+      "occurrences": 4
+    },
+    {
+      "ci": 161,
+      "name": "setAccessories",
+      "types": [
+        "tuple[]"
+      ],
+      "occurrences": 4
+    },
+    {
+      "ci": 162,
+      "name": "setAccessories",
+      "types": [
+        "tuple[]"
+      ],
+      "occurrences": 4
+    },
+    {
+      "ci": 164,
+      "name": "setAccessories",
+      "types": [
+        "tuple[]"
+      ],
+      "occurrences": 4
+    }
+  ],
+  "d8234121": [
+    {
+      "ci": 160,
+      "name": "setBody",
+      "types": [
+        "tuple[]"
+      ],
+      "occurrences": 4
+    },
+    {
+      "ci": 161,
+      "name": "setBody",
+      "types": [
+        "tuple[]"
+      ],
+      "occurrences": 4
+    },
+    {
+      "ci": 162,
+      "name": "setBody",
+      "types": [
+        "tuple[]"
+      ],
+      "occurrences": 4
+    },
+    {
+      "ci": 164,
+      "name": "setBody",
+      "types": [
+        "tuple[]"
+      ],
+      "occurrences": 4
+    }
+  ],
+  "d33aed88": [
+    {
+      "ci": 160,
+      "name": "setEyes",
+      "types": [
+        "tuple[]"
+      ],
+      "occurrences": 4
+    },
+    {
+      "ci": 161,
+      "name": "setEyes",
+      "types": [
+        "tuple[]"
+      ],
+      "occurrences": 4
+    },
+    {
+      "ci": 162,
+      "name": "setEyes",
+      "types": [
+        "tuple[]"
+      ],
+      "occurrences": 4
+    },
+    {
+      "ci": 164,
+      "name": "setEyes",
+      "types": [
+        "tuple[]"
+      ],
+      "occurrences": 4
+    }
+  ],
+  "2201fddb": [
+    {
+      "ci": 160,
+      "name": "setGround",
+      "types": [
+        "tuple[]"
+      ],
+      "occurrences": 4
+    },
+    {
+      "ci": 161,
+      "name": "setGround",
+      "types": [
+        "tuple[]"
+      ],
+      "occurrences": 4
+    },
+    {
+      "ci": 162,
+      "name": "setGround",
+      "types": [
+        "tuple[]"
+      ],
+      "occurrences": 4
+    },
+    {
+      "ci": 164,
+      "name": "setGround",
+      "types": [
+        "tuple[]"
+      ],
+      "occurrences": 4
+    }
+  ],
+  "49b69b3f": [
+    {
+      "ci": 160,
+      "name": "setHair",
+      "types": [
+        "tuple[]"
+      ],
+      "occurrences": 4
+    },
+    {
+      "ci": 161,
+      "name": "setHair",
+      "types": [
+        "tuple[]"
+      ],
+      "occurrences": 4
+    },
+    {
+      "ci": 162,
+      "name": "setHair",
+      "types": [
+        "tuple[]"
+      ],
+      "occurrences": 4
+    },
+    {
+      "ci": 164,
+      "name": "setHair",
+      "types": [
+        "tuple[]"
+      ],
+      "occurrences": 4
+    }
+  ],
+  "5d5ce9c9": [
+    {
+      "ci": 160,
+      "name": "setHorn",
+      "types": [
+        "tuple[]"
+      ],
+      "occurrences": 4
+    },
+    {
+      "ci": 161,
+      "name": "setHorn",
+      "types": [
+        "tuple[]"
+      ],
+      "occurrences": 4
+    },
+    {
+      "ci": 162,
+      "name": "setHorn",
+      "types": [
+        "tuple[]"
+      ],
+      "occurrences": 4
+    },
+    {
+      "ci": 164,
+      "name": "setHorn",
+      "types": [
+        "tuple[]"
+      ],
+      "occurrences": 4
+    }
+  ],
+  "0bf1d8f2": [
+    {
+      "ci": 160,
+      "name": "setLegsBack",
+      "types": [
+        "tuple[]"
+      ],
+      "occurrences": 4
+    },
+    {
+      "ci": 161,
+      "name": "setLegsBack",
+      "types": [
+        "tuple[]"
+      ],
+      "occurrences": 4
+    },
+    {
+      "ci": 162,
+      "name": "setLegsBack",
+      "types": [
+        "tuple[]"
+      ],
+      "occurrences": 4
+    },
+    {
+      "ci": 164,
+      "name": "setLegsBack",
+      "types": [
+        "tuple[]"
+      ],
+      "occurrences": 4
+    }
+  ],
+  "fed15348": [
+    {
+      "ci": 160,
+      "name": "setLegsFront",
+      "types": [
+        "tuple[]"
+      ],
+      "occurrences": 4
+    },
+    {
+      "ci": 161,
+      "name": "setLegsFront",
+      "types": [
+        "tuple[]"
+      ],
+      "occurrences": 4
+    },
+    {
+      "ci": 162,
+      "name": "setLegsFront",
+      "types": [
+        "tuple[]"
+      ],
+      "occurrences": 4
+    },
+    {
+      "ci": 164,
+      "name": "setLegsFront",
+      "types": [
+        "tuple[]"
+      ],
+      "occurrences": 4
+    }
+  ],
+  "8728fc6e": [
+    {
+      "ci": 160,
+      "name": "setTail",
+      "types": [
+        "tuple[]"
+      ],
+      "occurrences": 4
+    },
+    {
+      "ci": 161,
+      "name": "setTail",
+      "types": [
+        "tuple[]"
+      ],
+      "occurrences": 4
+    },
+    {
+      "ci": 162,
+      "name": "setTail",
+      "types": [
+        "tuple[]"
+      ],
+      "occurrences": 4
+    },
+    {
+      "ci": 164,
+      "name": "setTail",
+      "types": [
+        "tuple[]"
+      ],
+      "occurrences": 4
+    }
+  ],
+  "5189bbab": [
+    {
+      "ci": 160,
+      "name": "setWings",
+      "types": [
+        "tuple[]"
+      ],
+      "occurrences": 4
+    },
+    {
+      "ci": 161,
+      "name": "setWings",
+      "types": [
+        "tuple[]"
+      ],
+      "occurrences": 4
+    },
+    {
+      "ci": 162,
+      "name": "setWings",
+      "types": [
+        "tuple[]"
+      ],
+      "occurrences": 4
+    },
+    {
+      "ci": 164,
+      "name": "setWings",
+      "types": [
+        "tuple[]"
+      ],
+      "occurrences": 4
+    }
+  ],
+  "dce2f6dd": [
+    {
+      "ci": 177,
+      "name": "verify",
+      "types": [
+        "address",
+        "address",
+        "bytes32",
+        "bytes32",
+        "bytes32",
+        "bytes",
+        "bytes",
+        "tuple"
+      ],
+      "occurrences": 1
+    }
+  ],
+  "517b24ce": [
+    {
+      "ci": 225,
+      "name": "seedPurchases",
+      "types": [
+        "tuple[]"
+      ],
+      "occurrences": 1
+    }
+  ],
+  "b3e6947a": [
+    {
+      "ci": 260,
+      "name": "initialize",
+      "types": [
+        "tuple",
+        "tuple"
+      ],
+      "occurrences": 1
+    }
+  ],
+  "588570a5": [
+    {
+      "ci": 260,
+      "name": "initialize",
+      "types": [
+        "tuple"
+      ],
+      "occurrences": 3
+    },
+    {
+      "ci": 264,
+      "name": "initialize",
+      "types": [
+        "tuple"
+      ],
+      "occurrences": 3
+    },
+    {
+      "ci": 441,
+      "name": "initialize",
+      "types": [
+        "tuple"
+      ],
+      "occurrences": 3
+    }
+  ],
+  "7740b120": [
+    {
+      "ci": 260,
+      "name": "registerFees",
+      "types": [
+        "tuple[]"
+      ],
+      "occurrences": 1
+    }
+  ],
+  "fb4baf17": [
+    {
+      "ci": 264,
+      "name": "changeFeeParams",
+      "types": [
+        "uint256",
+        "tuple"
+      ],
+      "occurrences": 2
+    },
+    {
+      "ci": 441,
+      "name": "changeFeeParams",
+      "types": [
+        "uint256",
+        "tuple"
+      ],
+      "occurrences": 2
+    }
+  ],
+  "af6ed122": [
+    {
+      "ci": 264,
+      "name": "executeUpgrade",
+      "types": [
+        "uint256",
+        "tuple"
+      ],
+      "occurrences": 2
+    },
+    {
+      "ci": 441,
+      "name": "executeUpgrade",
+      "types": [
+        "uint256",
+        "tuple"
+      ],
+      "occurrences": 2
+    }
+  ],
+  "e543e5bf": [
+    {
+      "ci": 264,
+      "name": "setChainCreationParams",
+      "types": [
+        "tuple"
+      ],
+      "occurrences": 2
+    },
+    {
+      "ci": 441,
+      "name": "setChainCreationParams",
+      "types": [
+        "tuple"
+      ],
+      "occurrences": 2
+    }
+  ],
+  "2b805192": [
+    {
+      "ci": 264,
+      "name": "setNewVersionUpgrade",
+      "types": [
+        "tuple",
+        "uint256",
+        "uint256",
+        "uint256"
+      ],
+      "occurrences": 2
+    },
+    {
+      "ci": 441,
+      "name": "setNewVersionUpgrade",
+      "types": [
+        "tuple",
+        "uint256",
+        "uint256",
+        "uint256"
+      ],
+      "occurrences": 2
+    }
+  ],
+  "501e60d5": [
+    {
+      "ci": 264,
+      "name": "setUpgradeDiamondCut",
+      "types": [
+        "tuple",
+        "uint256"
+      ],
+      "occurrences": 2
+    },
+    {
+      "ci": 441,
+      "name": "setUpgradeDiamondCut",
+      "types": [
+        "tuple",
+        "uint256"
+      ],
+      "occurrences": 2
+    }
+  ],
+  "7b315630": [
+    {
+      "ci": 264,
+      "name": "upgradeChainFromVersion",
+      "types": [
+        "uint256",
+        "uint256",
+        "tuple"
+      ],
+      "occurrences": 2
+    },
+    {
+      "ci": 441,
+      "name": "upgradeChainFromVersion",
+      "types": [
+        "uint256",
+        "uint256",
+        "tuple"
+      ],
+      "occurrences": 2
+    }
+  ],
+  "dc34dc26": [
+    {
+      "ci": 280,
+      "name": "addSourceCollections",
+      "types": [
+        "tuple[]"
+      ],
+      "occurrences": 1
+    }
+  ],
+  "52f9a0fe": [
+    {
+      "ci": 280,
+      "name": "adminBatchGrade",
+      "types": [
+        "tuple[]"
+      ],
+      "occurrences": 1
+    }
+  ],
+  "daf04c3c": [
+    {
+      "ci": 280,
+      "name": "adminImportBatch",
+      "types": [
+        "tuple[]"
+      ],
+      "occurrences": 1
+    }
+  ],
+  "bb22da8b": [
+    {
+      "ci": 280,
+      "name": "batchGrade",
+      "types": [
+        "tuple[]"
+      ],
+      "occurrences": 1
+    }
+  ],
+  "905420b1": [
+    {
+      "ci": 280,
+      "name": "reservedBatchGrade",
+      "types": [
+        "tuple[]"
+      ],
+      "occurrences": 1
+    }
+  ],
+  "67f77dc1": [
+    {
+      "ci": 280,
+      "name": "reservedBatchGradeFor",
+      "types": [
+        "address",
+        "tuple[]"
+      ],
+      "occurrences": 1
+    }
+  ],
+  "ec97ceb2": [
+    {
+      "ci": 280,
+      "name": "reservedBatchGradeWithProof",
+      "types": [
+        "tuple[]",
+        "uint256",
+        "bytes32[]"
+      ],
+      "occurrences": 1
+    }
+  ],
+  "83a3f41f": [
+    {
+      "ci": 280,
+      "name": "reservedBatchGradeWithProofFor",
+      "types": [
+        "address",
+        "tuple[]",
+        "uint256",
+        "bytes32[]"
+      ],
+      "occurrences": 1
+    }
+  ],
+  "bfe94e81": [
+    {
+      "ci": 284,
+      "name": "allowInitializePath",
+      "types": [
+        "tuple"
+      ],
+      "occurrences": 1
+    }
+  ],
+  "bf282d99": [
+    {
+      "ci": 284,
+      "name": "lzReceive",
+      "types": [
+        "tuple",
+        "bytes32",
+        "bytes",
+        "address",
+        "bytes"
+      ],
+      "occurrences": 1
+    }
+  ],
+  "3089bf2a": [
+    {
+      "ci": 285,
+      "name": "cancelOnChainWithdraw",
+      "types": [
+        "tuple"
+      ],
+      "occurrences": 1
+    }
+  ],
+  "495a61e7": [
+    {
+      "ci": 285,
+      "name": "cancelUserWithdraws",
+      "types": [
+        "tuple[]"
+      ],
+      "occurrences": 1
+    }
+  ],
+  "81c46732": [
+    {
+      "ci": 285,
+      "name": "getRequestId",
+      "types": [
+        "tuple"
+      ],
+      "occurrences": 1
+    }
+  ],
+  "697521d1": [
+    {
+      "ci": 285,
+      "name": "replaceOnChainWithdraw",
+      "types": [
+        "tuple",
+        "uint16",
+        "uint24"
+      ],
+      "occurrences": 1
+    }
+  ],
+  "591f85aa": [
+    {
+      "ci": 285,
+      "name": "rescueTokens",
+      "types": [
+        "address",
+        "uint256",
+        "address",
+        "tuple[]"
+      ],
+      "occurrences": 1
+    }
+  ],
+  "6682c837": [
+    {
+      "ci": 285,
+      "name": "solveOnChainWithdraws",
+      "types": [
+        "tuple[]",
+        "bytes",
+        "address"
+      ],
+      "occurrences": 1
+    }
+  ],
+  "7818aec0": [
+    {
+      "ci": 291,
+      "name": "boringRedeemMintSelfSolve",
+      "types": [
+        "tuple",
+        "address",
+        "address",
+        "address"
+      ],
+      "occurrences": 1
+    }
+  ],
+  "9f8487e3": [
+    {
+      "ci": 291,
+      "name": "boringRedeemMintSolve",
+      "types": [
+        "tuple[]",
+        "address",
+        "address",
+        "address"
+      ],
+      "occurrences": 1
+    }
+  ],
+  "ee28e5e9": [
+    {
+      "ci": 291,
+      "name": "boringRedeemSelfSolve",
+      "types": [
+        "tuple",
+        "address"
+      ],
+      "occurrences": 1
+    }
+  ],
+  "b6b580c0": [
+    {
+      "ci": 291,
+      "name": "boringRedeemSolve",
+      "types": [
+        "tuple[]",
+        "address"
+      ],
+      "occurrences": 1
+    }
+  ],
+  "2b6e1cb6": [
+    {
+      "ci": 305,
+      "name": "launch",
+      "types": [
+        "tuple",
+        "uint256"
+      ],
+      "occurrences": 1
+    }
+  ],
+  "43d37a14": [
+    {
+      "ci": 313,
+      "name": "bundleTxs",
+      "types": [
+        "tuple[]"
+      ],
+      "occurrences": 1
+    }
+  ],
+  "c931dfdc": [
+    {
+      "ci": 437,
+      "name": "addValidatorRoles",
+      "types": [
+        "address",
+        "address",
+        "tuple"
+      ],
+      "occurrences": 1
+    }
+  ],
+  "9c604fe1": [
+    {
+      "ci": 437,
+      "name": "removeValidatorRoles",
+      "types": [
+        "address",
+        "address",
+        "tuple"
+      ],
+      "occurrences": 1
+    }
+  ],
+  "66869d49": [
+    {
+      "ci": 438,
+      "name": "changeFeeParams",
+      "types": [
+        "tuple"
+      ],
+      "occurrences": 1
+    }
+  ],
+  "7da01cd6": [
+    {
+      "ci": 438,
+      "name": "executeUpgrade",
+      "types": [
+        "tuple"
+      ],
+      "occurrences": 1
+    }
+  ],
+  "f8c1f0d2": [
+    {
+      "ci": 438,
+      "name": "upgradeChainFromVersion",
+      "types": [
+        "uint256",
+        "tuple"
+      ],
+      "occurrences": 1
+    }
+  ],
+  "41033965": [
+    {
+      "ci": 461,
+      "name": "makeFlashLoan",
+      "types": [
+        "uint256",
+        "tuple"
+      ],
+      "occurrences": 1
+    }
+  ],
+  "f042fb14": [
+    {
+      "ci": 471,
+      "name": "finalizeDeposit",
+      "types": [
+        "tuple"
+      ],
+      "occurrences": 1
+    }
+  ],
+  "7a28adb2": [
+    {
+      "ci": 477,
+      "name": "proveL2LogInclusion",
+      "types": [
+        "uint256",
+        "uint256",
+        "uint256",
+        "tuple",
+        "bytes32[]"
+      ],
+      "occurrences": 1
+    }
+  ],
+  "f26f3c8f": [
+    {
+      "ci": 477,
+      "name": "proveL2MessageInclusion",
+      "types": [
+        "uint256",
+        "uint256",
+        "uint256",
+        "tuple",
+        "bytes32[]"
+      ],
+      "occurrences": 1
+    }
+  ],
+  "9a188371": [
+    {
+      "ci": 477,
+      "name": "requestL2TransactionDirect",
+      "types": [
+        "tuple"
+      ],
+      "occurrences": 1
+    }
+  ],
+  "c9f5c932": [
+    {
+      "ci": 477,
+      "name": "requestL2TransactionTwoBridges",
+      "types": [
+        "tuple"
+      ],
+      "occurrences": 1
+    }
+  ]
+}
