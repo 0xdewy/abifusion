@@ -21,15 +21,15 @@ import torch
 import torch.nn.functional as F
 from torch.utils.data import DataLoader
 
-from abi_reconstructor.ml.dataset import (
+from abifusion.ml.dataset import (
     ContractDataset,
     compute_selector,
     load_contracts,
     prepare_test_set,
     sig_from_abi_func,
 )
-from abi_reconstructor.ml.families import FAMILY_NAMES, get_family
-from abi_reconstructor.ml.model import MLAbiModel
+from abifusion.ml.families import FAMILY_NAMES, get_family
+from abifusion.ml.model import MLAbiModel
 
 
 def get_all_selectors(contracts_df):

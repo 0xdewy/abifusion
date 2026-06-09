@@ -35,7 +35,7 @@ from typing import Any, Dict, List, Optional, Tuple
 PROJECT_ROOT = Path(__file__).parent.parent.parent
 sys.path.insert(0, str(PROJECT_ROOT))
 
-from abi_reconstructor import ABIReconstructor
+from abifusion import OfflineABI
 
 
 # ── Data types ────────────────────────────────────────────────────────────
@@ -518,7 +518,7 @@ def main():
             sys.exit(1)
         contracts = load_contracts_from_json(args.input)
     elif args.source == "etherscan":
-        from abi_reconstructor.data.etherscan_fetcher import EtherscanClient
+        from abifusion.data.etherscan_fetcher import EtherscanClient
         client = EtherscanClient()
         contracts = sample_etherscan_contracts(client, count=args.sample, seed=args.seed)
     else:
@@ -533,7 +533,7 @@ def main():
     print(f"Evaluating {len(contracts)} contracts...")
 
     # ── Run reconstruction ──
-    reconstructor = ABIReconstructor(db_path=args.db)
+    reconstructor = OfflineABI(db_path=args.db)
     per_contract_metrics: List[PerContractMetrics] = []
 
     for i, c in enumerate(contracts):

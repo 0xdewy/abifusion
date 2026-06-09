@@ -27,7 +27,7 @@ from eth_utils import keccak
 REPO_ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(REPO_ROOT))
 
-from abi_reconstructor.fusion import FusionReconstructor, split_args  # noqa: E402
+from abifusion.fusion import ABIFusion, split_args  # noqa: E402
 
 logger = logging.getLogger("run_evaluation")
 
@@ -45,7 +45,7 @@ def evaluate_evmole_baseline(df: pd.DataFrame) -> Tuple[int, int]:
         logger.warning("evmole not available, skipping baseline")
         return 0, 0
 
-    from abi_reconstructor.reconstructor import BytecodeParser
+    from abifusion.reconstructor import BytecodeParser
 
     parser = BytecodeParser()
     correct = 0
@@ -163,7 +163,7 @@ def build_known_selector_table(train_df: pd.DataFrame) -> KnownSelectorTable:
 def evaluate_contracts(
     df: pd.DataFrame, known_table: KnownSelectorTable | None = None
 ) -> Tuple[CategoryResults, int, int]:
-    fusion = FusionReconstructor()
+    fusion = ABIFusion()
     if known_table is not None:
         fusion._known_selectors = known_table
 
@@ -352,8 +352,8 @@ def main() -> int:
         # External mode: no split, use shipped runtime tables only
         if not args.out or args.out == "eval_output/canonical_evaluation.md":
             out_path = REPO_ROOT / "eval_output" / "external_evaluation.md"
-        FusionReconstructor._known_selectors = None
-        FusionReconstructor._known_interfaces = None
+        ABIFusion._known_selectors = None
+        ABIFusion._known_interfaces = None
         eval_df = df
         logger.info("external eval contracts: %d", len(eval_df))
         eval_by_category, eval_correct, eval_total = evaluate_contracts(eval_df, known_table=None)

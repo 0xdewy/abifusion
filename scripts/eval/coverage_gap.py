@@ -32,12 +32,12 @@ sys.path.insert(0, str(REPO_ROOT))
 
 import evmole  # noqa: E402
 
-from abi_reconstructor.fusion import (  # noqa: E402
+from abifusion.fusion import (  # noqa: E402
     choose_candidate,
     parse_signature,
     split_args,
 )
-from abi_reconstructor.utils.signature_lookup import SignatureLookup  # noqa: E402
+from abifusion.utils.signature_lookup import SignatureLookup  # noqa: E402
 
 logger = logging.getLogger("coverage_gap")
 

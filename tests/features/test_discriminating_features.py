@@ -1,7 +1,7 @@
 """Tests for discriminating-instruction feature extraction."""
 
 import pytest
-from abi_reconstructor.features.discriminating_features import (
+from abifusion.features.discriminating_features import (
     DiscriminatingFeatures,
     DiscriminatingFeatureExtractor,
 )
@@ -168,7 +168,7 @@ class TestParameterReconstructorWithDiscriminatingFeatures:
 
     def test_unknown_function_uses_features(self):
         """Unknown function names use discriminating instruction analysis."""
-        from abi_reconstructor.reconstructor import ParameterReconstructor
+        from abifusion.reconstructor import ParameterReconstructor
 
         pr = ParameterReconstructor()
 
@@ -183,7 +183,7 @@ class TestParameterReconstructorWithDiscriminatingFeatures:
 
     def test_unknown_function_default_uint256(self):
         """Unknown function with no type signal defaults to uint256."""
-        from abi_reconstructor.reconstructor import ParameterReconstructor
+        from abifusion.reconstructor import ParameterReconstructor
 
         pr = ParameterReconstructor()
 

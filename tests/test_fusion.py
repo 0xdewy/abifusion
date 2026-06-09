@@ -9,13 +9,13 @@ from unittest.mock import PropertyMock, patch
 
 import pytest
 
-from abi_reconstructor.fusion import (
-    FusionReconstructor,
+from abifusion.fusion import (
+    ABIFusion,
     choose_candidate,
     parse_signature,
     split_args,
 )
-from abi_reconstructor.utils.signature_lookup import SignatureLookup
+from abifusion.utils.signature_lookup import SignatureLookup
 
 
 def _push4_eq_bytecode(selector: str) -> str:
@@ -110,7 +110,7 @@ class TestCandidateSource:
         sl = SignatureLookup.__new__(SignatureLookup)  # no network/init
         with patch.object(sl, "lookup_openchain", return_value=[{"text_signature": "transfer(address,uint256)"}]) as oc, \
              patch.object(sl, "lookup_4byte", return_value=[{"text_signature": "spam(uint256,uint256)"}]) as fb:
-            cands = FusionReconstructor(sl)._candidates("a9059cbb")
+            cands = ABIFusion(sl)._candidates("a9059cbb")
         assert cands == [("transfer", ("address", "uint256"))]
         oc.assert_called_once()
         fb.assert_not_called()  # openchain hit → 4byte never queried
@@ -119,28 +119,28 @@ class TestCandidateSource:
         sl = SignatureLookup.__new__(SignatureLookup)
         with patch.object(sl, "lookup_openchain", return_value=[]), \
              patch.object(sl, "lookup_4byte", return_value=[{"text_signature": "foo(bytes32)"}]):
-            cands = FusionReconstructor(sl)._candidates("deadbeef")
+            cands = ABIFusion(sl)._candidates("deadbeef")
         assert cands == [("foo", ("bytes32",))]
 
 
 class TestReconstruct:
     def test_init_does_not_import_ml_dependencies(self):
-        """FusionReconstructor.__init__ must not eagerly import abi_reconstructor.ml_reconstructor.
+        """ABIFusion.__init__ must not eagerly import abifusion.ml_reconstructor.
 
-        This invariant ensures that importing/constructing FusionReconstructor does not
+        This invariant ensures that importing/constructing ABIFusion does not
         require torch or the ML model file to be present. The ML tier is a lazy fallback
         that is only reached when Tiers 1+2 fail for a given selector.
         """
-        sys.modules.pop("abi_reconstructor.ml_reconstructor", None)
-        FusionReconstructor()
-        assert "abi_reconstructor.ml_reconstructor" not in sys.modules
+        sys.modules.pop("abifusion.ml_reconstructor", None)
+        ABIFusion()
+        assert "abifusion.ml_reconstructor" not in sys.modules
 
     def test_missing_ml_falls_back_to_selector(self):
         bytecode = "63deadbeef1457"
-        with patch.object(FusionReconstructor, "_candidates", return_value=[]), \
-             patch.object(FusionReconstructor, "ml", new_callable=PropertyMock) as mock_ml:
+        with patch.object(ABIFusion, "_candidates", return_value=[]), \
+             patch.object(ABIFusion, "ml", new_callable=PropertyMock) as mock_ml:
             mock_ml.return_value = None
-            result = FusionReconstructor().reconstruct(bytecode)
+            result = ABIFusion().reconstruct(bytecode)
 
         by_sel = {f["selector"]: f for f in result["functions"]}
         assert by_sel["deadbeef"]["name"] == "function_deadbeef"
@@ -153,16 +153,16 @@ class TestReconstruct:
             "70a08231": [{"text_signature": "balanceOf(address)"}],
         }
         with patch.object(
-            FusionReconstructor, "_candidates", autospec=True
+            ABIFusion, "_candidates", autospec=True
         ) as mock_c:
             def _c(self, selector):
-                from abi_reconstructor.fusion import parse_signature
+                from abifusion.fusion import parse_signature
                 return [
                     parse_signature(s["text_signature"])
                     for s in fake.get(selector, [])
                 ]
             mock_c.side_effect = _c
-            result = FusionReconstructor().reconstruct(sample_bytecode)
+            result = ABIFusion().reconstruct(sample_bytecode)
 
         assert "functions" in result and "metadata" in result
         for fn in result["functions"]:
@@ -183,7 +183,7 @@ class TestReconstruct:
 
 
 class TestInterfaceCompletion:
-    """Tests for known-interface completion in FusionReconstructor.
+    """Tests for known-interface completion in ABIFusion.
 
     The interface completion mechanism emits known interface functions (e.g., Uniswap V4
     hook callbacks) when trigger selectors are found in bytecode, even though those
@@ -193,7 +193,7 @@ class TestInterfaceCompletion:
     def test_both_triggers_emits_all_10_callbacks(self):
         """When both trigger selectors are in bytecode, all 10 hook callbacks are emitted."""
         bc = _trigger_only_bytecode(TRIGGER_A, TRIGGER_B)
-        result = FusionReconstructor().reconstruct(bc)
+        result = ABIFusion().reconstruct(bc)
 
         completed = {
             f["selector"]: f
@@ -209,7 +209,7 @@ class TestInterfaceCompletion:
     def test_single_trigger_no_completion(self):
         """With only one trigger, no interface completion happens (both required)."""
         bc = _trigger_only_bytecode(TRIGGER_A, TRIGGER_A)  # duplicate A, no B
-        result = FusionReconstructor().reconstruct(bc)
+        result = ABIFusion().reconstruct(bc)
 
         completed = {
             f["selector"]: f
@@ -222,7 +222,7 @@ class TestInterfaceCompletion:
         """Each trigger individually is insufficient to trigger interface completion."""
         for trigger in [TRIGGER_A, TRIGGER_B]:
             bc = _trigger_only_bytecode(trigger, trigger)
-            result = FusionReconstructor().reconstruct(bc)
+            result = ABIFusion().reconstruct(bc)
             completed = {
                 f["selector"]: f
                 for f in result["functions"]
@@ -233,7 +233,7 @@ class TestInterfaceCompletion:
     def test_completed_functions_have_correct_source_and_confidence(self):
         """All interface-completed functions have source=known-interface-completion and confidence=medium."""
         bc = _trigger_only_bytecode(TRIGGER_A, TRIGGER_B)
-        result = FusionReconstructor().reconstruct(bc)
+        result = ABIFusion().reconstruct(bc)
 
         completed = [
             f for f in result["functions"]
@@ -249,7 +249,7 @@ class TestInterfaceCompletion:
         """If a function is already found via bytecode extraction, interface completion skips it."""
         bc = _trigger_only_bytecode(TRIGGER_A, TRIGGER_B)
         bc += _push4_eq_bytecode("a9059cbb")  # add transfer selector via bytecode
-        result = FusionReconstructor().reconstruct(bc)
+        result = ABIFusion().reconstruct(bc)
 
         completed = {
             f["selector"]: f

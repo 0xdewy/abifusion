@@ -6,7 +6,7 @@
 2. **Deprecate external_validation_report.md** — retire it; canonical_evaluation.md is the single source of truth
 3. **Rename the lazy ML test** — sharpen intent without deleting the invariant it protects
 4. **Step 3: Candidate provenance** — expose alternatives and confidence in reconstruct() output
-5. **Step 4: Address-based CLI** — `abi-reconstruct fusion --address 0x... --chain-id 1`
+5. **Step 4: Address-based CLI** — `abifusion fusion --address 0x... --chain-id 1`
 
 ---
 
@@ -20,7 +20,7 @@ Changes to `scripts/eval/run_evaluation.py`:
 
 ```python
 # Add new import
-from abi_reconstructor.reconstructor import ABIReconstructor  # evmole-based offline fallback
+from abifusion.reconstructor import ABIReconstructor  # evmole-based offline fallback
 
 # In main(), after computing fusion heldout accuracy:
 evmole_fusion = ABIReconstructor()
@@ -76,7 +76,7 @@ Or delete it entirely. Overwriting with a deprecation note is safer for git hist
 
 **Problem:** `test_init_does_not_load_ml_model` only checks `sys.modules`. The name doesn't convey *why* this matters — i.e., that importing FusionReconstructor should not pull in optional torch dependency.
 
-**Fix:** Rename to `test_init_does_not_import_ml_dependencies`. The invariant being tested is: constructing FusionReconstructor must not eagerly import abi_reconstructor.ml_reconstructor (which would require torch).
+**Fix:** Rename to `test_init_does_not_import_ml_dependencies`. The invariant being tested is: constructing FusionReconstructor must not eagerly import abifusion.ml_reconstructor (which would require torch).
 
 The test itself is correct — it just needs a sharper name.
 
@@ -115,14 +115,14 @@ In `fusion.py`, `choose_candidate()` returns `(name, types)` today. Extend it to
 Also thread `candidates` through `reconstruct()` into the function dict. The `candidates` field should be populated for all Tier 1 resolutions (where candidates exist) and `None` for single-source tiers.
 
 **Files:**
-- `abi_reconstructor/fusion.py` — extend `choose_candidate()`, pass candidates to output
+- `abifusion/fusion.py` — extend `choose_candidate()`, pass candidates to output
 - `tests/test_fusion.py` — add test for `candidates` and `confidence` fields
 
 ---
 
 ## Step 4: Address-Based CLI
 
-**Problem:** Tool only accepts bytecode. Users want `abi-reconstruct fusion --address 0x... --chain-id 1`.
+**Problem:** Tool only accepts bytecode. Users want `abifusion fusion --address 0x... --chain-id 1`.
 
 **Fix:** Add `--address` and `--chain-id` flags to the fusion subcommand in `cli.py`.
 
@@ -150,7 +150,7 @@ else:
 ```
 
 **Files:**
-- `abi_reconstructor/cli.py` — add address/chain-id flags to fusion subparser
+- `abifusion/cli.py` — add address/chain-id flags to fusion subparser
 - `tests/test_cli.py` — add test for address-based reconstruction (mock RPC response)
 
 ---
@@ -164,7 +164,7 @@ else:
 | `README.md` | Modify | Ensure evmole number matches canonical eval |
 | `eval_output/external_validation_report.md` | Overwrite | Deprecation notice pointing to canonical |
 | `tests/test_fusion.py:88` | Rename | `test_init_does_not_load_ml_model` → `test_init_does_not_import_ml_dependencies` |
-| `abi_reconstructor/fusion.py` | Modify | Extend `choose_candidate()` with confidence; thread candidates into output |
+| `abifusion/fusion.py` | Modify | Extend `choose_candidate()` with confidence; thread candidates into output |
 | `tests/test_fusion.py` | Add tests | Test `candidates` and `confidence` fields are populated |
-| `abi_reconstructor/cli.py` | Modify | Add `--address` and `--chain-id` to fusion subcommand |
+| `abifusion/cli.py` | Modify | Add `--address` and `--chain-id` to fusion subcommand |
 | `tests/test_cli.py` | Add tests | Test address-based reconstruction |

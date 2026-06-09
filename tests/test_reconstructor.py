@@ -1,4 +1,4 @@
-"""Tests for the rule-based ABIReconstructor, BytecodeParser, and FourByteDatabase.
+"""Tests for the rule-based OfflineABI, BytecodeParser, and FourByteDatabase.
 
 These cover the primary (non-ML) reconstruction path in ``reconstructor.py``,
 which previously had no dedicated tests. All cases run offline: the database
@@ -10,8 +10,8 @@ from unittest.mock import patch
 
 import pytest
 
-from abi_reconstructor.database import FourByteDatabase
-from abi_reconstructor.reconstructor import ABIReconstructor, BytecodeParser
+from abifusion.database import FourByteDatabase
+from abifusion.reconstructor import OfflineABI, BytecodeParser
 
 # Selectors present in the shared `sample_bytecode` fixture (all ERC20 standard).
 TRANSFER = "a9059cbb"
@@ -59,9 +59,9 @@ class TestFourByteDatabase:
         db.close()
 
 
-class TestABIReconstructor:
+class TestOfflineABI:
     def test_reconstruct_abi_on_erc20_bytecode(self, sample_bytecode, no_network):
-        recon = ABIReconstructor(db_path=":memory:")
+        recon = OfflineABI(db_path=":memory:")
         result = recon.reconstruct_abi(sample_bytecode)
 
         assert result["success"] is True
@@ -78,7 +78,7 @@ class TestABIReconstructor:
     def test_reconstruct_abi_result_is_json_serializable(
         self, sample_bytecode, no_network
     ):
-        recon = ABIReconstructor(db_path=":memory:")
+        recon = OfflineABI(db_path=":memory:")
         result = recon.reconstruct_abi(sample_bytecode)
         text = recon.to_json(result)
         assert isinstance(text, str)
@@ -86,7 +86,7 @@ class TestABIReconstructor:
         recon.close()
 
     def test_reconstruct_function_known_selector(self, sample_bytecode, no_network):
-        recon = ABIReconstructor(db_path=":memory:")
+        recon = OfflineABI(db_path=":memory:")
         func = recon.reconstruct_function(sample_bytecode, TRANSFER)
         assert isinstance(func, dict)
         recon.close()

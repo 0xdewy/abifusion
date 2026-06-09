@@ -9,7 +9,7 @@ this script uses the existing dataset with a held-out split to measure external
 validity - same methodology as holdout_eval.py but focused on external contracts.
 
 Usage:
-    PYTHONPATH=/home/user/code/abi_reconstructor python scripts/validate_external_contracts.py
+    PYTHONPATH=/home/user/code/abifusion python scripts/validate_external_contracts.py
 """
 
 from __future__ import annotations
@@ -27,7 +27,7 @@ REPO_ROOT = Path(__file__).resolve().parents[1]
 import sys
 sys.path.insert(0, str(REPO_ROOT))
 
-from abi_reconstructor.fusion import FusionReconstructor
+from abifusion.fusion import ABIFusion
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
 logger = logging.getLogger("external_validation")
@@ -61,7 +61,7 @@ def categorize_contract(abi):
 
 def run_external_validation(df, known_table=None):
     """Run reconstruction on dataset, return per-category accuracy."""
-    fusion = FusionReconstructor()
+    fusion = ABIFusion()
     if known_table is not None:
         fusion._known_selectors = known_table
 

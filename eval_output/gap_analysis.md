@@ -1,4 +1,4 @@
-# Gap Analysis — ABI Reconstructor
+# Gap Analysis — abifusion
 
 **20 contracts · 480 ground-truth functions**
 **462 correct (96.2%) · 18 failures (3.8%)**

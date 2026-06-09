@@ -3,9 +3,9 @@ requires = ["setuptools>=61.0", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "abi-reconstructor"
+name = "abifusion"
 version = "0.1.0"
-description = "Reconstruct contract ABIs from EVM bytecode by fusing signature databases with evmole static analysis"
+description = "Build Solidity ABIs from EVM bytecode by fusing signature databases with evmole static analysis"
 readme = "README.md"
 authors = [{name = "RL Attacker Team"}]
 license = "MIT"
@@ -45,10 +45,10 @@ dev = [
     "mypy>=1.0.0",
 ]
 [project.scripts]
-abi-reconstruct = "abi_reconstructor.cli:main"
+abifusion = "abifusion.cli:main"
 
 [tool.setuptools]
-packages = ["abi_reconstructor", "abi_reconstructor.data", "abi_reconstructor.features", "abi_reconstructor.ml", "abi_reconstructor.utils"]
+packages = ["abifusion", "abifusion.data", "abifusion.features", "abifusion.ml", "abifusion.utils"]
 
 [tool.black]
 line-length = 88

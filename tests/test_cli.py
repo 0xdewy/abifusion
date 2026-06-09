@@ -20,7 +20,7 @@ SAMPLE_BYTECODE = (
 
 
 def _run_fusion(args, bytecode=SAMPLE_BYTECODE):
-    cmd = [sys.executable, "-m", "abi_reconstructor.cli", "fusion"]
+    cmd = [sys.executable, "-m", "abifusion.cli", "fusion"]
     cmd.extend(args)
     result = subprocess.run(cmd, capture_output=True, text=True)
     return result
@@ -74,7 +74,7 @@ class TestConfidenceFiltering:
     """Tests for --min-confidence filtering."""
 
     def test_min_confidence_high_drops_medium_and_low(self):
-        from abi_reconstructor.fusion import FusionReconstructor
+        from abifusion.fusion import ABIFusion
         import pandas as pd
 
         df = pd.read_parquet("data/contracts.parquet")
@@ -94,7 +94,7 @@ class TestConfidenceFiltering:
         assert high_data["metadata"]["function_count"] == high_conf_count
 
     def test_min_confidence_metadata_present(self):
-        from abi_reconstructor.fusion import FusionReconstructor
+        from abifusion.fusion import ABIFusion
         import pandas as pd
 
         df = pd.read_parquet("data/contracts.parquet")

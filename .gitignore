@@ -19,8 +19,8 @@ data/etherscan_contracts.json
 research/
 
 # Data directories
-abi_reconstructor_data/
-../abi_reconstructor_data/
+abifusion_data/
+../abifusion_data/
 
 # Python
 __pycache__/

@@ -69,7 +69,7 @@ def accuracy(correct: int, total: int) -> float:
 
 def extract_bytecode_metadata(
     bytecode: str,
-    fusion: "FusionReconstructor",
+    fusion: "ABIFusion",
     truth: Dict[str, Dict[str, Any]],
 ) -> tuple[
     set[str],
@@ -80,7 +80,7 @@ def extract_bytecode_metadata(
 
     bytecode_selectors: set[str] = set()
     try:
-        from abi_reconstructor.reconstructor import BytecodeParser
+        from abifusion.reconstructor import BytecodeParser
 
         for s in BytecodeParser().extract_selectors(bytecode):
             bytecode_selectors.add(s.selector.lower())
@@ -90,7 +90,7 @@ def extract_bytecode_metadata(
     evmole_types_map: Dict[str, Optional[Tuple[str, ...]]] = {}
     try:
         import evmole
-        from abi_reconstructor.fusion import split_args
+        from abifusion.fusion import split_args
 
         info = evmole.contract_info(code, selectors=True, arguments=True)
         if info and info.functions:
@@ -101,7 +101,7 @@ def extract_bytecode_metadata(
 
     sig_db_candidates_map: Dict[str, list] = {}
     for selector in truth:
-        from abi_reconstructor.fusion import parse_signature
+        from abifusion.fusion import parse_signature
 
         rows = fusion.sig.lookup_openchain(selector) or fusion.sig.lookup_4byte(selector)
         parsed_candidates = []

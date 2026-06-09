@@ -7,7 +7,7 @@ This script runs reconstruction on the evaluation dataset and reports:
 3. Phase 2 ROI validation: is family-guided disambiguation worth implementing?
 
 Usage:
-    PYTHONPATH=/home/user/code/abi_reconstructor python scripts/eval/tier_recall_eval.py
+    PYTHONPATH=/home/user/code/abifusion python scripts/eval/tier_recall_eval.py
 """
 
 from __future__ import annotations
@@ -25,7 +25,7 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 import sys
 sys.path.insert(0, str(REPO_ROOT))
 
-from abi_reconstructor.fusion import FusionReconstructor
+from abifusion.fusion import ABIFusion
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
 logger = logging.getLogger("tier_recall")
@@ -74,7 +74,7 @@ def run_tier_eval():
     """Run tier recall evaluation on full dataset."""
     df = pd.read_parquet("data/contracts.parquet")
 
-    fusion = FusionReconstructor()
+    fusion = ABIFusion()
     sig_lookup = fusion.sig
 
     tier_counts = Counter()

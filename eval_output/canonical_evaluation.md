@@ -1,10 +1,10 @@
-# ABI Reconstructor Canonical Evaluation
+# abifusion Canonical Evaluation
 
 **Date:** 2026-06-08
 
 ## Headline
 
-| Reconstructor | Held-out exact parameter-type accuracy |
+| ABIFusion | Held-out exact parameter-type accuracy |
 |---|---|
 | **Fusion** (recommended) | **98.5%** |
 | evmole baseline | 90.3% |

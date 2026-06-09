@@ -1,7 +1,7 @@
 # Champion Benchmark Report
 
 **Date:** 2026-06-08
-**Baseline:** /home/user/code/abi_reconstructor/eval_output/champion_baseline.json
+**Baseline:** /home/user/code/abifusion/eval_output/champion_baseline.json
 
 ## Overall
 

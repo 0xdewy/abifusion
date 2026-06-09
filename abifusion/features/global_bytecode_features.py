@@ -13,7 +13,7 @@ from __future__ import annotations
 
 from typing import List, Optional
 
-from abi_reconstructor.features.discriminating_features import (
+from abifusion.features.discriminating_features import (
     DiscriminatingFeatureExtractor,
     DiscriminatingFeatures,
 )

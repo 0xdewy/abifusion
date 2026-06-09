@@ -1,9 +1,9 @@
 .PHONY: help install install-dev test test-coverage lint format format-check typecheck check clean
 
-SRC := abi_reconstructor
+SRC := abifusion
 
 help:
-	@echo "ABI Reconstructor - Development Commands"
+	@echo "abifusion - Development Commands"
 	@echo ""
 	@echo "  install      Install package in development mode"
 	@echo "  install-dev  Install with development dependencies"

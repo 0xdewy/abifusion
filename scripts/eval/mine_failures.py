@@ -24,7 +24,7 @@ import pandas as pd
 REPO_ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(REPO_ROOT))
 
-from abi_reconstructor.fusion import FusionReconstructor
+from abifusion.fusion import ABIFusion
 from scripts.eval._shared import (
     accuracy,
     build_known_selector_table,
@@ -108,7 +108,7 @@ def mine_failures(
 ) -> Tuple[List[Dict[str, Any]], Dict[str, Any]]:
     """Run failure mining on a dataframe and return failure entries + summary stats."""
 
-    fusion = FusionReconstructor()
+    fusion = ABIFusion()
     if known_table is not None:
         fusion._known_selectors = known_table
 
@@ -341,8 +341,8 @@ def main() -> int:
     df = pd.read_parquet(data_path)
 
     if args.external:
-        FusionReconstructor._known_selectors = None
-        FusionReconstructor._known_interfaces = None
+        ABIFusion._known_selectors = None
+        ABIFusion._known_interfaces = None
         eval_df = df
         logger.info("external eval contracts: %d", len(eval_df))
         known_table = None

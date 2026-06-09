@@ -5,7 +5,7 @@ These selectors have no 4byte entry AND no evmole detection.
 We query the 4byte API to find their signatures.
 
 Usage:
-    PYTHONPATH=/home/user/code/abi_reconstructor python scripts/lookup_missing_selectors.py
+    PYTHONPATH=/home/user/code/abifusion python scripts/lookup_missing_selectors.py
 
 Output:
     - Updated data/known_selector_signatures.json with found selectors

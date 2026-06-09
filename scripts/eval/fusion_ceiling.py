@@ -30,7 +30,7 @@ sys.path.insert(0, str(REPO_ROOT))
 
 import evmole  # noqa: E402
 
-from abi_reconstructor.utils.signature_lookup import SignatureLookup  # noqa: E402
+from abifusion.utils.signature_lookup import SignatureLookup  # noqa: E402
 
 logger = logging.getLogger("fusion_ceiling")
 

@@ -1,7 +1,7 @@
 # External Generalization Report
 
 **Date:** 2026-06-09
-**Baseline:** /home/user/code/abi_reconstructor/eval_output/champion_baseline.json (held-out: 98.5%)
+**Baseline:** /home/user/code/abifusion/eval_output/champion_baseline.json (held-out: 98.5%)
 
 ## Accuracy
 

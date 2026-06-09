@@ -3,32 +3,32 @@
 import importlib
 import os
 
-import abi_reconstructor
+import abifusion
 
 
 def test_public_api_imports():
     """The package's advertised public API is importable from the root."""
-    from abi_reconstructor import (
-        ABIReconstructor,
+    from abifusion import (
+        OfflineABI,
         FourByteDatabase,
-        FusionReconstructor,
+        ABIFusion,
         SelectorExtractor,
     )
 
-    assert all([ABIReconstructor, FourByteDatabase, FusionReconstructor, SelectorExtractor])
+    assert all([OfflineABI, FourByteDatabase, ABIFusion, SelectorExtractor])
 
 
 def test_submodules_importable():
     """Core submodules import without side effects."""
-    assert importlib.import_module("abi_reconstructor.data")
-    assert importlib.import_module("abi_reconstructor.features")
-    assert importlib.import_module("abi_reconstructor.utils")
-    assert importlib.import_module("abi_reconstructor.fusion")
+    assert importlib.import_module("abifusion.data")
+    assert importlib.import_module("abifusion.features")
+    assert importlib.import_module("abifusion.utils")
+    assert importlib.import_module("abifusion.fusion")
 
 
 def test_package_structure():
     """The package directory matches the declared structure."""
-    package_dir = os.path.dirname(abi_reconstructor.__file__)
+    package_dir = os.path.dirname(abifusion.__file__)
 
     for sub in ("", "data", "features", "utils"):
         assert os.path.exists(os.path.join(package_dir, sub, "__init__.py"))

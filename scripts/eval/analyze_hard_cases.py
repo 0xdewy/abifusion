@@ -23,8 +23,8 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 import sys
 sys.path.insert(0, str(REPO_ROOT))
 
-from abi_reconstructor.fusion import split_args
-from abi_reconstructor.utils.signature_lookup import SignatureLookup
+from abifusion.fusion import split_args
+from abifusion.utils.signature_lookup import SignatureLookup
 
 logger = logging.getLogger("analyze_hard_cases")
 
@@ -105,7 +105,7 @@ def main():
             evmole_types = {}
 
         try:
-            from abi_reconstructor.reconstructor import BytecodeParser
+            from abifusion.reconstructor import BytecodeParser
             extra_sels = {s.selector.lower() for s in BytecodeParser().extract_selectors(r["bytecode"])}
         except Exception:
             extra_sels = set()

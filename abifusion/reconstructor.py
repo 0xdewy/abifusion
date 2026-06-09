@@ -647,7 +647,7 @@ class ParameterReconstructor:
         Returns:
             List of inferred parameter types
         """
-        from abi_reconstructor.features.discriminating_features import (
+        from abifusion.features.discriminating_features import (
             DiscriminatingFeatureExtractor,
         )
 
@@ -669,7 +669,7 @@ class ParameterReconstructor:
         # try common heuristics
         if types == ["uint256"]:
             # Count address pushes (PUSH20) as secondary signal
-            from abi_reconstructor.reconstructor import BytecodeParser
+            from abifusion.reconstructor import BytecodeParser
             parser = BytecodeParser()
             bytecode_clean = parser.clean_bytecode(bytecode)
             # Scan for PUSH20 (0x73) pattern which loads 20-byte addresses
@@ -728,7 +728,7 @@ class ParameterReconstructor:
         return names
 
 
-class ABIReconstructor:
+class OfflineABI:
     """Main ABI reconstruction system combining all components."""
 
     def __init__(self, db_path: str = "./cache/4byte.db"):

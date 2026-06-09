@@ -22,9 +22,9 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-from abi_reconstructor.database import FourByteDatabase
-from abi_reconstructor.data.etherscan_fetcher import EtherscanClient
-from abi_reconstructor.reconstructor import ABIReconstructor
+from abifusion.database import FourByteDatabase
+from abifusion.data.etherscan_fetcher import EtherscanClient
+from abifusion.reconstructor import OfflineABI
 
 
 # ── Category labels ──
@@ -80,7 +80,7 @@ def is_proxy_contract(abi: List[Dict], client: EtherscanClient, addr: str) -> Tu
 def analyze_contract(
     addr: str,
     client: EtherscanClient,
-    reconstructor: ABIReconstructor,
+    reconstructor: OfflineABI,
     db: FourByteDatabase,
 ) -> Dict[str, List[Dict]]:
     """Analyze one contract and categorize all function-level results."""
@@ -192,7 +192,7 @@ def main():
         addresses = addresses[:args.sample]
 
     client = EtherscanClient()
-    reconstructor = ABIReconstructor(db_path=args.db)
+    reconstructor = OfflineABI(db_path=args.db)
     db = FourByteDatabase(db_path=args.db)
 
     all_categories: Dict[str, List[Dict]] = {

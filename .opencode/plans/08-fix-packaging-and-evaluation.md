@@ -45,7 +45,7 @@ def ml(self) -> Optional[MLReconstructor]:
 
 ML is only called in Tier 3/4 (when Tiers 1+2 fail), so making it lazy and non-fatal is correct.
 
-**Files:** `abi_reconstructor/fusion.py`
+**Files:** `abifusion/fusion.py`
 
 ---
 
@@ -116,7 +116,7 @@ The canonical number should be the held-out (external) accuracy since that's the
 
 The `choose_candidate()` function already has access to all candidates — just thread them through to the output.
 
-**Files:** `abi_reconstructor/fusion.py`, `abi_reconstructor/reconstructor.py`
+**Files:** `abifusion/fusion.py`, `abifusion/reconstructor.py`
 
 ---
 
@@ -127,12 +127,12 @@ The `choose_candidate()` function already has access to all candidates — just 
 **Fix:** Add `--address` flag to CLI:
 
 ```bash
-abi-reconstruct fusion --address 0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D --chain-id 1
+abifusion fusion --address 0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D --chain-id 1
 ```
 
 Uses eth_getCode RPC call (via `ETH_RPC_URL` env var) to fetch bytecode, then reconstructs. Falls back to the fusion path.
 
-**Files:** `abi_reconstructor/cli.py`
+**Files:** `abifusion/cli.py`
 
 ---
 
@@ -180,8 +180,8 @@ Step 6: Update README (15 min)
 
 | File | Action | Purpose |
 |------|--------|---------|
-| `abi_reconstructor/fusion.py` | Modify | Lazy ML loading, expose candidates in output |
-| `abi_reconstructor/cli.py` | Modify | Add `--address` flag |
+| `abifusion/fusion.py` | Modify | Lazy ML loading, expose candidates in output |
+| `abifusion/cli.py` | Modify | Add `--address` flag |
 | `pyproject.toml` | Modify | Add numpy, eth-utils; add `[ml]` optional extra |
 | `scripts/eval/run_evaluation.py` | Create | Single canonical eval script |
 | `scripts/eval/build_external_known_table.py` | Create | Build known table from training only |
@@ -198,5 +198,5 @@ Step 6: Update README (15 min)
 | Missing deps | `pip install -e .` installs all deps | No import errors |
 | Inconsistent numbers | README points to canonical_results.md | Single bold number |
 | Candidate provenance | Each function output has `candidates` field | Always populated for Tier 1 |
-| Address-based CLI | `abi-reconstruct fusion --address 0x... --chain-id 1` works | Returns valid ABI JSON |
+| Address-based CLI | `abifusion fusion --address 0x... --chain-id 1` works | Returns valid ABI JSON |
 | Known table provenance | Table built from training only | Documented in canonical_results.md |

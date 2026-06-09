@@ -6,7 +6,7 @@ import os
 import time
 import hashlib
 
-from abi_reconstructor.utils.signature_lookup import SignatureLookup
+from abifusion.utils.signature_lookup import SignatureLookup
 
 
 class TestSignatureLookup:

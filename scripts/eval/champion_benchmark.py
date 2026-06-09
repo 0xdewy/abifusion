@@ -31,7 +31,7 @@ import pandas as pd
 REPO_ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(REPO_ROOT))
 
-from abi_reconstructor.fusion import FusionReconstructor
+from abifusion.fusion import ABIFusion
 from scripts.eval._shared import (
     accuracy,
     build_known_selector_table,
@@ -56,7 +56,7 @@ REGRESSION_TOLERANCE = 0.5
 def evaluate_contracts(
     df: pd.DataFrame, known_table: Dict[str, Dict[str, Any]]
 ) -> Dict[str, Any]:
-    fusion = FusionReconstructor()
+    fusion = ABIFusion()
     if known_table is not None:
         fusion._known_selectors = known_table
 
@@ -300,9 +300,9 @@ def main() -> int:
 
     if args.external:
         # External mode: no split, use shipped runtime tables only
-        from abi_reconstructor.fusion import FusionReconstructor
-        FusionReconstructor._known_selectors = None
-        FusionReconstructor._known_interfaces = None
+        from abifusion.fusion import ABIFusion
+        ABIFusion._known_selectors = None
+        ABIFusion._known_interfaces = None
         eval_df = df
         logger.info("external eval contracts: %d", len(eval_df))
         current = run_benchmark(eval_df, None, args.seed, args.heldout_fraction)

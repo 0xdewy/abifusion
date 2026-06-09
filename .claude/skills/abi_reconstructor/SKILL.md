@@ -3,7 +3,7 @@ name: ABI Reconstructor
 description: >
   REQUIRED for ANY work on the ABI Reconstructor project.
   Use when writing tests, fetching contracts, training models, or modifying
-  any files in the abi_reconstructor codebase. Triggers: testing, contract
+  any files in the abifusion codebase. Triggers: testing, contract
   fetching, model training, feature extraction, signature disambiguation.
 ---
 
@@ -49,7 +49,7 @@ contract ABIs from EVM bytecode.
 
 ## Project Structure Reference
 ```
-abi_reconstructor/
+abifusion/
 ├── data/           # Data fetching and management
 ├── models/         # ML models
 ├── features/       # Feature extraction
@@ -71,7 +71,7 @@ pip install pytest pytest-mock pytest-cov
 pytest tests/
 
 # Run with coverage
-pytest tests/ --cov=abi_reconstructor --cov-report=html
+pytest tests/ --cov=abifusion --cov-report=html
 
 # Run specific test module
 pytest tests/models/test_neural_disambiguator.py -v
@@ -134,19 +134,19 @@ ETHERSCAN_API_KEY=YOUR_ETHERSCAN_KEY
 ### Debug Commands
 ```bash
 # Check environment
-python -c "import abi_reconstructor; print('Import OK')"
+python -c "import abifusion; print('Import OK')"
 
 # Test data fetching
-python -c "from abi_reconstructor.data.etherscan_fetcher import EtherscanClient; print('Etherscan client OK')"
+python -c "from abifusion.data.etherscan_fetcher import EtherscanClient; print('Etherscan client OK')"
 
 # Test feature extraction
-python -c "from abi_reconstructor.features.bytecode_features import BytecodeFeatureExtractor; print('Feature extractor OK')"
+python -c "from abifusion.features.bytecode_features import BytecodeFeatureExtractor; print('Feature extractor OK')"
 ```
 
 ## Skill Triggers
 
 Use this skill when:
-- Editing any file in the `abi_reconstructor/` directory
+- Editing any file in the `abifusion/` directory
 - Writing tests for the project
 - Fetching contract data
 - Training or evaluating models

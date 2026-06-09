@@ -2,8 +2,8 @@
 
 import pytest
 
-from abi_reconstructor.reconstructor import BytecodeParser, ABIReconstructor, ParameterReconstructor
-from abi_reconstructor.features.discriminating_features import DiscriminatingFeatureExtractor
+from abifusion.reconstructor import BytecodeParser, OfflineABI, ParameterReconstructor
+from abifusion.features.discriminating_features import DiscriminatingFeatureExtractor
 
 
 class TestSmoke:
@@ -97,8 +97,8 @@ class TestFullPipelineSmoke:
     )
 
     def test_reconstruct_abi_from_realistic_bytecode(self):
-        """Full ABIReconstructor pipeline on realistic bytecode."""
-        r = ABIReconstructor(db_path="./cache/4byte.db")
+        """Full OfflineABI pipeline on realistic bytecode."""
+        r = OfflineABI(db_path="./cache/4byte.db")
 
         result = r.reconstruct_abi(self.REALISTIC_BYTECODE, max_selectors=20)
 
@@ -113,7 +113,7 @@ class TestFullPipelineSmoke:
 
     def test_reconstruct_function_with_known_selector(self):
         """Single function reconstruction with known selector."""
-        r = ABIReconstructor(db_path="./cache/4byte.db")
+        r = OfflineABI(db_path="./cache/4byte.db")
 
         result = r.reconstruct_function(self.REALISTIC_BYTECODE, "a9059cbb")
         assert result["function_name"] == "transfer"
@@ -122,9 +122,9 @@ class TestFullPipelineSmoke:
         r.close()
 
     def test_discriminating_features_in_full_pipeline(self):
-        """discriminating feature extraction integrated with ABIReconstructor."""
+        """discriminating feature extraction integrated with OfflineABI."""
         # Use the realistic ERC20 bytecode which has proper dispatch structure
-        r = ABIReconstructor(db_path="./cache/4byte.db")
+        r = OfflineABI(db_path="./cache/4byte.db")
         result = r.reconstruct_abi(self.REALISTIC_BYTECODE, max_selectors=20)
 
         assert result["success"] is True

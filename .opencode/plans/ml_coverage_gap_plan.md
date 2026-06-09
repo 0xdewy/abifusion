@@ -53,7 +53,7 @@ total_loss = count_loss + type_loss + 0.5*mask_loss + 0.3*category_loss
 
 ### 3.2 Train
 ```bash
-python -m abi_reconstructor.training.train_ml_models --model parameter_prediction
+python -m abifusion.training.train_ml_models --model parameter_prediction
 ```
 
 ---

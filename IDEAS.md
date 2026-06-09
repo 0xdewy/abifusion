@@ -1,4 +1,4 @@
-# Is this ABI Reconstructor repo honest — truly effective as possible, or does it have hidden weaknesses disguised by favorable metrics?
+# Is abifusion honest — truly effective as possible, or does it have hidden weaknesses disguised by favorable metrics?
 
 > **TL;DR:** The repo is honest about its work but dishonest about its name — it maintains a dictionary and performs lookups, but the 99.2% metric measures hit rate, not reconstruction capacity, and the ceiling is human attention, not technical constraint.
 

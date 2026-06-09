@@ -22,8 +22,8 @@ from typing import Any, Dict, List, Optional, Tuple
 import torch
 import torch.nn.functional as F
 
-from abi_reconstructor.ml.families import FAMILY_NAMES, get_family_name
-from abi_reconstructor.ml.model import MLAbiModel
+from abifusion.ml.families import FAMILY_NAMES, get_family_name
+from abifusion.ml.model import MLAbiModel
 
 
 class MLReconstructor:
@@ -67,10 +67,10 @@ class MLReconstructor:
     def _build_feature_matrix(
         self, bytecode: str, num_params: int = 16, selector: Optional[str] = None
     ) -> Tuple[List[List[float]], List[int]]:
-        from abi_reconstructor.features.global_bytecode_features import (
+        from abifusion.features.global_bytecode_features import (
             build_feature_matrix,
         )
-        from abi_reconstructor.utils.bytecode import parse_bytecode_hex
+        from abifusion.utils.bytecode import parse_bytecode_hex
 
         code = parse_bytecode_hex(bytecode)
         if code is None:

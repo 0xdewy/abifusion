@@ -1,22 +1,21 @@
-# ABI Reconstructor
+# abifusion
 
-Recover useful Solidity function ABIs from raw EVM bytecode.
+Build Solidity function ABIs from EVM bytecode by fusing three imperfect signals.
 
-`abi-reconstructor` combines three imperfect signals:
+`abifusion` combines:
 
 - **evmole** for selector discovery and argument structure
 - **openchain.xyz / 4byte.directory** for exact text signatures
-- **local fallbacks** for repeated selectors and offline reconstruction
+- **known-selector tables and ML fallbacks** for offline and novel selectors
 
-The result is a practical ABI recovery tool that beats either static analysis or
-signature lookup alone, while keeping every recovered function annotated with its
-source.
+The result is a practical ABI builder that beats either static analysis or
+signature lookup alone, while keeping every function annotated with its source.
 
 ## At A Glance
 
 | Capability | Status |
 | --- | --- |
-| Function selector recovery | Yes |
+| Function selector discovery | Yes |
 | Function names | From signature DBs or fallback names |
 | Exact input parameter types | 98.5% held-out accuracy |
 | Output types | Not recovered |
@@ -26,7 +25,7 @@ source.
 
 ## Why This Exists
 
-Recovering ABIs from bytecode is messy because every single source lies in a
+Building ABIs from bytecode is messy because every single source lies in a
 different way.
 
 Signature databases know exact types like `bytes32` versus `uint256`, but public
@@ -35,13 +34,13 @@ analysis has the opposite profile: evmole can recover argument structure from
 bytecode without selector spam, but it cannot always distinguish equivalent EVM
 shapes such as `address` and `uint160`.
 
-`FusionReconstructor` uses each signal where it is strongest:
+`ABIFusion` uses each signal where it is strongest:
 
-1. Run evmole to recover selectors and argument structure.
+1. Run evmole to discover selectors and argument structure.
 2. Look up selector candidates in openchain and 4byte.
 3. Use evmole's structure to choose the best signature candidate.
-4. Fall back to evmole, a known-selector table, or a generic selector name when
-   no signature is available.
+4. Fall back to evmole, a known-selector table, ML prediction, or a generic
+   selector name when no signature is available.
 
 ## Accuracy
 
@@ -76,11 +75,11 @@ for the generated report.
 
 ## Installation
 
-Python 3.8+ is supported. `uv` is recommended, but regular `pip` works.
+Python 3.8+. `uv` recommended.
 
 ```bash
 git clone <repository-url>
-cd abi_reconstructor
+cd abifusion
 
 uv pip install -e .
 ```
@@ -106,18 +105,18 @@ when signature lookups are unavailable.
 ### CLI
 
 ```bash
-# Recommended: fusion reconstruction
-abi-reconstruct fusion --bytecode "0x6080..."
-abi-reconstruct fusion --bytecode-file contract.hex
-ETH_RPC_URL="https://..." abi-reconstruct fusion --address 0x...
-abi-reconstruct fusion --bytecode-file contract.hex --output-format abi
-abi-reconstruct fusion --bytecode-file contract.hex --min-confidence medium
+# Recommended: fusion path
+abifusion fusion --bytecode "0x6080..."
+abifusion fusion --bytecode-file contract.hex
+ETH_RPC_URL="https://..." abifusion fusion --address 0x...
+abifusion fusion --bytecode-file contract.hex --output-format abi
+abifusion fusion --bytecode-file contract.hex --min-confidence medium
 
 # Fully offline fallback
-abi-reconstruct reconstruct --bytecode "0x6080..."
+abifusion offline --bytecode "0x6080..."
 
 # Selector extraction only
-abi-reconstruct extract --bytecode "0x6080..."
+abifusion extract --bytecode "0x6080..."
 ```
 
 Example output shape:
@@ -151,19 +150,19 @@ Example output shape:
 ### Python
 
 ```python
-from abi_reconstructor import FusionReconstructor
+from abifusion import ABIFusion
 
-result = FusionReconstructor().reconstruct("0x6080...")
+result = ABIFusion().reconstruct("0x6080...")
 
 for fn in result["functions"]:
     types = ",".join(inp["type"] for inp in fn["inputs"])
     print(f"{fn['name']}({types})  selector={fn['selector']}  source={fn['source']}")
 ```
 
-Use `ABIReconstructor` instead of `FusionReconstructor` when you need a fully
-offline, lower-accuracy path.
+Use `OfflineABI` instead of `ABIFusion` when you need a fully offline,
+lower-accuracy path.
 
-## How Fusion Chooses A Signature
+## How Fusion Picks A Signature
 
 For a selector such as `a9059cbb`, a public signature database can return both
 real and spam candidates:
@@ -183,12 +182,12 @@ types.
 ## Project Layout
 
 ```text
-abi_reconstructor/
-  fusion.py              # FusionReconstructor, recommended path
-  reconstructor.py       # Offline rule-based fallback
+abifusion/
+  fusion.py              # ABIFusion, recommended path
+  reconstructor.py       # OfflineABI rule-based fallback
   selector_extractor.py  # Selector extraction from bytecode
   database.py            # Local 4byte SQLite cache
-  cli.py                 # abi-reconstruct entry point
+  cli.py                 # abifusion entry point
   data/                  # Dataset and contract-fetching helpers
   features/              # Bytecode feature extraction
   ml/                    # Optional ML fallback model code
@@ -205,9 +204,9 @@ tests/                   # Unit and integration tests
 ```bash
 pytest tests/
 python scripts/eval/run_evaluation.py
-ruff check abi_reconstructor tests scripts
-black abi_reconstructor tests scripts
-mypy abi_reconstructor
+ruff check abifusion tests scripts
+black abifusion tests scripts
+mypy abifusion
 ```
 
 The test suite is offline and deterministic. The full evaluation uses cached
@@ -235,7 +234,7 @@ and dataset-build workflow. Other project docs live in [docs/](docs/README.md).
 
 ## Current Limitations
 
-- **No output recovery.** Function return values are not reconstructed.
+- **No output recovery.** Function return values are not recovered.
 - **Coverage-bound.** Unknown selectors absent from openchain/4byte and missed by
   evmole cannot be recovered reliably from bytecode alone.
 - **Dynamic dispatch is hard.** Proxy patterns, delegatecall routers, and custom

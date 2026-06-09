@@ -4,9 +4,9 @@ import pytest
 from pathlib import Path
 from unittest.mock import Mock, patch
 
-from abi_reconstructor.data.etherscan_fetcher import EtherscanClient, EtherscanContract
-from abi_reconstructor.data.sourcify_client import SourcifyClient
-from abi_reconstructor.data.dataset_builder import DatasetBuilder
+from abifusion.data.etherscan_fetcher import EtherscanClient, EtherscanContract
+from abifusion.data.sourcify_client import SourcifyClient
+from abifusion.data.dataset_builder import DatasetBuilder
 
 
 class TestEtherscanClient:

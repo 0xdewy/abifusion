@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
-"""Phase 3 — evaluate the FusionReconstructor end-to-end vs evmole.
+"""Phase 3 — evaluate the ABIFusion end-to-end vs evmole.
 
-Runs the actual FusionReconstructor.reconstruct() on each contract and compares
+Runs the actual ABIFusion.reconstruct() on each contract and compares
 its per-selector parameter types against the ground-truth ABI, alongside evmole
 as the baseline. Reports exact-type accuracy and which evmole errors were fixed.
 """
@@ -22,7 +22,7 @@ sys.path.insert(0, str(REPO_ROOT))
 
 import evmole  # noqa: E402
 
-from abi_reconstructor.fusion import FusionReconstructor, split_args  # noqa: E402
+from abifusion.fusion import ABIFusion, split_args  # noqa: E402
 
 logger = logging.getLogger("fusion_eval")
 
@@ -52,7 +52,7 @@ def main():
         df = df.iloc[int(len(df) * (1 - args.holdout)):]
     logger.info("contracts: %d", len(df))
 
-    fusion = FusionReconstructor()
+    fusion = ABIFusion()
     n = evmole_ok = fusion_ok = 0
     fixed = broke = 0
     fixed_buckets = Counter()
@@ -103,14 +103,14 @@ def main():
         return 100.0 * x / max(n, 1)
 
     lines = [
-        "# FusionReconstructor vs evmole (Phase 3)",
+        "# ABIFusion vs evmole (Phase 3)",
         "",
         f"Functions evaluated: **{n}**" + (f" (held-out {args.holdout:.0%})" if args.holdout else " (full set)"),
         "",
         "| Method | Exact type-tuple accuracy |",
         "|---|---|",
         f"| evmole | **{pct(evmole_ok):.1f}%** |",
-        f"| FusionReconstructor | **{pct(fusion_ok):.1f}%** |",
+        f"| ABIFusion | **{pct(fusion_ok):.1f}%** |",
         "",
         f"Net vs evmole: **+{fixed} fixed**, **-{broke} broke** "
         f"({pct(fusion_ok) - pct(evmole_ok):+.1f} pp)",

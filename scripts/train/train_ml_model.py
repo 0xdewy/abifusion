@@ -24,7 +24,7 @@ try:
 except Exception:
     HAS_TENSORBOARD = False
 
-from abi_reconstructor.ml.dataset import (
+from abifusion.ml.dataset import (
     ContractDataset,
     build_vocabs,
     compute_selector,
@@ -32,7 +32,7 @@ from abi_reconstructor.ml.dataset import (
     prepare_test_set,
     sig_from_abi_func,
 )
-from abi_reconstructor.ml.model import MLAbiModel
+from abifusion.ml.model import MLAbiModel
 
 
 def get_all_selectors(contracts_df):

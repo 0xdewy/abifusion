@@ -17,8 +17,8 @@ import pandas as pd
 import torch
 from torch.utils.data import Dataset
 
-from abi_reconstructor.features.global_bytecode_features import build_feature_matrix
-from abi_reconstructor.utils.bytecode import parse_bytecode_hex
+from abifusion.features.global_bytecode_features import build_feature_matrix
+from abifusion.utils.bytecode import parse_bytecode_hex
 
 
 def compute_selector(func_sig: str) -> str:
@@ -105,7 +105,7 @@ class ContractDataset(Dataset):
         try:
             import evmole
 
-            from abi_reconstructor.fusion import split_args
+            from abifusion.fusion import split_args
 
             info = evmole.contract_info(bytecode_hex, selectors=True, arguments=True)
             if info is not None and info.functions is not None:
@@ -162,7 +162,7 @@ class ContractDataset(Dataset):
         token_tensor = torch.tensor(tokens, dtype=torch.long)
 
         if self.use_families:
-            from abi_reconstructor.ml.families import get_family
+            from abifusion.ml.families import get_family
             label = get_family(sample.name)
         else:
             label = self.name_vocab.get(sample.name, 0)

@@ -1,4 +1,4 @@
-"""Fusion ABI reconstructor: 4byte signatures + evmole, disambiguated together.
+"""ABI Fusion: 4byte signatures + evmole, disambiguated together.
 
 Neither source is sufficient alone:
 
@@ -29,7 +29,7 @@ import logging
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
-from abi_reconstructor.utils.signature_lookup import SignatureLookup
+from abifusion.utils.signature_lookup import SignatureLookup
 
 logger = logging.getLogger(__name__)
 
@@ -101,8 +101,8 @@ def choose_candidate(
     return candidates[0][0], candidates[0][1], "low"
 
 
-class FusionReconstructor:
-    """Reconstruct an ABI by fusing 4byte signatures with evmole analysis."""
+class ABIFusion:
+    """Fuse 4byte signatures with evmole analysis to build a Solidity ABI."""
 
     _known_selectors: Optional[Dict[str, Dict[str, Any]]] = None
     _known_interfaces: Optional[List[Dict[str, Any]]] = None
@@ -121,7 +121,7 @@ class FusionReconstructor:
             return self._ml
         self._ml_load_attempted = True
         try:
-            from abi_reconstructor.ml_reconstructor import MLReconstructor
+            from abifusion.ml_reconstructor import MLReconstructor
 
             self._ml = MLReconstructor.get_instance()
         except Exception as e:
@@ -130,27 +130,27 @@ class FusionReconstructor:
         return self._ml
 
     def _ensure_known_selectors(self) -> None:
-        if FusionReconstructor._known_selectors is not None:
+        if ABIFusion._known_selectors is not None:
             return
         table_path = Path(__file__).parent.parent / "data" / "known_selector_signatures.json"
         if table_path.exists():
             with open(table_path) as f:
-                FusionReconstructor._known_selectors = json.load(f)
-            logger.info("Loaded %d known selector signatures", len(FusionReconstructor._known_selectors))
+                ABIFusion._known_selectors = json.load(f)
+            logger.info("Loaded %d known selector signatures", len(ABIFusion._known_selectors))
         else:
-            FusionReconstructor._known_selectors = {}
+            ABIFusion._known_selectors = {}
             logger.warning("Known selector table not found at %s", table_path)
 
     def _ensure_known_interfaces(self) -> None:
-        if FusionReconstructor._known_interfaces is not None:
+        if ABIFusion._known_interfaces is not None:
             return
         table_path = Path(__file__).parent.parent / "data" / "known_interface_sets.json"
         if table_path.exists():
             with open(table_path) as f:
-                FusionReconstructor._known_interfaces = json.load(f)
-            logger.info("Loaded %d known interface sets", len(FusionReconstructor._known_interfaces))
+                ABIFusion._known_interfaces = json.load(f)
+            logger.info("Loaded %d known interface sets", len(ABIFusion._known_interfaces))
         else:
-            FusionReconstructor._known_interfaces = []
+            ABIFusion._known_interfaces = []
             logger.debug("Known interface sets file not found at %s", table_path)
 
     def _complete_interfaces(
@@ -209,7 +209,7 @@ class FusionReconstructor:
 
         extra: set = set()
         try:
-            from abi_reconstructor.reconstructor import BytecodeParser
+            from abifusion.reconstructor import BytecodeParser
 
             for s in BytecodeParser().extract_selectors(bytecode):
                 extra.add(s.selector.lower())

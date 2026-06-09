@@ -15,7 +15,7 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 import sys
 sys.path.insert(0, str(REPO_ROOT))
 
-from abi_reconstructor.fusion import FusionReconstructor, split_args
+from abifusion.fusion import ABIFusion, split_args
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
 logger = logging.getLogger("honest_eval")
@@ -57,7 +57,7 @@ def build_known_table_from_split(df, split_idxs, min_occurrences=2):
 
 def run_eval(df, known_table):
     """Run fusion with given known table, return correct count."""
-    fusion = FusionReconstructor()
+    fusion = ABIFusion()
     fusion._known_selectors = known_table
 
     correct = 0

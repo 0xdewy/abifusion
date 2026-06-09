@@ -1,33 +1,33 @@
 #!/usr/bin/env python3
-"""CLI for ABI Reconstructor."""
+"""CLI for abifusion."""
 
 import argparse
 import json
 import sys
 from pathlib import Path
 
-from abi_reconstructor import ABIReconstructor, FourByteDatabase
-from abi_reconstructor.reconstructor import BytecodeParser
+from abifusion import OfflineABI, FourByteDatabase
+from abifusion.reconstructor import BytecodeParser
 
 
-def cmd_reconstruct(args) -> int:
-    """Reconstruct ABI from bytecode."""
+def cmd_offline(args) -> int:
+    """Build ABI from bytecode using offline rule-based fallback."""
     if args.bytecode_file:
         with open(args.bytecode_file, "r") as f:
             bytecode = f.read().strip()
     else:
         bytecode = args.bytecode
 
-    reconstructor = ABIReconstructor(db_path=args.db)
+    offline = OfflineABI(db_path=args.db)
 
     if args.selector:
-        result = reconstructor.reconstruct_function(bytecode, args.selector)
+        result = offline.reconstruct_function(bytecode, args.selector)
         print(json.dumps(result, indent=2))
     else:
-        result = reconstructor.reconstruct_abi(bytecode, max_selectors=args.max_selectors)
-        print(reconstructor.to_json(result))
+        result = offline.reconstruct_abi(bytecode, max_selectors=args.max_selectors)
+        print(offline.to_json(result))
 
-    reconstructor.close()
+    offline.close()
     return 0
 
 
@@ -49,13 +49,13 @@ def _apply_confidence_filter(result: dict, min_confidence: str) -> dict:
 
 
 def cmd_fusion(args) -> int:
-    """Reconstruct an ABI by fusing openchain/4byte signatures with evmole.
+    """Build an ABI by fusing openchain/4byte signatures with evmole.
 
     Highest-accuracy path (~98.5% held-out exact parameter types). Requires
     network for signature lookups (cached).
     """
     import os
-    from abi_reconstructor.fusion import FusionReconstructor
+    from abifusion.fusion import ABIFusion
 
     if args.address:
         rpc_url = os.environ.get("ETH_RPC_URL")
@@ -93,7 +93,7 @@ def cmd_fusion(args) -> int:
     else:
         bytecode = args.bytecode
 
-    result = FusionReconstructor().reconstruct(bytecode)
+    result = ABIFusion().reconstruct(bytecode)
 
     output = result
     if args.min_confidence != "low":
@@ -182,7 +182,7 @@ def cmd_export(args) -> int:
 def main():
     """Main entry point."""
     parser = argparse.ArgumentParser(
-        description="ABI Reconstructor - Reconstruct ABIs from EVM bytecode"
+        description="abifusion - Build Solidity ABIs from EVM bytecode by fusing signature databases with evmole"
     )
 
     parser.add_argument(
@@ -195,13 +195,13 @@ def main():
 
     fusion_parser = subparsers.add_parser(
         "fusion",
-        help="Reconstruct ABI by fusing openchain/4byte signatures with evmole (recommended, ~98.5 pct held-out)",
+        help="Fuse openchain/4byte signatures with evmole (recommended, ~98.5%% held-out)",
     )
     fusion_parser.add_argument("--bytecode", help="Bytecode as hex string")
     fusion_parser.add_argument("--bytecode-file", help="File containing bytecode")
     fusion_parser.add_argument(
         "--address",
-        help="Contract address to reconstruct (requires ETH_RPC_URL env var)",
+        help="Contract address to recover (requires ETH_RPC_URL env var)",
     )
     fusion_parser.add_argument(
         "--chain-id",
@@ -228,11 +228,11 @@ def main():
         help="Output file (stdout if not specified)",
     )
 
-    reconstruct_parser = subparsers.add_parser("reconstruct", help="Reconstruct ABI from bytecode (rule-based 4byte)")
-    reconstruct_parser.add_argument("--bytecode", help="Bytecode as hex string")
-    reconstruct_parser.add_argument("--bytecode-file", help="File containing bytecode")
-    reconstruct_parser.add_argument("--selector", help="Specific selector to reconstruct (8 hex chars)")
-    reconstruct_parser.add_argument("--max-selectors", type=int, default=50, help="Maximum selectors to extract")
+    offline_parser = subparsers.add_parser("offline", help="Build ABI from bytecode (offline rule-based)")
+    offline_parser.add_argument("--bytecode", help="Bytecode as hex string")
+    offline_parser.add_argument("--bytecode-file", help="File containing bytecode")
+    offline_parser.add_argument("--selector", help="Specific selector (8 hex chars)")
+    offline_parser.add_argument("--max-selectors", type=int, default=50, help="Maximum selectors to extract")
 
     extract_parser = subparsers.add_parser("extract", help="Extract selectors from bytecode")
     extract_parser.add_argument("--bytecode", help="Bytecode as hex string")
@@ -250,8 +250,8 @@ def main():
 
     if args.command == "fusion":
         return cmd_fusion(args)
-    elif args.command == "reconstruct":
-        return cmd_reconstruct(args)
+    elif args.command == "offline":
+        return cmd_offline(args)
     elif args.command == "extract":
         return cmd_extract_selectors(args)
     elif args.command == "populate":

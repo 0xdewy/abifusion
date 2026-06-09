@@ -21,15 +21,15 @@ REPO_ROOT = Path(__file__).resolve().parents[3]
 DATA_DIR = REPO_ROOT / "data"
 
 if not (DATA_DIR / "contracts.parquet").exists():
-    REPO_ROOT = Path("/home/user/code/abi_reconstructor")
+    REPO_ROOT = Path("/home/user/code/abifusion")
     DATA_DIR = REPO_ROOT / "data"
 
 import sys
 
 sys.path.insert(0, str(REPO_ROOT))
 
-from abi_reconstructor.fusion import split_args
-from abi_reconstructor.utils.bytecode import extract_calldata_offsets
+from abifusion.fusion import split_args
+from abifusion.utils.bytecode import extract_calldata_offsets
 
 logger = logging.getLogger("verify_calldataload_offset")
 

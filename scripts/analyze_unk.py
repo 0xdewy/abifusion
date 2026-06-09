@@ -1,6 +1,6 @@
 import torch
-from abi_reconstructor.ml.model import MLAbiModel
-from abi_reconstructor.ml.dataset import load_contracts, ContractDataset, build_vocabs, prepare_test_set, compute_selector, sig_from_abi_func
+from abifusion.ml.model import MLAbiModel
+from abifusion.ml.dataset import load_contracts, ContractDataset, build_vocabs, prepare_test_set, compute_selector, sig_from_abi_func
 from collections import Counter
 
 df = load_contracts()

@@ -32,7 +32,7 @@ DATA_DIR = REPO_ROOT / "data"
 TABLE_PATH = DATA_DIR / "known_selector_signatures.json"
 
 if not (DATA_DIR / "contracts.parquet").exists():
-    REPO_ROOT = Path("/home/user/code/abi_reconstructor")
+    REPO_ROOT = Path("/home/user/code/abifusion")
     DATA_DIR = REPO_ROOT / "data"
     TABLE_PATH = DATA_DIR / "known_selector_signatures.json"
 

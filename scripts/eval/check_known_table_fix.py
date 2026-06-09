@@ -11,12 +11,12 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 import sys
 sys.path.insert(0, str(REPO_ROOT))
 
-from abi_reconstructor.fusion import FusionReconstructor, split_args
+from abifusion.fusion import ABIFusion, split_args
 from eth_utils import keccak
 
 df = pd.read_parquet(REPO_ROOT / "data" / "contracts.parquet")
 
-fusion = FusionReconstructor()
+fusion = ABIFusion()
 known_selectors = fusion._known_selectors
 
 fusion_ok = 0

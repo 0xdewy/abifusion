@@ -19,8 +19,8 @@ After reviewer corrections:
 **Two scripts, two deliverables before Phase 2 coding.**
 
 ```bash
-PYTHONPATH=/home/user/code/abi_reconstructor python scripts/eval/holdout_eval.py
-PYTHONPATH=/home/user/code/abi_reconstructor python scripts/eval/tier_recall_eval.py
+PYTHONPATH=/home/user/code/abifusion python scripts/eval/holdout_eval.py
+PYTHONPATH=/home/user/code/abifusion python scripts/eval/tier_recall_eval.py
 ```
 
 ### Phase 1.1: Holdout Evaluation
@@ -66,7 +66,7 @@ tier = 1 if source in ("signature+evmole", "signature") else \
 **Lazy call — only invoke ml.predict() in Branch 3 (tiebreaker).**
 
 `fusion.py` changes:
-1. Import: `from abi_reconstructor.ml.families import get_family, get_family_name`
+1. Import: `from abifusion.ml.families import get_family, get_family_name`
 2. Add `ml_family: Optional[str] = None` parameter to `choose_candidate()`
 3. Implement Branch 3:
 ```python
@@ -196,7 +196,7 @@ Phase 4: External Validation (ongoing)
 | File | Action | Purpose |
 |------|--------|---------|
 | `scripts/eval/tier_recall_eval.py` | Create | Measure per-tier recall + collision breakdown |
-| `abi_reconstructor/fusion.py` | Modify | Add `ml_family` arg to `choose_candidate()`, import families |
+| `abifusion/fusion.py` | Modify | Add `ml_family` arg to `choose_candidate()`, import families |
 | `scripts/lookup_missing_selectors.py` | Create | Query 4byte for 57 selectors |
 | `scripts/train/train_family_model.py` | Modify | Add class-weighted loss option |
 | `data/eval_external_contracts.json` | Create | Hardcoded 30-50 external contracts |
