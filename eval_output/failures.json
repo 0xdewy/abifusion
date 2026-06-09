@@ -1,0 +1,469 @@
+[
+  {
+    "contract_address": "0xfA047A91E1841B166c9479F9dc51c355DB60b2Dc",
+    "contract_name": "",
+    "compiler_version": "v0.8.24+commit.e11b9ed9",
+    "selector": "262b74c9",
+    "selector_in_bytecode": false,
+    "ground_truth": {
+      "name": "swapExactInputSingle",
+      "types": [
+        "tuple"
+      ]
+    },
+    "predicted": {
+      "name": "",
+      "types": []
+    },
+    "source": "unknown",
+    "confidence": "unknown",
+    "candidates": null,
+    "evmole_recovered_types": null,
+    "sig_db_candidates": [],
+    "known_selector_table_hit": false,
+    "failure_category": "selector_missing_from_bytecode",
+    "addressability_class": "not_addressable_from_bytecode"
+  },
+  {
+    "contract_address": "0xB5A80C9d2Df6941A34b16aABeB11C88F9993707C",
+    "contract_name": "",
+    "compiler_version": "v0.8.26+commit.8a97fa7a",
+    "selector": "ac12fecf",
+    "selector_in_bytecode": false,
+    "ground_truth": {
+      "name": "startRace",
+      "types": [
+        "tuple",
+        "uint256"
+      ]
+    },
+    "predicted": {
+      "name": "",
+      "types": []
+    },
+    "source": "unknown",
+    "confidence": "unknown",
+    "candidates": null,
+    "evmole_recovered_types": null,
+    "sig_db_candidates": [],
+    "known_selector_table_hit": false,
+    "failure_category": "selector_missing_from_bytecode",
+    "addressability_class": "not_addressable_from_bytecode"
+  },
+  {
+    "contract_address": "0x51E5829C6c15a687CE0AA30cef739245bd06380E",
+    "contract_name": "",
+    "compiler_version": "v0.8.27+commit.40a35a09",
+    "selector": "dc34dc26",
+    "selector_in_bytecode": false,
+    "ground_truth": {
+      "name": "addSourceCollections",
+      "types": [
+        "tuple[]"
+      ]
+    },
+    "predicted": {
+      "name": "",
+      "types": []
+    },
+    "source": "unknown",
+    "confidence": "unknown",
+    "candidates": null,
+    "evmole_recovered_types": null,
+    "sig_db_candidates": [],
+    "known_selector_table_hit": false,
+    "failure_category": "selector_missing_from_bytecode",
+    "addressability_class": "not_addressable_from_bytecode"
+  },
+  {
+    "contract_address": "0x51E5829C6c15a687CE0AA30cef739245bd06380E",
+    "contract_name": "",
+    "compiler_version": "v0.8.27+commit.40a35a09",
+    "selector": "52f9a0fe",
+    "selector_in_bytecode": false,
+    "ground_truth": {
+      "name": "adminBatchGrade",
+      "types": [
+        "tuple[]"
+      ]
+    },
+    "predicted": {
+      "name": "",
+      "types": []
+    },
+    "source": "unknown",
+    "confidence": "unknown",
+    "candidates": null,
+    "evmole_recovered_types": null,
+    "sig_db_candidates": [],
+    "known_selector_table_hit": false,
+    "failure_category": "selector_missing_from_bytecode",
+    "addressability_class": "not_addressable_from_bytecode"
+  },
+  {
+    "contract_address": "0x51E5829C6c15a687CE0AA30cef739245bd06380E",
+    "contract_name": "",
+    "compiler_version": "v0.8.27+commit.40a35a09",
+    "selector": "daf04c3c",
+    "selector_in_bytecode": false,
+    "ground_truth": {
+      "name": "adminImportBatch",
+      "types": [
+        "tuple[]"
+      ]
+    },
+    "predicted": {
+      "name": "",
+      "types": []
+    },
+    "source": "unknown",
+    "confidence": "unknown",
+    "candidates": null,
+    "evmole_recovered_types": null,
+    "sig_db_candidates": [],
+    "known_selector_table_hit": false,
+    "failure_category": "selector_missing_from_bytecode",
+    "addressability_class": "not_addressable_from_bytecode"
+  },
+  {
+    "contract_address": "0x51E5829C6c15a687CE0AA30cef739245bd06380E",
+    "contract_name": "",
+    "compiler_version": "v0.8.27+commit.40a35a09",
+    "selector": "bb22da8b",
+    "selector_in_bytecode": false,
+    "ground_truth": {
+      "name": "batchGrade",
+      "types": [
+        "tuple[]"
+      ]
+    },
+    "predicted": {
+      "name": "",
+      "types": []
+    },
+    "source": "unknown",
+    "confidence": "unknown",
+    "candidates": null,
+    "evmole_recovered_types": null,
+    "sig_db_candidates": [],
+    "known_selector_table_hit": false,
+    "failure_category": "selector_missing_from_bytecode",
+    "addressability_class": "not_addressable_from_bytecode"
+  },
+  {
+    "contract_address": "0x51E5829C6c15a687CE0AA30cef739245bd06380E",
+    "contract_name": "",
+    "compiler_version": "v0.8.27+commit.40a35a09",
+    "selector": "905420b1",
+    "selector_in_bytecode": false,
+    "ground_truth": {
+      "name": "reservedBatchGrade",
+      "types": [
+        "tuple[]"
+      ]
+    },
+    "predicted": {
+      "name": "",
+      "types": []
+    },
+    "source": "unknown",
+    "confidence": "unknown",
+    "candidates": null,
+    "evmole_recovered_types": null,
+    "sig_db_candidates": [],
+    "known_selector_table_hit": false,
+    "failure_category": "selector_missing_from_bytecode",
+    "addressability_class": "not_addressable_from_bytecode"
+  },
+  {
+    "contract_address": "0x51E5829C6c15a687CE0AA30cef739245bd06380E",
+    "contract_name": "",
+    "compiler_version": "v0.8.27+commit.40a35a09",
+    "selector": "67f77dc1",
+    "selector_in_bytecode": false,
+    "ground_truth": {
+      "name": "reservedBatchGradeFor",
+      "types": [
+        "address",
+        "tuple[]"
+      ]
+    },
+    "predicted": {
+      "name": "",
+      "types": []
+    },
+    "source": "unknown",
+    "confidence": "unknown",
+    "candidates": null,
+    "evmole_recovered_types": null,
+    "sig_db_candidates": [],
+    "known_selector_table_hit": false,
+    "failure_category": "selector_missing_from_bytecode",
+    "addressability_class": "not_addressable_from_bytecode"
+  },
+  {
+    "contract_address": "0x51E5829C6c15a687CE0AA30cef739245bd06380E",
+    "contract_name": "",
+    "compiler_version": "v0.8.27+commit.40a35a09",
+    "selector": "ec97ceb2",
+    "selector_in_bytecode": false,
+    "ground_truth": {
+      "name": "reservedBatchGradeWithProof",
+      "types": [
+        "tuple[]",
+        "uint256",
+        "bytes32[]"
+      ]
+    },
+    "predicted": {
+      "name": "",
+      "types": []
+    },
+    "source": "unknown",
+    "confidence": "unknown",
+    "candidates": null,
+    "evmole_recovered_types": null,
+    "sig_db_candidates": [],
+    "known_selector_table_hit": false,
+    "failure_category": "selector_missing_from_bytecode",
+    "addressability_class": "not_addressable_from_bytecode"
+  },
+  {
+    "contract_address": "0x51E5829C6c15a687CE0AA30cef739245bd06380E",
+    "contract_name": "",
+    "compiler_version": "v0.8.27+commit.40a35a09",
+    "selector": "83a3f41f",
+    "selector_in_bytecode": false,
+    "ground_truth": {
+      "name": "reservedBatchGradeWithProofFor",
+      "types": [
+        "address",
+        "tuple[]",
+        "uint256",
+        "bytes32[]"
+      ]
+    },
+    "predicted": {
+      "name": "",
+      "types": []
+    },
+    "source": "unknown",
+    "confidence": "unknown",
+    "candidates": null,
+    "evmole_recovered_types": null,
+    "sig_db_candidates": [],
+    "known_selector_table_hit": false,
+    "failure_category": "selector_missing_from_bytecode",
+    "addressability_class": "not_addressable_from_bytecode"
+  },
+  {
+    "contract_address": "0xBe58CD5a03DB09C418567d00f17E16Bd5a1FBEC0",
+    "contract_name": "",
+    "compiler_version": "v0.8.26+commit.8a97fa7a",
+    "selector": "41033965",
+    "selector_in_bytecode": false,
+    "ground_truth": {
+      "name": "makeFlashLoan",
+      "types": [
+        "uint256",
+        "tuple"
+      ]
+    },
+    "predicted": {
+      "name": "",
+      "types": []
+    },
+    "source": "unknown",
+    "confidence": "unknown",
+    "candidates": null,
+    "evmole_recovered_types": null,
+    "sig_db_candidates": [],
+    "known_selector_table_hit": false,
+    "failure_category": "selector_missing_from_bytecode",
+    "addressability_class": "not_addressable_from_bytecode"
+  },
+  {
+    "contract_address": "0x040AabCD670256F652d0Cd5017e93300dE5668eB",
+    "contract_name": "",
+    "compiler_version": "v0.8.28+commit.7893614a",
+    "selector": "7a28adb2",
+    "selector_in_bytecode": false,
+    "ground_truth": {
+      "name": "proveL2LogInclusion",
+      "types": [
+        "uint256",
+        "uint256",
+        "uint256",
+        "tuple",
+        "bytes32[]"
+      ]
+    },
+    "predicted": {
+      "name": "",
+      "types": []
+    },
+    "source": "unknown",
+    "confidence": "unknown",
+    "candidates": null,
+    "evmole_recovered_types": null,
+    "sig_db_candidates": [],
+    "known_selector_table_hit": false,
+    "failure_category": "selector_missing_from_bytecode",
+    "addressability_class": "not_addressable_from_bytecode"
+  },
+  {
+    "contract_address": "0x040AabCD670256F652d0Cd5017e93300dE5668eB",
+    "contract_name": "",
+    "compiler_version": "v0.8.28+commit.7893614a",
+    "selector": "f26f3c8f",
+    "selector_in_bytecode": false,
+    "ground_truth": {
+      "name": "proveL2MessageInclusion",
+      "types": [
+        "uint256",
+        "uint256",
+        "uint256",
+        "tuple",
+        "bytes32[]"
+      ]
+    },
+    "predicted": {
+      "name": "",
+      "types": []
+    },
+    "source": "unknown",
+    "confidence": "unknown",
+    "candidates": null,
+    "evmole_recovered_types": null,
+    "sig_db_candidates": [],
+    "known_selector_table_hit": false,
+    "failure_category": "selector_missing_from_bytecode",
+    "addressability_class": "not_addressable_from_bytecode"
+  },
+  {
+    "contract_address": "0x040AabCD670256F652d0Cd5017e93300dE5668eB",
+    "contract_name": "",
+    "compiler_version": "v0.8.28+commit.7893614a",
+    "selector": "9a188371",
+    "selector_in_bytecode": false,
+    "ground_truth": {
+      "name": "requestL2TransactionDirect",
+      "types": [
+        "tuple"
+      ]
+    },
+    "predicted": {
+      "name": "",
+      "types": []
+    },
+    "source": "unknown",
+    "confidence": "unknown",
+    "candidates": null,
+    "evmole_recovered_types": null,
+    "sig_db_candidates": [],
+    "known_selector_table_hit": false,
+    "failure_category": "selector_missing_from_bytecode",
+    "addressability_class": "not_addressable_from_bytecode"
+  },
+  {
+    "contract_address": "0x040AabCD670256F652d0Cd5017e93300dE5668eB",
+    "contract_name": "",
+    "compiler_version": "v0.8.28+commit.7893614a",
+    "selector": "c9f5c932",
+    "selector_in_bytecode": false,
+    "ground_truth": {
+      "name": "requestL2TransactionTwoBridges",
+      "types": [
+        "tuple"
+      ]
+    },
+    "predicted": {
+      "name": "",
+      "types": []
+    },
+    "source": "unknown",
+    "confidence": "unknown",
+    "candidates": null,
+    "evmole_recovered_types": null,
+    "sig_db_candidates": [],
+    "known_selector_table_hit": false,
+    "failure_category": "selector_missing_from_bytecode",
+    "addressability_class": "not_addressable_from_bytecode"
+  },
+  {
+    "contract_address": "0x127B8Dda688e7F85f4B4ff863f8FAe8Ac98aB790",
+    "contract_name": "",
+    "compiler_version": "v0.8.28+commit.7893614a",
+    "selector": "66869d49",
+    "selector_in_bytecode": false,
+    "ground_truth": {
+      "name": "changeFeeParams",
+      "types": [
+        "tuple"
+      ]
+    },
+    "predicted": {
+      "name": "",
+      "types": []
+    },
+    "source": "unknown",
+    "confidence": "unknown",
+    "candidates": null,
+    "evmole_recovered_types": null,
+    "sig_db_candidates": [],
+    "known_selector_table_hit": false,
+    "failure_category": "selector_missing_from_bytecode",
+    "addressability_class": "not_addressable_from_bytecode"
+  },
+  {
+    "contract_address": "0x127B8Dda688e7F85f4B4ff863f8FAe8Ac98aB790",
+    "contract_name": "",
+    "compiler_version": "v0.8.28+commit.7893614a",
+    "selector": "7da01cd6",
+    "selector_in_bytecode": false,
+    "ground_truth": {
+      "name": "executeUpgrade",
+      "types": [
+        "tuple"
+      ]
+    },
+    "predicted": {
+      "name": "",
+      "types": []
+    },
+    "source": "unknown",
+    "confidence": "unknown",
+    "candidates": null,
+    "evmole_recovered_types": null,
+    "sig_db_candidates": [],
+    "known_selector_table_hit": false,
+    "failure_category": "selector_missing_from_bytecode",
+    "addressability_class": "not_addressable_from_bytecode"
+  },
+  {
+    "contract_address": "0x127B8Dda688e7F85f4B4ff863f8FAe8Ac98aB790",
+    "contract_name": "",
+    "compiler_version": "v0.8.28+commit.7893614a",
+    "selector": "f8c1f0d2",
+    "selector_in_bytecode": false,
+    "ground_truth": {
+      "name": "upgradeChainFromVersion",
+      "types": [
+        "uint256",
+        "tuple"
+      ]
+    },
+    "predicted": {
+      "name": "",
+      "types": []
+    },
+    "source": "unknown",
+    "confidence": "unknown",
+    "candidates": null,
+    "evmole_recovered_types": null,
+    "sig_db_candidates": [],
+    "known_selector_table_hit": false,
+    "failure_category": "selector_missing_from_bytecode",
+    "addressability_class": "not_addressable_from_bytecode"
+  }
+]

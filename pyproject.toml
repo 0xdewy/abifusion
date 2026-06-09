@@ -25,12 +25,17 @@ dependencies = [
     "requests>=2.31.0",
     "evmole>=0.8.4",
     "python-dotenv>=1.0.0",
+    "numpy>=1.24.0",
+    "eth-utils>=2.0.0",
     # Data/eval tooling (contract fetching, parquet datasets)
     "pandas>=2.0.0",
     "pyarrow>=14.0.0",
 ]
 
 [project.optional-dependencies]
+ml = [
+    "torch>=2.0.0",
+]
 dev = [
     "pytest>=7.0.0",
     "pytest-mock>=3.10.0",
@@ -43,7 +48,7 @@ dev = [
 abi-reconstruct = "abi_reconstructor.cli:main"
 
 [tool.setuptools]
-packages = ["abi_reconstructor", "abi_reconstructor.data", "abi_reconstructor.features", "abi_reconstructor.utils"]
+packages = ["abi_reconstructor", "abi_reconstructor.data", "abi_reconstructor.features", "abi_reconstructor.ml", "abi_reconstructor.utils"]
 
 [tool.black]
 line-length = 88

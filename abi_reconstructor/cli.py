@@ -4,6 +4,7 @@
 import argparse
 import json
 import sys
+from pathlib import Path
 
 from abi_reconstructor import ABIReconstructor, FourByteDatabase
 from abi_reconstructor.reconstructor import BytecodeParser
@@ -30,22 +31,84 @@ def cmd_reconstruct(args) -> int:
     return 0
 
 
+def _apply_confidence_filter(result: dict, min_confidence: str) -> dict:
+    ordering = {"low": 0, "medium": 1, "high": 2}
+    threshold = ordering[min_confidence]
+    original_count = len(result["functions"])
+    filtered = [
+        f for f in result["functions"]
+        if ordering.get(f.get("confidence", "low"), 0) >= threshold
+    ]
+    result = dict(result)
+    result["functions"] = filtered
+    result["metadata"] = dict(result.get("metadata", {}))
+    result["metadata"]["function_count"] = len(filtered)
+    result["metadata"]["filtered_function_count"] = original_count - len(filtered)
+    result["metadata"]["min_confidence"] = min_confidence
+    return result
+
+
 def cmd_fusion(args) -> int:
     """Reconstruct an ABI by fusing openchain/4byte signatures with evmole.
 
-    Highest-accuracy path (~96% exact parameter types vs evmole's ~90%; see
-    eval_output/fusion_eval.md). Requires network for signature lookups (cached).
+    Highest-accuracy path (~98.5% held-out exact parameter types). Requires
+    network for signature lookups (cached).
     """
+    import os
     from abi_reconstructor.fusion import FusionReconstructor
 
-    if args.bytecode_file:
+    if args.address:
+        rpc_url = os.environ.get("ETH_RPC_URL")
+        if not rpc_url:
+            print("Error: ETH_RPC_URL environment variable required when using --address", file=sys.stderr)
+            return 1
+        try:
+            import requests
+            resp = requests.post(
+                rpc_url,
+                json={
+                    "jsonrpc": "2.0",
+                    "method": "eth_getCode",
+                    "params": [args.address, "latest"],
+                    "id": 1,
+                },
+                timeout=30,
+            )
+            resp.raise_for_status()
+            result_json = resp.json()
+            if result_json.get("error"):
+                print(f"RPC error: {result_json['error']}", file=sys.stderr)
+                return 1
+            bytecode = result_json["result"]
+            if bytecode in ("0x", "0x0", ""):
+                print(f"No code at address {args.address}", file=sys.stderr)
+                return 1
+            bytecode = bytecode[2:] if bytecode.startswith("0x") else bytecode
+        except Exception as e:
+            print(f"Failed to fetch bytecode: {e}", file=sys.stderr)
+            return 1
+    elif args.bytecode_file:
         with open(args.bytecode_file, "r") as f:
             bytecode = f.read().strip()
     else:
         bytecode = args.bytecode
 
     result = FusionReconstructor().reconstruct(bytecode)
-    print(json.dumps(result, indent=2))
+
+    output = result
+    if args.min_confidence != "low":
+        output = _apply_confidence_filter(output, args.min_confidence)
+
+    if args.output_format == "abi":
+        output = [
+            {"type": f.get("type", "function"), "name": f["name"], "inputs": f["inputs"]}
+            for f in output["functions"]
+        ]
+
+    if args.output:
+        args.output.write_text(json.dumps(output, indent=2))
+    else:
+        print(json.dumps(output, indent=2))
     return 0
 
 
@@ -132,10 +195,38 @@ def main():
 
     fusion_parser = subparsers.add_parser(
         "fusion",
-        help="Reconstruct ABI by fusing openchain/4byte signatures with evmole (recommended, ~96 pct)",
+        help="Reconstruct ABI by fusing openchain/4byte signatures with evmole (recommended, ~98.5 pct held-out)",
     )
     fusion_parser.add_argument("--bytecode", help="Bytecode as hex string")
     fusion_parser.add_argument("--bytecode-file", help="File containing bytecode")
+    fusion_parser.add_argument(
+        "--address",
+        help="Contract address to reconstruct (requires ETH_RPC_URL env var)",
+    )
+    fusion_parser.add_argument(
+        "--chain-id",
+        type=int,
+        default=1,
+        help="Chain ID for RPC lookup (default: 1, mainnet)",
+    )
+    fusion_parser.add_argument(
+        "--output-format",
+        choices=["annotated", "abi"],
+        default="annotated",
+        help="Output format: 'annotated' includes source/confidence/candidates (default), 'abi' is plain Solidity ABI array",
+    )
+    fusion_parser.add_argument(
+        "--min-confidence",
+        choices=["low", "medium", "high"],
+        default="low",
+        help="Minimum confidence level to include",
+    )
+    fusion_parser.add_argument(
+        "--output",
+        type=Path,
+        default=None,
+        help="Output file (stdout if not specified)",
+    )
 
     reconstruct_parser = subparsers.add_parser("reconstruct", help="Reconstruct ABI from bytecode (rule-based 4byte)")
     reconstruct_parser.add_argument("--bytecode", help="Bytecode as hex string")

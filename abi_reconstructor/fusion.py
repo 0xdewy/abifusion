@@ -12,7 +12,8 @@ Neither source is sufficient alone:
 
 Fusing them — use evmole's structure to pick the right 4byte candidate, and the
 4byte signature to supply the exact types — beats evmole's exact-type accuracy
-(measured 96.4% on 6,744 functions; see ``eval_output/fusion_eval.md``).
+(measured 96.1% on held-out contracts; see
+``eval_output/canonical_evaluation.md``).
 
 For selectors not in any 4byte database AND where evmole finds nothing:
   * A dataset-derived known-signature table (from verified ground-truth contracts)
@@ -28,7 +29,6 @@ import logging
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
-from abi_reconstructor.ml_reconstructor import MLReconstructor
 from abi_reconstructor.utils.signature_lookup import SignatureLookup
 
 logger = logging.getLogger(__name__)
@@ -69,39 +69,65 @@ def parse_signature(text_sig: str) -> Optional[Tuple[str, Tuple[str, ...]]]:
     return name, types
 
 
+Confidence = str  # Literal["high", "medium", "low"] but plain str for readability
+
+
 def choose_candidate(
     candidates: List[Tuple[str, Tuple[str, ...]]],
     evmole_types: Optional[Tuple[str, ...]],
-) -> Optional[Tuple[str, Tuple[str, ...]]]:
+) -> Optional[Tuple[str, Tuple[str, ...], Confidence]]:
     """Pick the 4byte candidate that best matches evmole's type structure.
 
-    Order: exact match to evmole → same arity with maximal per-position
-    agreement → first candidate (4byte's default) when evmole gives no help.
+    Returns (name, types, confidence) where confidence is:
+      - high:   exact match to evmole's argument count and types
+      - medium: same argument count with partial type overlap
+      - low:    no evmole signal; picked first candidate from 4byte
+
+    Returns None if no candidates are available.
     """
     if not candidates:
         return None
     if evmole_types is not None:
         for name, types in candidates:
             if types == evmole_types:
-                return name, types
+                return name, types, "high"
         same_arity = [c for c in candidates if len(c[1]) == len(evmole_types)]
         if same_arity:
-            return max(
+            best = max(
                 same_arity,
                 key=lambda c: sum(a == b for a, b in zip(c[1], evmole_types)),
             )
-    return candidates[0]
+            return best[0], best[1], "medium"
+    return candidates[0][0], candidates[0][1], "low"
 
 
 class FusionReconstructor:
     """Reconstruct an ABI by fusing 4byte signatures with evmole analysis."""
 
     _known_selectors: Optional[Dict[str, Dict[str, Any]]] = None
+    _known_interfaces: Optional[List[Dict[str, Any]]] = None
 
     def __init__(self, signature_lookup: Optional[SignatureLookup] = None):
         self.sig = signature_lookup or SignatureLookup()
-        self.ml = MLReconstructor.get_instance()
+        self._ml: Optional[Any] = None
+        self._ml_load_attempted = False
         self._ensure_known_selectors()
+        self._ensure_known_interfaces()
+
+    @property
+    def ml(self) -> Optional[Any]:
+        """Load the optional ML fallback only when it is actually needed."""
+        if self._ml_load_attempted:
+            return self._ml
+        self._ml_load_attempted = True
+        try:
+            from abi_reconstructor.ml_reconstructor import MLReconstructor
+
+            self._ml = MLReconstructor.get_instance()
+        except Exception as e:
+            logger.warning("ML fallback unavailable: %s", e)
+            self._ml = None
+        return self._ml
 
     def _ensure_known_selectors(self) -> None:
         if FusionReconstructor._known_selectors is not None:
@@ -114,6 +140,49 @@ class FusionReconstructor:
         else:
             FusionReconstructor._known_selectors = {}
             logger.warning("Known selector table not found at %s", table_path)
+
+    def _ensure_known_interfaces(self) -> None:
+        if FusionReconstructor._known_interfaces is not None:
+            return
+        table_path = Path(__file__).parent.parent / "data" / "known_interface_sets.json"
+        if table_path.exists():
+            with open(table_path) as f:
+                FusionReconstructor._known_interfaces = json.load(f)
+            logger.info("Loaded %d known interface sets", len(FusionReconstructor._known_interfaces))
+        else:
+            FusionReconstructor._known_interfaces = []
+            logger.debug("Known interface sets file not found at %s", table_path)
+
+    def _complete_interfaces(
+        self,
+        bytecode_selectors: set,
+        results_by_selector: Dict[str, Any],
+    ) -> List[Dict[str, Any]]:
+        completed: List[Dict[str, Any]] = []
+        for iface in self._known_interfaces:
+            triggers = set(iface["triggers"]["selector_set"])
+            min_matches = iface["triggers"].get("min_matches", 2)
+
+            matching = triggers & bytecode_selectors
+            if len(matching) < min_matches:
+                continue
+
+            for func in iface["functions"]:
+                sel = func["selector"]
+                if sel in results_by_selector:
+                    continue
+
+                completed.append({
+                    "type": "function",
+                    "name": func["name"],
+                    "selector": sel,
+                    "inputs": [{"type": t, "name": ""} for t in func["types"]],
+                    "source": "known-interface-completion",
+                    "confidence": "medium",
+                })
+                results_by_selector[sel] = True
+
+        return completed
 
     def _candidates(self, selector: str) -> List[Tuple[str, Tuple[str, ...]]]:
         rows = self.sig.lookup_openchain(selector) or self.sig.lookup_4byte(selector)
@@ -154,32 +223,47 @@ class FusionReconstructor:
             chosen = choose_candidate(candidates, ev)
 
             if chosen is not None:
-                name, types = chosen
+                name, types, confidence = chosen
                 source = "signature+evmole" if ev is not None else "signature"
+                func_candidates = [
+                    {"name": c[0], "types": list(c[1]), "source": "4byte"}
+                    for c in candidates
+                ]
             elif ev is not None:
                 name, types, source = f"function_{selector}", ev, "evmole"
+                confidence = "high"
+                func_candidates = None
             else:
                 known = self._known_selectors.get(selector)
                 if known is not None:
                     name = known["name"]
                     types = tuple(known["types"])
                     source = "known-selector-table"
+                    confidence = "high"
+                    func_candidates = None
                 else:
                     # Tier 3: ML model prediction (family classification)
                     # Uses function family + type predictions from bytecode
-                    ml_resp = self.ml.predict(bytecode, selector)
+                    ml = self.ml
+                    ml_resp = ml.predict(bytecode, selector) if ml is not None else {}
                     if ml_resp.get("family") is not None:
                         name = ml_resp["family"]
                         types = tuple(ml_resp.get("types", []))
                         source = "ml"
+                        confidence = "low"
+                        func_candidates = None
                     elif ml_resp.get("family_top3"):
                         name = ml_resp["family_top3"][0]
                         types = tuple(ml_resp.get("types", []))
                         source = "ml"
+                        confidence = "low"
+                        func_candidates = None
                     else:
                         name = f"function_{selector}"
                         types = ()
                         source = "selector"
+                        confidence = "low"
+                        func_candidates = None
 
             functions.append(
                 {
@@ -188,8 +272,20 @@ class FusionReconstructor:
                     "selector": selector,
                     "inputs": [{"type": t, "name": ""} for t in types],
                     "source": source,
+                    "confidence": confidence,
+                    "candidates": func_candidates,
                 }
             )
+
+        try:
+            all_bytecode_selectors = set(evmole_types) | extra
+            completed = self._complete_interfaces(
+                all_bytecode_selectors,
+                {f["selector"]: f for f in functions},
+            )
+            functions.extend(completed)
+        except Exception as e:
+            logger.warning("interface completion failed: %s", e)
 
         return {
             "functions": functions,

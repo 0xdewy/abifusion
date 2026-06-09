@@ -4,7 +4,10 @@ The core is choose_candidate: picking the correct 4byte signature out of a
 spam-laden candidate set using evmole's recovered type structure.
 """
 
-from unittest.mock import patch
+import sys
+from unittest.mock import PropertyMock, patch
+
+import pytest
 
 from abi_reconstructor.fusion import (
     FusionReconstructor,
@@ -13,6 +16,41 @@ from abi_reconstructor.fusion import (
     split_args,
 )
 from abi_reconstructor.utils.signature_lookup import SignatureLookup
+
+
+def _push4_eq_bytecode(selector: str) -> str:
+    """Build minimal PUSH4+EQ bytecode for a selector."""
+    sel = selector.replace("0x", "")
+    return f"63{sel}14600157"
+
+
+HOOK_CALLBACKS = {
+    "bc29bafc": "afterAddLiquidity",
+    "1f29cf9d": "afterDonate",
+    "b6d4944a": "afterInitialize",
+    "606e8192": "afterRemoveLiquidity",
+    "c13d1c69": "afterSwap",
+    "b772b8cc": "beforeAddLiquidity",
+    "d950bd74": "beforeDonate",
+    "ebe1cdaf": "beforeInitialize",
+    "5cb32d10": "beforeRemoveLiquidity",
+    "468ead2c": "beforeSwap",
+}
+
+TRIGGER_A = "575e24b4"
+TRIGGER_B = "dc4c90d3"
+
+
+def _trigger_only_bytecode(trigger_a: str, trigger_b: str) -> str:
+    """Bytecode with only trigger selectors, no hook callback selectors."""
+    return _push4_eq_bytecode(trigger_a) + _push4_eq_bytecode(trigger_b)
+
+
+def _hook_bytecode_with_triggers(trigger_a: str, trigger_b: str) -> str:
+    bc = _push4_eq_bytecode(trigger_a) + _push4_eq_bytecode(trigger_b)
+    for sel in HOOK_CALLBACKS:
+        bc += _push4_eq_bytecode(sel)
+    return bc
 
 
 class TestParsing:
@@ -34,35 +72,37 @@ class TestParsing:
 
 class TestChooseCandidate:
     def test_picks_exact_evmole_match_over_spam(self):
-        # 4byte order puts spam first; evmole structure selects the real one.
         cands = [
             ("workMyDirefulOwner", ("uint256", "uint256")),
             ("transfer", ("address", "uint256")),
         ]
-        name, types = choose_candidate(cands, ("address", "uint256"))
+        name, types, confidence = choose_candidate(cands, ("address", "uint256"))
         assert name == "transfer"
         assert types == ("address", "uint256")
+        assert confidence == "high"
 
     def test_4byte_supplies_exact_type_evmole_cannot(self):
-        # evmole says uint256; 4byte's same-arity candidate says bytes32 → trust 4byte.
         cands = [("commit", ("bytes32",))]
-        _, types = choose_candidate(cands, ("uint256",))
+        _, types, confidence = choose_candidate(cands, ("uint256",))
         assert types == ("bytes32",)
+        assert confidence == "medium"
 
     def test_falls_back_to_first_when_no_evmole(self):
         cands = [("a", ("address",)), ("b", ("uint256",))]
-        assert choose_candidate(cands, None) == ("a", ("address",))
+        name, types, confidence = choose_candidate(cands, None)
+        assert (name, types, confidence) == ("a", ("address",), "low")
 
     def test_none_when_no_candidates(self):
         assert choose_candidate([], ("address",)) is None
 
     def test_max_agreement_on_partial_match(self):
         cands = [
-            ("x", ("uint256", "bytes32", "bytes32")),  # 0/3 agreement
-            ("y", ("address", "uint256", "bytes32")),  # 2/3 agreement
+            ("x", ("uint256", "bytes32", "bytes32")),
+            ("y", ("address", "uint256", "bytes32")),
         ]
-        name, _ = choose_candidate(cands, ("address", "uint256", "uint256"))
+        name, _, confidence = choose_candidate(cands, ("address", "uint256", "uint256"))
         assert name == "y"
+        assert confidence == "medium"
 
 
 class TestCandidateSource:
@@ -84,8 +124,29 @@ class TestCandidateSource:
 
 
 class TestReconstruct:
+    def test_init_does_not_import_ml_dependencies(self):
+        """FusionReconstructor.__init__ must not eagerly import abi_reconstructor.ml_reconstructor.
+
+        This invariant ensures that importing/constructing FusionReconstructor does not
+        require torch or the ML model file to be present. The ML tier is a lazy fallback
+        that is only reached when Tiers 1+2 fail for a given selector.
+        """
+        sys.modules.pop("abi_reconstructor.ml_reconstructor", None)
+        FusionReconstructor()
+        assert "abi_reconstructor.ml_reconstructor" not in sys.modules
+
+    def test_missing_ml_falls_back_to_selector(self):
+        bytecode = "63deadbeef1457"
+        with patch.object(FusionReconstructor, "_candidates", return_value=[]), \
+             patch.object(FusionReconstructor, "ml", new_callable=PropertyMock) as mock_ml:
+            mock_ml.return_value = None
+            result = FusionReconstructor().reconstruct(bytecode)
+
+        by_sel = {f["selector"]: f for f in result["functions"]}
+        assert by_sel["deadbeef"]["name"] == "function_deadbeef"
+        assert by_sel["deadbeef"]["source"] == "selector"
+
     def test_reconstruct_shape_and_resolution(self, sample_bytecode):
-        # Mock 4byte so the test is offline and deterministic.
         fake = {
             "a9059cbb": [{"text_signature": "transfer(address,uint256)"}],
             "095ea7b3": [{"text_signature": "approve(address,uint256)"}],
@@ -106,9 +167,99 @@ class TestReconstruct:
         assert "functions" in result and "metadata" in result
         for fn in result["functions"]:
             assert {"type", "name", "selector", "inputs", "source"} <= set(fn)
+            assert "confidence" in fn
+            assert "candidates" in fn
         by_sel = {f["selector"]: f for f in result["functions"]}
         if "a9059cbb" in by_sel:
-            assert [i["type"] for i in by_sel["a9059cbb"]["inputs"]] == [
+            fn = by_sel["a9059cbb"]
+            assert [i["type"] for i in fn["inputs"]] == [
                 "address",
                 "uint256",
             ]
+            assert fn["confidence"] == "low"
+            assert fn["candidates"] == [
+                {"name": "transfer", "types": ["address", "uint256"], "source": "4byte"}
+            ]
+
+
+class TestInterfaceCompletion:
+    """Tests for known-interface completion in FusionReconstructor.
+
+    The interface completion mechanism emits known interface functions (e.g., Uniswap V4
+    hook callbacks) when trigger selectors are found in bytecode, even though those
+    interface selectors themselves are not extractable via PUSH4+EQ.
+    """
+
+    def test_both_triggers_emits_all_10_callbacks(self):
+        """When both trigger selectors are in bytecode, all 10 hook callbacks are emitted."""
+        bc = _trigger_only_bytecode(TRIGGER_A, TRIGGER_B)
+        result = FusionReconstructor().reconstruct(bc)
+
+        completed = {
+            f["selector"]: f
+            for f in result["functions"]
+            if f["source"] == "known-interface-completion"
+        }
+        assert len(completed) == 10, f"Expected 10, got {len(completed)}"
+
+        emitted_names = {f["name"] for f in completed.values()}
+        expected_names = set(HOOK_CALLBACKS.values())
+        assert emitted_names == expected_names, f"Missing: {expected_names - emitted_names}"
+
+    def test_single_trigger_no_completion(self):
+        """With only one trigger, no interface completion happens (both required)."""
+        bc = _trigger_only_bytecode(TRIGGER_A, TRIGGER_A)  # duplicate A, no B
+        result = FusionReconstructor().reconstruct(bc)
+
+        completed = {
+            f["selector"]: f
+            for f in result["functions"]
+            if f["source"] == "known-interface-completion"
+        }
+        assert len(completed) == 0, f"Expected 0, got {len(completed)}: {list(completed.keys())}"
+
+    def test_each_trigger_alone_insufficient(self):
+        """Each trigger individually is insufficient to trigger interface completion."""
+        for trigger in [TRIGGER_A, TRIGGER_B]:
+            bc = _trigger_only_bytecode(trigger, trigger)
+            result = FusionReconstructor().reconstruct(bc)
+            completed = {
+                f["selector"]: f
+                for f in result["functions"]
+                if f["source"] == "known-interface-completion"
+            }
+            assert len(completed) == 0, f"Trigger {trigger} alone should not emit: {list(completed.keys())}"
+
+    def test_completed_functions_have_correct_source_and_confidence(self):
+        """All interface-completed functions have source=known-interface-completion and confidence=medium."""
+        bc = _trigger_only_bytecode(TRIGGER_A, TRIGGER_B)
+        result = FusionReconstructor().reconstruct(bc)
+
+        completed = [
+            f for f in result["functions"]
+            if f["source"] == "known-interface-completion"
+        ]
+        assert len(completed) == 10
+
+        for fn in completed:
+            assert fn["source"] == "known-interface-completion", f"Wrong source: {fn['source']}"
+            assert fn["confidence"] == "medium", f"Wrong confidence: {fn['confidence']}"
+
+    def test_interface_completion_does_not_override_bytecode_functions(self):
+        """If a function is already found via bytecode extraction, interface completion skips it."""
+        bc = _trigger_only_bytecode(TRIGGER_A, TRIGGER_B)
+        bc += _push4_eq_bytecode("a9059cbb")  # add transfer selector via bytecode
+        result = FusionReconstructor().reconstruct(bc)
+
+        completed = {
+            f["selector"]: f
+            for f in result["functions"]
+            if f["source"] == "known-interface-completion"
+        }
+        by_src = {f["source"] for f in result["functions"]}
+
+        assert "known-interface-completion" in by_src
+        # transfer should be from bytecode, not from interface completion
+        transfer_fn = next((f for f in result["functions"] if f["selector"] == "a9059cbb"), None)
+        assert transfer_fn is not None
+        assert transfer_fn["source"] != "known-interface-completion"

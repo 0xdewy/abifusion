@@ -1,12 +1,51 @@
 #!/usr/bin/env python3
-"""Build final dataset from Sourcify tables using efficient pandas joins."""
+"""Build final dataset from Sourcify v2 parquet exports."""
 
-import pandas as pd
+import argparse
 import json
 import os
+from pathlib import Path
+
+import pandas as pd
 from tqdm import tqdm
-import argparse
-import requests
+
+def table_parquet_paths(sourcify_dir, table_name):
+    """Return parquet paths for a Sourcify v2 table.
+
+    Preferred layout:
+        data/sourcify/<table>/<file>.parquet
+
+    Legacy layout still accepted:
+        data/sourcify/<table>.parquet
+    """
+    base = Path(sourcify_dir)
+    table_dir = base / table_name
+    if table_dir.is_dir():
+        paths = sorted(table_dir.glob("*.parquet"))
+        if paths:
+            return paths
+
+    legacy_path = base / f"{table_name}.parquet"
+    if legacy_path.exists():
+        return [legacy_path]
+
+    return []
+
+
+def read_sourcify_table(sourcify_dir, table_name, columns=None):
+    """Read one Sourcify parquet table from v2 folder or legacy file layout."""
+    paths = table_parquet_paths(sourcify_dir, table_name)
+    if not paths:
+        expected = Path(sourcify_dir) / table_name
+        raise FileNotFoundError(
+            f"Missing Sourcify table '{table_name}'. Expected parquet files in "
+            f"{expected}/ or legacy file {expected}.parquet. Run:\n"
+            f"  python scripts/download_sourcify_parquet.py --tables {table_name}"
+        )
+
+    df = pd.read_parquet(paths, columns=columns)
+    print(f"  {table_name}: {len(df):,} rows from {len(paths)} file(s)")
+    return df
 
 
 def extract_abi_from_compiled(compiled_df):
@@ -40,59 +79,6 @@ def extract_abi_from_compiled(compiled_df):
     return abi_map
 
 
-def download_additional_code_tables():
-    """Download additional code tables if needed."""
-    import requests
-    import io
-
-    code_tables = []
-
-    # Load the first code table we already have
-    code_path = "data/sourcify/code.parquet"
-    if os.path.exists(code_path):
-        code_df = pd.read_parquet(code_path)
-        code_tables.append(code_df)
-        print(f"  Loaded existing code table: {len(code_df):,} rows")
-
-    # Try to download additional code tables
-    base_url = "https://export.sourcify.dev/v2/code/"
-    ranges = [
-        ("code_100000_200000.parquet", "data/sourcify/code_100000_200000.parquet"),
-        ("code_200000_300000.parquet", "data/sourcify/code_200000_300000.parquet"),
-        ("code_300000_400000.parquet", "data/sourcify/code_300000_400000.parquet"),
-    ]
-
-    for url_suffix, local_path in ranges:
-        url = base_url + url_suffix
-        if not os.path.exists(local_path):
-            print(f"  Downloading {url_suffix}...")
-            try:
-                response = requests.get(url, timeout=30)
-                if response.status_code == 200:
-                    with open(local_path, "wb") as f:
-                        f.write(response.content)
-                    print(f"    Downloaded {len(response.content):,} bytes")
-                else:
-                    print(f"    Not available (status: {response.status_code})")
-                    continue
-            except Exception as e:
-                print(f"    Error downloading: {e}")
-                continue
-
-        if os.path.exists(local_path):
-            try:
-                df = pd.read_parquet(local_path)
-                code_tables.append(df)
-                print(f"  Loaded {url_suffix}: {len(df):,} rows")
-            except Exception as e:
-                print(f"    Error loading {local_path}: {e}")
-
-    if code_tables:
-        return pd.concat(code_tables, ignore_index=True)
-    else:
-        return pd.DataFrame()
-
-
 def main():
     parser = argparse.ArgumentParser(
         description="Build final dataset from Sourcify tables"
@@ -110,12 +96,13 @@ def main():
         help="Output file path",
     )
     parser.add_argument(
-        "--test-mode", action="store_true", help="Test mode with small sample"
+        "--sourcify-dir",
+        type=str,
+        default="data/sourcify",
+        help="Directory containing Sourcify v2 table folders",
     )
     parser.add_argument(
-        "--skip-download",
-        action="store_true",
-        help="Skip downloading additional code tables",
+        "--test-mode", action="store_true", help="Test mode with small sample"
     )
     args = parser.parse_args()
 
@@ -126,26 +113,15 @@ def main():
 
     print(f"Building dataset with up to {args.max_contracts} contracts")
     print(f"Output: {args.output}")
+    print(f"Sourcify tables: {args.sourcify_dir}")
 
     # Load tables
     print("\nLoading tables...")
 
-    # Load code tables (may download additional ones)
-    if args.skip_download:
-        code_df = pd.read_parquet("data/sourcify/code.parquet")
-        print(f"  Code: {len(code_df):,} rows (single table)")
-    else:
-        code_df = download_additional_code_tables()
-        print(f"  Code: {len(code_df):,} rows (combined tables)")
-
-    deployments_df = pd.read_parquet("data/sourcify/contract_deployments.parquet")
-    compiled_df = pd.read_parquet("data/sourcify/compiled_contracts.parquet")
-    contracts_df = pd.read_parquet("data/sourcify/contracts.parquet")
-
-    print(f"  Code: {len(code_df):,} rows")
-    print(f"  Deployments: {len(deployments_df):,} rows")
-    print(f"  Compiled: {len(compiled_df):,} rows")
-    print(f"  Contracts: {len(contracts_df):,} rows")
+    code_df = read_sourcify_table(args.sourcify_dir, "code")
+    deployments_df = read_sourcify_table(args.sourcify_dir, "contract_deployments")
+    compiled_df = read_sourcify_table(args.sourcify_dir, "compiled_contracts")
+    contracts_df = read_sourcify_table(args.sourcify_dir, "contracts")
 
     # Step 1: Join deployments with contracts
     print("\nStep 1: Joining deployments with contracts...")

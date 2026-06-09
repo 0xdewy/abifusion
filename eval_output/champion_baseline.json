@@ -1,0 +1,282 @@
+{
+  "date": "2026-06-08",
+  "seed": 42,
+  "heldout_fraction": 0.2,
+  "total_functions": 1241,
+  "correct": 1223,
+  "accuracy": 98.54955680902498,
+  "selector_coverage": {
+    "found": 1223,
+    "total": 1241
+  },
+  "by_source": {
+    "signature+evmole": {
+      "correct": 1192,
+      "total": 1192,
+      "accuracy": 100.0
+    },
+    "unknown": {
+      "correct": 0,
+      "total": 18,
+      "accuracy": 0.0
+    },
+    "known-interface-completion": {
+      "correct": 31,
+      "total": 31,
+      "accuracy": 100.0
+    }
+  },
+  "by_confidence": {
+    "high": {
+      "correct": 1121,
+      "total": 1121,
+      "accuracy": 100.0
+    },
+    "low": {
+      "correct": 5,
+      "total": 5,
+      "accuracy": 100.0
+    },
+    "unknown": {
+      "correct": 0,
+      "total": 18,
+      "accuracy": 0.0
+    },
+    "medium": {
+      "correct": 97,
+      "total": 97,
+      "accuracy": 100.0
+    }
+  },
+  "by_category": {
+    "output_not_recovered": {
+      "correct": 1035,
+      "total": 1035,
+      "accuracy": 100.0
+    },
+    "signature_collision_mispick": {
+      "correct": 58,
+      "total": 58,
+      "accuracy": 100.0
+    },
+    "evmole_arity_miss": {
+      "correct": 5,
+      "total": 5,
+      "accuracy": 100.0
+    },
+    "selector_missing_from_bytecode": {
+      "correct": 34,
+      "total": 52,
+      "accuracy": 65.38461538461539
+    },
+    "evmole_type_miss": {
+      "correct": 60,
+      "total": 60,
+      "accuracy": 100.0
+    },
+    "tuple_or_dynamic_type_mismatch": {
+      "correct": 31,
+      "total": 31,
+      "accuracy": 100.0
+    }
+  },
+  "failures": [
+    {
+      "selector": "262b74c9",
+      "ground_truth_types": [
+        "tuple"
+      ],
+      "predicted_types": [],
+      "source": "unknown",
+      "confidence": "unknown",
+      "failure_category": "selector_missing_from_bytecode"
+    },
+    {
+      "selector": "ac12fecf",
+      "ground_truth_types": [
+        "tuple",
+        "uint256"
+      ],
+      "predicted_types": [],
+      "source": "unknown",
+      "confidence": "unknown",
+      "failure_category": "selector_missing_from_bytecode"
+    },
+    {
+      "selector": "dc34dc26",
+      "ground_truth_types": [
+        "tuple[]"
+      ],
+      "predicted_types": [],
+      "source": "unknown",
+      "confidence": "unknown",
+      "failure_category": "selector_missing_from_bytecode"
+    },
+    {
+      "selector": "52f9a0fe",
+      "ground_truth_types": [
+        "tuple[]"
+      ],
+      "predicted_types": [],
+      "source": "unknown",
+      "confidence": "unknown",
+      "failure_category": "selector_missing_from_bytecode"
+    },
+    {
+      "selector": "daf04c3c",
+      "ground_truth_types": [
+        "tuple[]"
+      ],
+      "predicted_types": [],
+      "source": "unknown",
+      "confidence": "unknown",
+      "failure_category": "selector_missing_from_bytecode"
+    },
+    {
+      "selector": "bb22da8b",
+      "ground_truth_types": [
+        "tuple[]"
+      ],
+      "predicted_types": [],
+      "source": "unknown",
+      "confidence": "unknown",
+      "failure_category": "selector_missing_from_bytecode"
+    },
+    {
+      "selector": "905420b1",
+      "ground_truth_types": [
+        "tuple[]"
+      ],
+      "predicted_types": [],
+      "source": "unknown",
+      "confidence": "unknown",
+      "failure_category": "selector_missing_from_bytecode"
+    },
+    {
+      "selector": "67f77dc1",
+      "ground_truth_types": [
+        "address",
+        "tuple[]"
+      ],
+      "predicted_types": [],
+      "source": "unknown",
+      "confidence": "unknown",
+      "failure_category": "selector_missing_from_bytecode"
+    },
+    {
+      "selector": "ec97ceb2",
+      "ground_truth_types": [
+        "tuple[]",
+        "uint256",
+        "bytes32[]"
+      ],
+      "predicted_types": [],
+      "source": "unknown",
+      "confidence": "unknown",
+      "failure_category": "selector_missing_from_bytecode"
+    },
+    {
+      "selector": "83a3f41f",
+      "ground_truth_types": [
+        "address",
+        "tuple[]",
+        "uint256",
+        "bytes32[]"
+      ],
+      "predicted_types": [],
+      "source": "unknown",
+      "confidence": "unknown",
+      "failure_category": "selector_missing_from_bytecode"
+    },
+    {
+      "selector": "41033965",
+      "ground_truth_types": [
+        "uint256",
+        "tuple"
+      ],
+      "predicted_types": [],
+      "source": "unknown",
+      "confidence": "unknown",
+      "failure_category": "selector_missing_from_bytecode"
+    },
+    {
+      "selector": "7a28adb2",
+      "ground_truth_types": [
+        "uint256",
+        "uint256",
+        "uint256",
+        "tuple",
+        "bytes32[]"
+      ],
+      "predicted_types": [],
+      "source": "unknown",
+      "confidence": "unknown",
+      "failure_category": "selector_missing_from_bytecode"
+    },
+    {
+      "selector": "f26f3c8f",
+      "ground_truth_types": [
+        "uint256",
+        "uint256",
+        "uint256",
+        "tuple",
+        "bytes32[]"
+      ],
+      "predicted_types": [],
+      "source": "unknown",
+      "confidence": "unknown",
+      "failure_category": "selector_missing_from_bytecode"
+    },
+    {
+      "selector": "9a188371",
+      "ground_truth_types": [
+        "tuple"
+      ],
+      "predicted_types": [],
+      "source": "unknown",
+      "confidence": "unknown",
+      "failure_category": "selector_missing_from_bytecode"
+    },
+    {
+      "selector": "c9f5c932",
+      "ground_truth_types": [
+        "tuple"
+      ],
+      "predicted_types": [],
+      "source": "unknown",
+      "confidence": "unknown",
+      "failure_category": "selector_missing_from_bytecode"
+    },
+    {
+      "selector": "66869d49",
+      "ground_truth_types": [
+        "tuple"
+      ],
+      "predicted_types": [],
+      "source": "unknown",
+      "confidence": "unknown",
+      "failure_category": "selector_missing_from_bytecode"
+    },
+    {
+      "selector": "7da01cd6",
+      "ground_truth_types": [
+        "tuple"
+      ],
+      "predicted_types": [],
+      "source": "unknown",
+      "confidence": "unknown",
+      "failure_category": "selector_missing_from_bytecode"
+    },
+    {
+      "selector": "f8c1f0d2",
+      "ground_truth_types": [
+        "uint256",
+        "tuple"
+      ],
+      "predicted_types": [],
+      "source": "unknown",
+      "confidence": "unknown",
+      "failure_category": "selector_missing_from_bytecode"
+    }
+  ]
+}

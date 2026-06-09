@@ -1,5 +1,8 @@
 # Plan 06 Implementation: Reintroducing ML for Zero-Shot ABI Reconstruction
 
+For the next improvement loop, see
+[Plan 07: Closed-Loop Failure-Driven Improvement](07-closed-loop-failure-driven-improvement.md).
+
 ## What Was Built
 
 This implementation provides the foundation for ML-based zero-shot ABI reconstruction, targeting the 3.6% residual error (244 functions) that signature-based approaches cannot resolve.
