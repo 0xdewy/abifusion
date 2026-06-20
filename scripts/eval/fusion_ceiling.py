@@ -30,40 +30,16 @@ sys.path.insert(0, str(REPO_ROOT))
 
 import evmole  # noqa: E402
 
+from abifusion.core.fuse import parse_signature, split_args  # noqa: E402
 from abifusion.utils.signature_lookup import SignatureLookup  # noqa: E402
 
 logger = logging.getLogger("fusion_ceiling")
 
 
-def split_args(arg_str: str):
-    """Split a Solidity arg list, respecting nested tuple parens."""
-    arg_str = arg_str.strip()
-    if not arg_str:
-        return ()
-    out, depth, cur = [], 0, ""
-    for ch in arg_str:
-        if ch == "(":
-            depth += 1
-            cur += ch
-        elif ch == ")":
-            depth -= 1
-            cur += ch
-        elif ch == "," and depth == 0:
-            out.append(cur.strip())
-            cur = ""
-        else:
-            cur += ch
-    if cur.strip():
-        out.append(cur.strip())
-    return tuple(out)
-
-
 def types_from_signature(text_sig: str):
     """('transfer(address,uint256)') -> ('address','uint256')."""
-    i = text_sig.find("(")
-    if i == -1:
-        return None
-    return split_args(text_sig[i + 1 : text_sig.rfind(")")])
+    parsed = parse_signature(text_sig)
+    return None if parsed is None else parsed[1]
 
 
 def ground_truth(df):

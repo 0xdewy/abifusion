@@ -25,7 +25,6 @@ from datetime import date
 from pathlib import Path
 from typing import Any, Dict, List, Tuple
 
-import numpy as np
 import pandas as pd
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
@@ -40,10 +39,7 @@ from scripts.eval._shared import (
     split_dataframe,
     true_functions,
 )
-from scripts.eval.mine_failures import (
-    FAILURE_CATEGORIES,
-    classify_failure,
-)
+from scripts.eval.mine_failures import classify_failure
 
 logger = logging.getLogger("champion_benchmark")
 

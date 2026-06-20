@@ -45,13 +45,12 @@ def true_functions(abi):
 
 def get_tier(source: str) -> int:
     """Map source field to tier number."""
-    if source in ("signature+evmole", "signature"):
-        return 1
-    if source == "known-selector-table":
-        return 2
-    if source == "ml":
-        return 3
-    return 4
+    return {
+        "signature+evmole": 1,
+        "signature": 1,
+        "known-selector-table": 2,
+        "ml": 3,
+    }.get(source, 4)
 
 
 def get_4byte_candidates(selector: str, sig_lookup) -> list:

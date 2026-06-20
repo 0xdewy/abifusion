@@ -2,11 +2,15 @@
 
 from __future__ import annotations
 
+import re
 from typing import List, Optional
 
 PUSH1 = 0x60
 PUSH32 = 0x7F
 CALLDATALOAD = 0x35
+EQ = 0x14
+PUSH4 = 0x63
+MIN_SELECTOR_VALUE = 0x00000100
 
 
 def parse_bytecode_hex(bytecode_hex: str) -> Optional[bytes]:
@@ -15,6 +19,42 @@ def parse_bytecode_hex(bytecode_hex: str) -> Optional[bytes]:
         return bytes.fromhex(code)
     except ValueError:
         return None
+
+
+def clean_bytecode_hex(bytecode_hex: str) -> str:
+    code = bytecode_hex[2:] if bytecode_hex.startswith("0x") else bytecode_hex
+    code = re.sub(r"[^0-9a-f]", "", code.lower())
+    return code[:-1] if len(code) % 2 else code
+
+
+def extract_push4_selectors(bytecode_hex: str) -> List[str]:
+    """Extract likely function selectors from PUSH4 ... EQ dispatch patterns."""
+    code = clean_bytecode_hex(bytecode_hex)
+    selectors = []
+    seen = set()
+
+    for i in range(0, len(code) - 10, 2):
+        if code[i : i + 2] != f"{PUSH4:02x}":
+            continue
+
+        selector = code[i + 2 : i + 10]
+        if selector in seen or selector == "00000000":
+            continue
+        if len(selector) != 8 or all(c == selector[0] for c in selector):
+            continue
+
+        try:
+            if int(selector, 16) < MIN_SELECTOR_VALUE:
+                continue
+        except ValueError:
+            continue
+
+        search_end = min(len(code), i + 24)
+        if any(code[j : j + 2] == f"{EQ:02x}" for j in range(i + 10, search_end, 2)):
+            selectors.append(selector)
+            seen.add(selector)
+
+    return selectors
 
 
 def extract_calldata_offsets(

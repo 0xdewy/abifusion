@@ -80,7 +80,7 @@ def extract_bytecode_metadata(
 
     bytecode_selectors: set[str] = set()
     try:
-        from abifusion.reconstructor import BytecodeParser
+        from tooling.abifusion_legacy.reconstructor import BytecodeParser
 
         for s in BytecodeParser().extract_selectors(bytecode):
             bytecode_selectors.add(s.selector.lower())

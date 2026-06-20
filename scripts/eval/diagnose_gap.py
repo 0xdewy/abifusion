@@ -12,7 +12,7 @@ import argparse
 import json
 import sys
 from pathlib import Path
-from typing import Any, Dict, List
+from typing import Dict, List
 
 PROJECT_ROOT = Path(__file__).parent.parent.parent
 sys.path.insert(0, str(PROJECT_ROOT))
@@ -22,9 +22,9 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-from abifusion.database import FourByteDatabase
-from abifusion.data.etherscan_fetcher import EtherscanClient
-from abifusion.reconstructor import OfflineABI
+from tooling.abifusion_legacy.database import FourByteDatabase
+from tooling.abifusion_legacy.data.etherscan_fetcher import EtherscanClient
+from tooling.abifusion_legacy.reconstructor import OfflineABI
 
 
 # ── Category labels ──
@@ -260,7 +260,6 @@ def main():
     ]
 
     if failures > 0:
-        current_proto = correct / total
         if fixable_c > 0:
             after_fix = (correct + fixable_c) / total
             lines.append(f"- After fixing DB misses + collisions: prototype accuracy {correct/total:.3f} → {after_fix:.3f}")

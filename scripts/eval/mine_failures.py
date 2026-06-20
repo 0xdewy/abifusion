@@ -18,7 +18,6 @@ from datetime import date
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
-import numpy as np
 import pandas as pd
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
@@ -29,7 +28,6 @@ from scripts.eval._shared import (
     accuracy,
     build_known_selector_table,
     extract_bytecode_metadata,
-    normalize_abi,
     resolve_data_path,
     split_dataframe,
     true_functions,

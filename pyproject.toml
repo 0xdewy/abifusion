@@ -24,17 +24,15 @@ requires-python = ">=3.8"
 dependencies = [
     "requests>=2.31.0",
     "evmole>=0.8.4",
-    "python-dotenv>=1.0.0",
-    "numpy>=1.24.0",
-    "eth-utils>=2.0.0",
-    # Data/eval tooling (contract fetching, parquet datasets)
-    "pandas>=2.0.0",
-    "pyarrow>=14.0.0",
 ]
 
 [project.optional-dependencies]
-ml = [
-    "torch>=2.0.0",
+tooling = [
+    "eth-utils>=2.0.0",
+    "numpy>=1.24.0",
+    "pandas>=2.0.0",
+    "pyarrow>=14.0.0",
+    "python-dotenv>=1.0.0",
 ]
 dev = [
     "pytest>=7.0.0",
@@ -43,12 +41,18 @@ dev = [
     "black>=23.0.0",
     "ruff>=0.1.0",
     "mypy>=1.0.0",
+    "eth-utils>=2.0.0",
+    "numpy>=1.24.0",
+    "pandas>=2.0.0",
+    "pyarrow>=14.0.0",
+    "python-dotenv>=1.0.0",
 ]
 [project.scripts]
 abifusion = "abifusion.cli:main"
 
 [tool.setuptools]
-packages = ["abifusion", "abifusion.data", "abifusion.features", "abifusion.ml", "abifusion.utils"]
+include-package-data = false
+packages = ["abifusion", "abifusion.core", "abifusion.utils"]
 
 [tool.black]
 line-length = 88

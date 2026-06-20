@@ -1,9 +1,13 @@
 """Smoke tests for ABI Reconstructor."""
 
-import pytest
-
-from abifusion.reconstructor import BytecodeParser, OfflineABI, ParameterReconstructor
-from abifusion.features.discriminating_features import DiscriminatingFeatureExtractor
+from tooling.abifusion_legacy.features.discriminating_features import (
+    DiscriminatingFeatureExtractor,
+)
+from tooling.abifusion_legacy.reconstructor import (
+    BytecodeParser,
+    OfflineABI,
+    ParameterReconstructor,
+)
 
 
 class TestSmoke:

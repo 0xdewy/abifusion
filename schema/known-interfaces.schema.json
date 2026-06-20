@@ -1,0 +1,40 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/abifusion/schema/known-interfaces.schema.json",
+  "title": "abifusion known interface sets",
+  "description": "data/known_interface_sets.json — interface groups whose full function set is emitted when enough trigger selectors are present. Version 1. Only name/functions/triggers are consumed by the core; precision/recall/contract_count are provenance metadata.",
+  "type": "array",
+  "items": {
+    "type": "object",
+    "required": ["name", "functions", "triggers"],
+    "properties": {
+      "name": { "type": "string" },
+      "functions": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "required": ["selector", "name", "types"],
+          "properties": {
+            "selector": { "type": "string", "pattern": "^[0-9a-f]{8}$" },
+            "name": { "type": "string" },
+            "types": { "type": "array", "items": { "type": "string" } }
+          }
+        }
+      },
+      "triggers": {
+        "type": "object",
+        "required": ["selector_set"],
+        "properties": {
+          "selector_set": {
+            "type": "array",
+            "items": { "type": "string", "pattern": "^[0-9a-f]{8}$" }
+          },
+          "min_matches": { "type": "integer", "minimum": 1 }
+        }
+      },
+      "precision": { "type": "number" },
+      "recall": { "type": "number" },
+      "contract_count": { "type": "integer", "minimum": 0 }
+    }
+  }
+}

@@ -16,7 +16,6 @@ from __future__ import annotations
 
 import json
 import logging
-from collections import Counter
 from pathlib import Path
 
 import numpy as np
@@ -46,7 +45,6 @@ def true_functions(abi):
 
 def categorize_contract(abi):
     """Categorize contract based on its function signatures."""
-    sigs = set()
     for it in abi:
         if it.get("type") == "function":
             name = it.get("name", "").lower()
@@ -130,9 +128,6 @@ def main():
 
     train_results = run_external_validation(train_df, known_table)
     external_results = run_external_validation(held_out_df, known_table)
-
-    with open(REPO_ROOT / "data" / "eval_external_contracts.json") as f:
-        external_contracts = json.load(f)
 
     print()
     print("=" * 70)

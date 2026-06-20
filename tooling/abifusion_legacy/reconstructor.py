@@ -542,25 +542,28 @@ class ParameterReconstructor:
             "bytes": "bytes",
         }
 
-        if function_name in ["transfer", "approve", "mint"]:
-            return ["address", "uint256"]
-        elif function_name == "balanceOf":
-            return ["address"]
-        elif function_name == "transferFrom":
-            return ["address", "address", "uint256"]
-        elif function_name in ["deposit", "withdraw", "owner", "totalSupply", "name", "symbol", "decimals"]:
-            return []
-        elif function_name == "safeTransferFrom":
-            return ["address", "address", "uint256"]
-        elif function_name == "setApprovalForAll":
-            return ["address", "bool"]
-        elif function_name == "isApprovedForAll":
-            return ["address", "address"]
-        elif function_name == "ownerOf":
-            return ["uint256"]
-        elif function_name == "getApproved":
-            return ["uint256"]
-        elif function_name.startswith("unknown_"):
+        known_types = {
+            "transfer": ["address", "uint256"],
+            "approve": ["address", "uint256"],
+            "mint": ["address", "uint256"],
+            "balanceOf": ["address"],
+            "transferFrom": ["address", "address", "uint256"],
+            "deposit": [],
+            "withdraw": [],
+            "owner": [],
+            "totalSupply": [],
+            "name": [],
+            "symbol": [],
+            "decimals": [],
+            "safeTransferFrom": ["address", "address", "uint256"],
+            "setApprovalForAll": ["address", "bool"],
+            "isApprovedForAll": ["address", "address"],
+            "ownerOf": ["uint256"],
+            "getApproved": ["uint256"],
+        }
+        if function_name in known_types:
+            return known_types[function_name]
+        if function_name.startswith("unknown_"):
             inferred_types = self._infer_types_from_context(bytecode, selector, context)
             # Expand/truncate to match estimated arity
             if len(inferred_types) < param_count:
@@ -647,7 +650,7 @@ class ParameterReconstructor:
         Returns:
             List of inferred parameter types
         """
-        from abifusion.features.discriminating_features import (
+        from tooling.abifusion_legacy.features.discriminating_features import (
             DiscriminatingFeatureExtractor,
         )
 
@@ -669,7 +672,6 @@ class ParameterReconstructor:
         # try common heuristics
         if types == ["uint256"]:
             # Count address pushes (PUSH20) as secondary signal
-            from abifusion.reconstructor import BytecodeParser
             parser = BytecodeParser()
             bytecode_clean = parser.clean_bytecode(bytecode)
             # Scan for PUSH20 (0x73) pattern which loads 20-byte addresses
@@ -680,9 +682,7 @@ class ParameterReconstructor:
                     address_push_count += 1
                 i += 2
 
-            if address_push_count >= 2:
-                return ["address", "uint256"]
-            elif address_push_count == 1:
+            if address_push_count >= 1:
                 return ["address", "uint256"]
 
         return types
@@ -701,31 +701,25 @@ class ParameterReconstructor:
         Returns:
             List of parameter names
         """
-        names = []
-        for i, param_type in enumerate(types):
-            if param_type == "address":
-                names.append(f"account_{i}")
-            elif param_type == "uint256" or param_type == "uint128":
-                names.append(f"amount_{i}")
-            elif param_type == "bool":
-                names.append(f"flag_{i}")
-            elif param_type == "bytes32":
-                names.append(f"hash_{i}")
-            elif param_type == "string" or param_type == "bytes":
-                names.append(f"data_{i}")
-            else:
-                names.append(f"param_{i}")
+        overrides = {
+            "transfer": ["to", "amount"],
+            "approve": ["spender", "amount"],
+            "balanceOf": ["account"],
+            "transferFrom": ["from", "to", "amount"],
+        }
+        if function_name in overrides:
+            return overrides[function_name]
 
-        if function_name == "transfer":
-            names = ["to", "amount"]
-        elif function_name == "approve":
-            names = ["spender", "amount"]
-        elif function_name == "balanceOf":
-            names = ["account"]
-        elif function_name == "transferFrom":
-            names = ["from", "to", "amount"]
-
-        return names
+        prefixes = {
+            "address": "account",
+            "uint256": "amount",
+            "uint128": "amount",
+            "bool": "flag",
+            "bytes32": "hash",
+            "string": "data",
+            "bytes": "data",
+        }
+        return [f"{prefixes.get(param_type, 'param')}_{i}" for i, param_type in enumerate(types)]
 
 
 class OfflineABI:

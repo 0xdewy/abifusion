@@ -10,8 +10,8 @@ from unittest.mock import patch
 
 import pytest
 
-from abifusion.database import FourByteDatabase
-from abifusion.reconstructor import OfflineABI, BytecodeParser
+from tooling.abifusion_legacy.database import FourByteDatabase
+from tooling.abifusion_legacy.reconstructor import OfflineABI, BytecodeParser
 
 # Selectors present in the shared `sample_bytecode` fixture (all ERC20 standard).
 TRANSFER = "a9059cbb"

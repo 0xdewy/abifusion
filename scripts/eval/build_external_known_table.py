@@ -25,7 +25,6 @@ import pandas as pd
 REPO_ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(REPO_ROOT))
 
-from abifusion.fusion import parse_signature, split_args
 from scripts.eval._shared import (
     split_dataframe,
     true_functions,
@@ -108,8 +107,6 @@ def build_interface_sets(
         for s in bc_sels:
             all_bc_sel_freq[s] += 1
 
-    total_contracts = len(train_df)
-
     contract_data: list[dict] = []
     for _, row in train_df.iterrows():
         abi_funcs = true_functions(row["abi"])
@@ -169,8 +166,6 @@ def build_interface_sets(
     for candidate in candidate_interfaces:
         functions = candidate["functions"]
         cluster_indices = candidate["contract_indices"]
-        n_interface = len(cluster_indices)
-
         function_selectors = {f["selector"] for f in functions}
 
         expanded_indices = set(cluster_indices)

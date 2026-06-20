@@ -1,0 +1,18 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/abifusion/schema/known-selectors.schema.json",
+  "title": "abifusion known selector table",
+  "description": "data/known_selector_signatures.json — a flat map from 8-hex selector to its dataset-derived signature. Version 1. Only name/types are consumed by the core; count is provenance metadata.",
+  "type": "object",
+  "propertyNames": { "pattern": "^[0-9a-f]{8}$" },
+  "additionalProperties": {
+    "type": "object",
+    "required": ["name", "types"],
+    "properties": {
+      "name": { "type": "string" },
+      "types": { "type": "array", "items": { "type": "string" } },
+      "selector": { "type": "string", "pattern": "^[0-9a-f]{8}$" },
+      "count": { "type": "integer", "minimum": 0 }
+    }
+  }
+}

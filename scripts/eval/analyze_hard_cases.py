@@ -49,10 +49,8 @@ def main():
 
     df = pd.read_parquet(args.data)
     sl = SignatureLookup()
-    oc_cache, fb_cache = {}, {}
 
     # Collect all errors
-    hard_cases = []  # (contract_idx, selector, name, types, has_4byte, has_evmole)
     all_true_sigs = {}  # selector -> list of (contract_idx, name, types)
     all_func_names = Counter()  # func_name -> count across contracts
 
@@ -65,16 +63,6 @@ def main():
             abi = abi.tolist()
         if isinstance(abi, str):
             abi = json.loads(abi)
-
-        code = r["bytecode"]
-        code = code[2:] if str(code).startswith("0x") else code
-
-        try:
-            import evmole
-            info = evmole.contract_info(code, arguments=True)
-            evmole_sels = {f.selector.lower() for f in info.functions}
-        except Exception:
-            evmole_sels = set()
 
         truth = true_functions(abi)
 
@@ -105,7 +93,7 @@ def main():
             evmole_types = {}
 
         try:
-            from abifusion.reconstructor import BytecodeParser
+            from tooling.abifusion_legacy.reconstructor import BytecodeParser
             extra_sels = {s.selector.lower() for s in BytecodeParser().extract_selectors(r["bytecode"])}
         except Exception:
             extra_sels = set()
@@ -146,7 +134,7 @@ def main():
     for sel, cases in hard_selector_map.items():
         for c in cases:
             name = c["name"]
-            if name.startswith("after") or name.startswith("before"):
+            if name.startswith(("after", "before")):
                 func_family["Uniswap V3 callbacks"] += 1
             elif name.startswith("set") and len(name) > 3:
                 func_family["NFT setters"] += 1

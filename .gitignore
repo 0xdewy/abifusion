@@ -8,6 +8,9 @@ logs/
 *.log
 training_*.log
 
+# Rust build artifacts
+rust/target/
+
 # Caches and large artifacts (re-derivable / expensive, kept out of history)
 cache/
 *.pth

@@ -5,9 +5,7 @@ spam-laden candidate set using evmole's recovered type structure.
 """
 
 import sys
-from unittest.mock import PropertyMock, patch
-
-import pytest
+from unittest.mock import patch
 
 from abifusion.fusion import (
     ABIFusion,
@@ -124,22 +122,18 @@ class TestCandidateSource:
 
 
 class TestReconstruct:
-    def test_init_does_not_import_ml_dependencies(self):
-        """ABIFusion.__init__ must not eagerly import abifusion.ml_reconstructor.
+    def test_does_not_import_torch(self):
+        """The ML subsystem was removed; nothing in the fusion path may pull
+        torch. Guards against an ML dependency creeping back in."""
+        sys.modules.pop("torch", None)
+        ABIFusion().reconstruct("63deadbeef1457")
+        assert "torch" not in sys.modules
 
-        This invariant ensures that importing/constructing ABIFusion does not
-        require torch or the ML model file to be present. The ML tier is a lazy fallback
-        that is only reached when Tiers 1+2 fail for a given selector.
-        """
-        sys.modules.pop("abifusion.ml_reconstructor", None)
-        ABIFusion()
-        assert "abifusion.ml_reconstructor" not in sys.modules
-
-    def test_missing_ml_falls_back_to_selector(self):
+    def test_unresolved_selector_falls_back_to_selector(self):
+        """A selector with no candidates, no evmole structure, and no known-table
+        entry falls back to a bare function_<selector>."""
         bytecode = "63deadbeef1457"
-        with patch.object(ABIFusion, "_candidates", return_value=[]), \
-             patch.object(ABIFusion, "ml", new_callable=PropertyMock) as mock_ml:
-            mock_ml.return_value = None
+        with patch.object(ABIFusion, "_candidates", return_value=[]):
             result = ABIFusion().reconstruct(bytecode)
 
         by_sel = {f["selector"]: f for f in result["functions"]}
@@ -207,28 +201,43 @@ class TestInterfaceCompletion:
         assert emitted_names == expected_names, f"Missing: {expected_names - emitted_names}"
 
     def test_single_trigger_no_completion(self):
-        """With only one trigger, no interface completion happens (both required)."""
-        bc = _trigger_only_bytecode(TRIGGER_A, TRIGGER_A)  # duplicate A, no B
-        result = ABIFusion().reconstruct(bc)
-
-        completed = {
+        """With only TRIGGER_A (beforeSwap) in bytecode, the post-processing
+        pass emits all 10 V4 hook callbacks. TRIGGER_B (poolManager) alone
+        does NOT trigger the post-processing pass (poolManager appears in
+        non-V4-hook contracts)."""
+        bc_a_only = _trigger_only_bytecode(TRIGGER_A, TRIGGER_A)  # 575e24b4 only, no dc4c90d3
+        result_a = ABIFusion().reconstruct(bc_a_only)
+        post_completed_a = {
             f["selector"]: f
-            for f in result["functions"]
-            if f["source"] == "known-interface-completion"
+            for f in result_a["functions"]
+            if f["source"] == "known-interface-completion-post"
         }
-        assert len(completed) == 0, f"Expected 0, got {len(completed)}: {list(completed.keys())}"
+        assert len(post_completed_a) == 10, f"Expected 10 (post-processing fires on 575e24b4 alone), got {len(post_completed_a)}"
+
+        bc_b_only = _trigger_only_bytecode(TRIGGER_B, TRIGGER_B)  # dc4c90d3 only, no 575e24b4
+        result_b = ABIFusion().reconstruct(bc_b_only)
+        post_completed_b = {
+            f["selector"]: f
+            for f in result_b["functions"]
+            if f["source"] == "known-interface-completion-post"
+        }
+        assert len(post_completed_b) == 0, f"Expected 0 (post-processing does NOT fire on dc4c90d3 alone), got {len(post_completed_b)}"
 
     def test_each_trigger_alone_insufficient(self):
-        """Each trigger individually is insufficient to trigger interface completion."""
+        """_complete_interfaces (min_matches=2) requires both triggers. The
+        post-processing pass fires on TRIGGER_A alone but not TRIGGER_B alone.
+        This test verifies _complete_interfaces behavior: neither trigger alone
+        should trigger it (post-processing is tested separately)."""
         for trigger in [TRIGGER_A, TRIGGER_B]:
             bc = _trigger_only_bytecode(trigger, trigger)
             result = ABIFusion().reconstruct(bc)
-            completed = {
+            completed_from_complete_interfaces = {
                 f["selector"]: f
                 for f in result["functions"]
                 if f["source"] == "known-interface-completion"
             }
-            assert len(completed) == 0, f"Trigger {trigger} alone should not emit: {list(completed.keys())}"
+            assert len(completed_from_complete_interfaces) == 0, \
+                f"_complete_interfaces should not fire with only {trigger}: {list(completed_from_complete_interfaces.keys())}"
 
     def test_completed_functions_have_correct_source_and_confidence(self):
         """All interface-completed functions have source=known-interface-completion and confidence=medium."""
@@ -251,11 +260,6 @@ class TestInterfaceCompletion:
         bc += _push4_eq_bytecode("a9059cbb")  # add transfer selector via bytecode
         result = ABIFusion().reconstruct(bc)
 
-        completed = {
-            f["selector"]: f
-            for f in result["functions"]
-            if f["source"] == "known-interface-completion"
-        }
         by_src = {f["source"] for f in result["functions"]}
 
         assert "known-interface-completion" in by_src

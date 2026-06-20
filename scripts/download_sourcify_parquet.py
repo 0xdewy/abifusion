@@ -59,10 +59,14 @@ def parse_table_list(value: str) -> List[str]:
 
 
 def _xml_text(element: ET.Element, tag_name: str) -> str:
-    for child in element:
-        if child.tag.rsplit("}", 1)[-1] == tag_name:
-            return child.text or ""
-    return ""
+    return next(
+        (
+            child.text or ""
+            for child in element
+            if child.tag.rsplit("}", 1)[-1] == tag_name
+        ),
+        "",
+    )
 
 
 def list_export_keys(table: str, session: requests.Session) -> List[str]:
@@ -127,8 +131,7 @@ def iter_keys(
         if max_files_per_table is not None:
             keys = keys[:max_files_per_table]
         print(f"{table}: {len(keys)} parquet file(s)")
-        for key in keys:
-            yield key
+        yield from keys
 
 
 def main() -> int:

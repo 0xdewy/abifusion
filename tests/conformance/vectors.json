@@ -1,0 +1,678 @@
+[
+  {
+    "name": "signature_evmole_high",
+    "comment": "evmole structure picks the real transfer over 4byte spam (high confidence).",
+    "input": {
+      "evmole_types": {
+        "a9059cbb": [
+          "address",
+          "uint256"
+        ]
+      },
+      "extra_selectors": [],
+      "candidates_by_selector": {
+        "a9059cbb": [
+          [
+            "workMyDirefulOwner",
+            [
+              "uint256",
+              "uint256"
+            ]
+          ],
+          [
+            "transfer",
+            [
+              "address",
+              "uint256"
+            ]
+          ]
+        ]
+      },
+      "known_selectors": {},
+      "known_interfaces": [],
+      "v4_before_swap_present": false,
+      "v4_pool_manager_present": false,
+      "ml_predictions": {}
+    },
+    "expected": {
+      "functions": [
+        {
+          "type": "function",
+          "name": "transfer",
+          "selector": "a9059cbb",
+          "inputs": [
+            {
+              "type": "address",
+              "name": ""
+            },
+            {
+              "type": "uint256",
+              "name": ""
+            }
+          ],
+          "source": "signature+evmole",
+          "confidence": "high",
+          "candidates": [
+            {
+              "name": "workMyDirefulOwner",
+              "types": [
+                "uint256",
+                "uint256"
+              ],
+              "source": "4byte"
+            },
+            {
+              "name": "transfer",
+              "types": [
+                "address",
+                "uint256"
+              ],
+              "source": "4byte"
+            }
+          ]
+        }
+      ],
+      "metadata": {
+        "function_count": 1,
+        "evmole_selectors": 1,
+        "extra_selectors": 0
+      }
+    }
+  },
+  {
+    "name": "signature_medium_exact_type_from_4byte",
+    "comment": "4byte supplies bytes32 that evmole could only see as uint256 (same arity -> medium).",
+    "input": {
+      "evmole_types": {
+        "abcd1234": [
+          "uint256"
+        ]
+      },
+      "extra_selectors": [],
+      "candidates_by_selector": {
+        "abcd1234": [
+          [
+            "commit",
+            [
+              "bytes32"
+            ]
+          ]
+        ]
+      },
+      "known_selectors": {},
+      "known_interfaces": [],
+      "v4_before_swap_present": false,
+      "v4_pool_manager_present": false,
+      "ml_predictions": {}
+    },
+    "expected": {
+      "functions": [
+        {
+          "type": "function",
+          "name": "commit",
+          "selector": "abcd1234",
+          "inputs": [
+            {
+              "type": "bytes32",
+              "name": ""
+            }
+          ],
+          "source": "signature+evmole",
+          "confidence": "medium",
+          "candidates": [
+            {
+              "name": "commit",
+              "types": [
+                "bytes32"
+              ],
+              "source": "4byte"
+            }
+          ]
+        }
+      ],
+      "metadata": {
+        "function_count": 1,
+        "evmole_selectors": 1,
+        "extra_selectors": 0
+      }
+    }
+  },
+  {
+    "name": "signature_low_no_evmole",
+    "comment": "selector only from PUSH4 scan, no evmole structure -> first candidate, low.",
+    "input": {
+      "evmole_types": {},
+      "extra_selectors": [
+        "a9059cbb"
+      ],
+      "candidates_by_selector": {
+        "a9059cbb": [
+          [
+            "transfer",
+            [
+              "address",
+              "uint256"
+            ]
+          ]
+        ]
+      },
+      "known_selectors": {},
+      "known_interfaces": [],
+      "v4_before_swap_present": false,
+      "v4_pool_manager_present": false,
+      "ml_predictions": {}
+    },
+    "expected": {
+      "functions": [
+        {
+          "type": "function",
+          "name": "transfer",
+          "selector": "a9059cbb",
+          "inputs": [
+            {
+              "type": "address",
+              "name": ""
+            },
+            {
+              "type": "uint256",
+              "name": ""
+            }
+          ],
+          "source": "signature",
+          "confidence": "low",
+          "candidates": [
+            {
+              "name": "transfer",
+              "types": [
+                "address",
+                "uint256"
+              ],
+              "source": "4byte"
+            }
+          ]
+        }
+      ],
+      "metadata": {
+        "function_count": 1,
+        "evmole_selectors": 0,
+        "extra_selectors": 1
+      }
+    }
+  },
+  {
+    "name": "evmole_only_no_candidates",
+    "comment": "no DB candidate but evmole has structure -> function_<selector>, evmole, high.",
+    "input": {
+      "evmole_types": {
+        "abcd1234": [
+          "uint256"
+        ]
+      },
+      "extra_selectors": [],
+      "candidates_by_selector": {},
+      "known_selectors": {},
+      "known_interfaces": [],
+      "v4_before_swap_present": false,
+      "v4_pool_manager_present": false,
+      "ml_predictions": {}
+    },
+    "expected": {
+      "functions": [
+        {
+          "type": "function",
+          "name": "function_abcd1234",
+          "selector": "abcd1234",
+          "inputs": [
+            {
+              "type": "uint256",
+              "name": ""
+            }
+          ],
+          "source": "evmole",
+          "confidence": "high",
+          "candidates": null
+        }
+      ],
+      "metadata": {
+        "function_count": 1,
+        "evmole_selectors": 1,
+        "extra_selectors": 0
+      }
+    }
+  },
+  {
+    "name": "known_selector_table",
+    "comment": "no candidates, no evmole -> resolved from the curated known-selector table.",
+    "input": {
+      "evmole_types": {},
+      "extra_selectors": [
+        "bc29bafc"
+      ],
+      "candidates_by_selector": {},
+      "known_selectors": {
+        "bc29bafc": {
+          "name": "afterAddLiquidity",
+          "types": [
+            "address",
+            "tuple",
+            "tuple",
+            "int256",
+            "int256",
+            "bytes"
+          ]
+        }
+      },
+      "known_interfaces": [],
+      "v4_before_swap_present": false,
+      "v4_pool_manager_present": false,
+      "ml_predictions": {}
+    },
+    "expected": {
+      "functions": [
+        {
+          "type": "function",
+          "name": "afterAddLiquidity",
+          "selector": "bc29bafc",
+          "inputs": [
+            {
+              "type": "address",
+              "name": ""
+            },
+            {
+              "type": "tuple",
+              "name": ""
+            },
+            {
+              "type": "tuple",
+              "name": ""
+            },
+            {
+              "type": "int256",
+              "name": ""
+            },
+            {
+              "type": "int256",
+              "name": ""
+            },
+            {
+              "type": "bytes",
+              "name": ""
+            }
+          ],
+          "source": "known-selector-table",
+          "confidence": "high",
+          "candidates": null
+        }
+      ],
+      "metadata": {
+        "function_count": 1,
+        "evmole_selectors": 0,
+        "extra_selectors": 1
+      }
+    }
+  },
+  {
+    "name": "ml_family",
+    "comment": "all earlier tiers miss -> ML family prediction (low).",
+    "input": {
+      "evmole_types": {},
+      "extra_selectors": [
+        "deadbeef"
+      ],
+      "candidates_by_selector": {},
+      "known_selectors": {},
+      "known_interfaces": [],
+      "v4_before_swap_present": false,
+      "v4_pool_manager_present": false,
+      "ml_predictions": {
+        "deadbeef": {
+          "family": "ERC20_BASIC",
+          "types": [
+            "address"
+          ]
+        }
+      }
+    },
+    "expected": {
+      "functions": [
+        {
+          "type": "function",
+          "name": "ERC20_BASIC",
+          "selector": "deadbeef",
+          "inputs": [
+            {
+              "type": "address",
+              "name": ""
+            }
+          ],
+          "source": "ml",
+          "confidence": "low",
+          "candidates": null
+        }
+      ],
+      "metadata": {
+        "function_count": 1,
+        "evmole_selectors": 0,
+        "extra_selectors": 1
+      }
+    }
+  },
+  {
+    "name": "ml_family_top3",
+    "comment": "ML returns only a top-3 family list -> use the first (low).",
+    "input": {
+      "evmole_types": {},
+      "extra_selectors": [
+        "deadbeef"
+      ],
+      "candidates_by_selector": {},
+      "known_selectors": {},
+      "known_interfaces": [],
+      "v4_before_swap_present": false,
+      "v4_pool_manager_present": false,
+      "ml_predictions": {
+        "deadbeef": {
+          "family_top3": [
+            "AMM_SWAP",
+            "OTHER"
+          ],
+          "types": []
+        }
+      }
+    },
+    "expected": {
+      "functions": [
+        {
+          "type": "function",
+          "name": "AMM_SWAP",
+          "selector": "deadbeef",
+          "inputs": [],
+          "source": "ml",
+          "confidence": "low",
+          "candidates": null
+        }
+      ],
+      "metadata": {
+        "function_count": 1,
+        "evmole_selectors": 0,
+        "extra_selectors": 1
+      }
+    }
+  },
+  {
+    "name": "selector_fallback",
+    "comment": "nothing resolves -> bare function_<selector>, source selector, low.",
+    "input": {
+      "evmole_types": {},
+      "extra_selectors": [
+        "deadbeef"
+      ],
+      "candidates_by_selector": {},
+      "known_selectors": {},
+      "known_interfaces": [],
+      "v4_before_swap_present": false,
+      "v4_pool_manager_present": false,
+      "ml_predictions": {}
+    },
+    "expected": {
+      "functions": [
+        {
+          "type": "function",
+          "name": "function_deadbeef",
+          "selector": "deadbeef",
+          "inputs": [],
+          "source": "selector",
+          "confidence": "low",
+          "candidates": null
+        }
+      ],
+      "metadata": {
+        "function_count": 1,
+        "evmole_selectors": 0,
+        "extra_selectors": 1
+      }
+    }
+  },
+  {
+    "name": "interface_completion_both_triggers",
+    "comment": "both interface triggers present -> remaining interface functions are completed.",
+    "input": {
+      "evmole_types": {},
+      "extra_selectors": [
+        "575e24b4",
+        "dc4c90d3"
+      ],
+      "candidates_by_selector": {},
+      "known_selectors": {},
+      "known_interfaces": [
+        {
+          "name": "v4_hooks",
+          "triggers": {
+            "selector_set": [
+              "575e24b4",
+              "dc4c90d3"
+            ],
+            "min_matches": 2
+          },
+          "functions": [
+            {
+              "selector": "468ead2c",
+              "name": "beforeSwap",
+              "types": [
+                "address",
+                "tuple",
+                "tuple",
+                "bytes"
+              ]
+            },
+            {
+              "selector": "c13d1c69",
+              "name": "afterSwap",
+              "types": [
+                "address",
+                "tuple",
+                "tuple",
+                "int256",
+                "bytes"
+              ]
+            }
+          ]
+        }
+      ],
+      "v4_before_swap_present": false,
+      "v4_pool_manager_present": false,
+      "ml_predictions": {}
+    },
+    "expected": {
+      "functions": [
+        {
+          "type": "function",
+          "name": "function_575e24b4",
+          "selector": "575e24b4",
+          "inputs": [],
+          "source": "selector",
+          "confidence": "low",
+          "candidates": null
+        },
+        {
+          "type": "function",
+          "name": "function_dc4c90d3",
+          "selector": "dc4c90d3",
+          "inputs": [],
+          "source": "selector",
+          "confidence": "low",
+          "candidates": null
+        },
+        {
+          "type": "function",
+          "name": "beforeSwap",
+          "selector": "468ead2c",
+          "inputs": [
+            {
+              "type": "address",
+              "name": ""
+            },
+            {
+              "type": "tuple",
+              "name": ""
+            },
+            {
+              "type": "tuple",
+              "name": ""
+            },
+            {
+              "type": "bytes",
+              "name": ""
+            }
+          ],
+          "source": "known-interface-completion",
+          "confidence": "medium"
+        },
+        {
+          "type": "function",
+          "name": "afterSwap",
+          "selector": "c13d1c69",
+          "inputs": [
+            {
+              "type": "address",
+              "name": ""
+            },
+            {
+              "type": "tuple",
+              "name": ""
+            },
+            {
+              "type": "tuple",
+              "name": ""
+            },
+            {
+              "type": "int256",
+              "name": ""
+            },
+            {
+              "type": "bytes",
+              "name": ""
+            }
+          ],
+          "source": "known-interface-completion",
+          "confidence": "medium"
+        }
+      ],
+      "metadata": {
+        "function_count": 4,
+        "evmole_selectors": 0,
+        "extra_selectors": 2
+      }
+    }
+  },
+  {
+    "name": "v4_post_pass_before_swap_only",
+    "comment": "beforeSwap trigger present, poolManager absent -> V4 hook post-pass emits callbacks.",
+    "input": {
+      "evmole_types": {},
+      "extra_selectors": [
+        "575e24b4"
+      ],
+      "candidates_by_selector": {},
+      "known_selectors": {
+        "468ead2c": {
+          "name": "beforeSwap",
+          "types": [
+            "address",
+            "tuple",
+            "tuple",
+            "bytes"
+          ]
+        },
+        "c13d1c69": {
+          "name": "afterSwap",
+          "types": [
+            "address",
+            "tuple",
+            "tuple",
+            "int256",
+            "bytes"
+          ]
+        }
+      },
+      "known_interfaces": [],
+      "v4_before_swap_present": true,
+      "v4_pool_manager_present": false,
+      "ml_predictions": {}
+    },
+    "expected": {
+      "functions": [
+        {
+          "type": "function",
+          "name": "function_575e24b4",
+          "selector": "575e24b4",
+          "inputs": [],
+          "source": "selector",
+          "confidence": "low",
+          "candidates": null
+        },
+        {
+          "type": "function",
+          "name": "beforeSwap",
+          "selector": "468ead2c",
+          "inputs": [
+            {
+              "type": "address",
+              "name": ""
+            },
+            {
+              "type": "tuple",
+              "name": ""
+            },
+            {
+              "type": "tuple",
+              "name": ""
+            },
+            {
+              "type": "bytes",
+              "name": ""
+            }
+          ],
+          "source": "known-interface-completion-post",
+          "confidence": "medium",
+          "candidates": null
+        },
+        {
+          "type": "function",
+          "name": "afterSwap",
+          "selector": "c13d1c69",
+          "inputs": [
+            {
+              "type": "address",
+              "name": ""
+            },
+            {
+              "type": "tuple",
+              "name": ""
+            },
+            {
+              "type": "tuple",
+              "name": ""
+            },
+            {
+              "type": "int256",
+              "name": ""
+            },
+            {
+              "type": "bytes",
+              "name": ""
+            }
+          ],
+          "source": "known-interface-completion-post",
+          "confidence": "medium",
+          "candidates": null
+        }
+      ],
+      "metadata": {
+        "function_count": 3,
+        "evmole_selectors": 0,
+        "extra_selectors": 1
+      }
+    }
+  }
+]

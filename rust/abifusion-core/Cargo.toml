@@ -1,0 +1,10 @@
+[package]
+name = "abifusion-core"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "Pure, I/O-free fusion core for abifusion (no evmole, no network)."
+
+[dependencies]
+serde = { workspace = true }
+serde_json = { workspace = true }

@@ -24,18 +24,16 @@ from __future__ import annotations
 
 import argparse
 import json
-import os
 import random
 import sys
-import time
 from dataclasses import asdict, dataclass, field
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List
 
 PROJECT_ROOT = Path(__file__).parent.parent.parent
 sys.path.insert(0, str(PROJECT_ROOT))
 
-from abifusion import OfflineABI
+from tooling.abifusion_legacy.reconstructor import OfflineABI
 
 
 # ── Data types ────────────────────────────────────────────────────────────
@@ -343,8 +341,6 @@ def _f1(precision: float, recall: float) -> float:
 
 def aggregate_results(per_contract: List[PerContractMetrics]) -> EvalResults:
     """Aggregate per-contract metrics into global statistics."""
-    total_funcs = sum(c.gt_function_count for c in per_contract)
-
     # Micro-averaged selector metrics
     total_tp = 0
     total_gt = 0
@@ -518,7 +514,7 @@ def main():
             sys.exit(1)
         contracts = load_contracts_from_json(args.input)
     elif args.source == "etherscan":
-        from abifusion.data.etherscan_fetcher import EtherscanClient
+        from tooling.abifusion_legacy.data.etherscan_fetcher import EtherscanClient
         client = EtherscanClient()
         contracts = sample_etherscan_contracts(client, count=args.sample, seed=args.seed)
     else:

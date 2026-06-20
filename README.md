@@ -6,7 +6,7 @@ Build Solidity function ABIs from EVM bytecode by fusing three imperfect signals
 
 - **evmole** for selector discovery and argument structure
 - **openchain.xyz / 4byte.directory** for exact text signatures
-- **known-selector tables and ML fallbacks** for offline and novel selectors
+- **known-selector and known-interface tables** for offline and novel selectors
 
 The result is a practical ABI builder that beats either static analysis or
 signature lookup alone, while keeping every function annotated with its source.
@@ -19,8 +19,8 @@ signature lookup alone, while keeping every function annotated with its source.
 | Function names | From signature DBs or fallback names |
 | Exact input parameter types | 98.5% held-out accuracy |
 | Output types | Not recovered |
-| Events | Experimental/offline parser support |
-| Network-free mode | Available, lower accuracy |
+| Events | Not in the runtime wrapper |
+| Network-free mode | No, signature lookup accuracy depends on cache/network |
 | Address-based CLI | Yes, via `--address` and `ETH_RPC_URL` |
 
 ## Why This Exists
@@ -39,8 +39,8 @@ shapes such as `address` and `uint160`.
 1. Run evmole to discover selectors and argument structure.
 2. Look up selector candidates in openchain and 4byte.
 3. Use evmole's structure to choose the best signature candidate.
-4. Fall back to evmole, a known-selector table, ML prediction, or a generic
-   selector name when no signature is available.
+4. Fall back to evmole, a known-selector table, or a generic selector name when
+   no signature is available.
 
 ## Accuracy
 
@@ -90,10 +90,10 @@ Development tools:
 uv pip install -e ".[dev]"
 ```
 
-Optional ML fallback dependencies:
+Research/data tooling without the full dev stack:
 
 ```bash
-uv pip install -e ".[ml]"
+uv pip install -e ".[tooling]"
 ```
 
 The recommended fusion path queries openchain and 4byte when selectors are not
@@ -111,12 +111,6 @@ abifusion fusion --bytecode-file contract.hex
 ETH_RPC_URL="https://..." abifusion fusion --address 0x...
 abifusion fusion --bytecode-file contract.hex --output-format abi
 abifusion fusion --bytecode-file contract.hex --min-confidence medium
-
-# Fully offline fallback
-abifusion offline --bytecode "0x6080..."
-
-# Selector extraction only
-abifusion extract --bytecode "0x6080..."
 ```
 
 Example output shape:
@@ -159,9 +153,6 @@ for fn in result["functions"]:
     print(f"{fn['name']}({types})  selector={fn['selector']}  source={fn['source']}")
 ```
 
-Use `OfflineABI` instead of `ABIFusion` when you need a fully offline,
-lower-accuracy path.
-
 ## How Fusion Picks A Signature
 
 For a selector such as `a9059cbb`, a public signature database can return both
@@ -183,21 +174,22 @@ types.
 
 ```text
 abifusion/
-  fusion.py              # ABIFusion, recommended path
-  reconstructor.py       # OfflineABI rule-based fallback
-  selector_extractor.py  # Selector extraction from bytecode
-  database.py            # Local 4byte SQLite cache
+  core/                  # Pure, I/O-free fusion engine (fuse_abi)
+  fusion.py              # ABIFusion orchestrator, recommended path
+  adapters.py            # evmole bytecode-analysis adapter
+  ports.py               # adapter interfaces (Protocols)
   cli.py                 # abifusion entry point
-  data/                  # Dataset and contract-fetching helpers
-  features/              # Bytecode feature extraction
-  ml/                    # Optional ML fallback model code
   utils/                 # Signature lookup and bytecode helpers
 
+tooling/abifusion_legacy/ # Research-only offline reconstructor, DB, data, features
+schema/                  # Language-neutral JSON Schemas (output + tables)
+rust/                    # Rust port (abifusion-core + abifusion crates)
 scripts/eval/            # Evaluation and diagnostics
-scripts/train/           # ML training scripts
 eval_output/             # Generated evaluation reports
-tests/                   # Unit and integration tests
+tests/                   # Unit, integration, and conformance tests
 ```
+
+See `PORTING.md` for the portable-core architecture and the Rust port.
 
 ## Development
 

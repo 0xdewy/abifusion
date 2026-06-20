@@ -1,0 +1,15 @@
+[package]
+name = "abifusion"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "Adapters + orchestrator for abifusion: reconstruct Solidity ABIs from EVM bytecode."
+
+[dependencies]
+abifusion-core = { path = "../abifusion-core" }
+serde = { workspace = true }
+serde_json = { workspace = true }
+evmole = "0.8.4"
+hex = "0.4"
+ureq = { version = "2.10", features = ["json"] }
+once_cell = "1"

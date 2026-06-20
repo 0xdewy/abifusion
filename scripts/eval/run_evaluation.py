@@ -45,7 +45,7 @@ def evaluate_evmole_baseline(df: pd.DataFrame) -> Tuple[int, int]:
         logger.warning("evmole not available, skipping baseline")
         return 0, 0
 
-    from abifusion.reconstructor import BytecodeParser
+    from tooling.abifusion_legacy.reconstructor import BytecodeParser
 
     parser = BytecodeParser()
     correct = 0
