@@ -24,17 +24,6 @@ SMOD = 0x07
 SLT = 0x12
 SGT = 0x13
 ISZERO = 0x15
-CALLDATALOAD = 0x35
-CALLDATACOPY = 0x37
-MLOAD = 0x51
-MSTORE = 0x52
-ADD = 0x01
-MUL = 0x02
-SUB = 0x03
-DIV = 0x04
-EQ = 0x14
-JUMPI = 0x57
-JUMP = 0x56
 PUSH1 = 0x60
 PUSH32 = 0x7F
 
@@ -90,34 +79,6 @@ class DiscriminatingFeatureExtractor:
     """
 
     @staticmethod
-    def extract_from_bytecode(
-        bytecode_hex: str,
-        selector: str,
-        window_bytes: int = 300,
-    ) -> DiscriminatingFeatures:
-        """Extract discriminating features from bytecode near a selector.
-
-        Args:
-            bytecode_hex: Clean hex bytecode (no 0x prefix).
-            selector: 8-char hex selector string.
-            window_bytes: Number of bytes of context around the selector.
-
-        Returns:
-            DiscriminatingFeatures with observed type-revealing patterns.
-        """
-        pos = bytecode_hex.lower().find(selector.lower())
-        if pos == -1:
-            return DiscriminatingFeatures()
-
-        # Get window around the selector
-        start = max(0, pos - window_bytes // 2)
-        end = min(len(bytecode_hex), pos + window_bytes // 2)
-
-        # Parse raw bytes
-        raw = bytes.fromhex(bytecode_hex[start:end])
-        return DiscriminatingFeatureExtractor._analyze_opcodes(raw)
-
-    @staticmethod
     def extract_from_context(
         bytecode_hex: str,
         context: str,
@@ -137,56 +98,6 @@ class DiscriminatingFeatureExtractor:
         """
         raw = bytes.fromhex(context)
         return DiscriminatingFeatureExtractor._analyze_opcodes(raw)
-
-    @staticmethod
-    def selector_offsets(bytecode_hex: str) -> Dict[str, int]:
-        """Map each function selector to its body offset (bytes) via evmole.
-
-        evmole resolves the dispatcher and returns each function's entry point
-        (a JUMPDEST), which is the correct, opcode-aligned place to analyze
-        parameter-handling instructions — unlike the selector's literal
-        position in the dispatcher.
-
-        Args:
-            bytecode_hex: Runtime bytecode (with or without 0x prefix).
-
-        Returns:
-            ``{selector_lower_8hex: byte_offset}``; empty on any failure.
-        """
-        code = bytecode_hex[2:] if bytecode_hex.startswith("0x") else bytecode_hex
-        try:
-            from evmole import contract_info
-
-            info = contract_info(code, selectors=True)
-            if info is not None and info.functions is not None:
-                return {f.selector.lower(): f.bytecode_offset for f in info.functions}
-            return {}
-        except Exception:
-            return {}
-
-    @staticmethod
-    def extract_from_body(
-        bytecode_hex: str,
-        offset: int,
-        window_bytes: int = 300,
-    ) -> DiscriminatingFeatures:
-        """Extract features from a function body window starting at `offset`.
-
-        Args:
-            bytecode_hex: Runtime bytecode (with or without 0x prefix).
-            offset: Byte offset of the function body (an evmole JUMPDEST).
-            window_bytes: Number of bytes of body to analyze.
-
-        Returns:
-            DiscriminatingFeatures with observed type-revealing patterns.
-        """
-        code = bytecode_hex[2:] if bytecode_hex.startswith("0x") else bytecode_hex
-        try:
-            raw = bytes.fromhex(code)
-        except ValueError:
-            return DiscriminatingFeatures()
-        window = raw[offset : offset + window_bytes]
-        return DiscriminatingFeatureExtractor._analyze_opcodes(window)
 
     @staticmethod
     def _analyze_opcodes(raw: bytes) -> DiscriminatingFeatures:

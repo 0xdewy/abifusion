@@ -19,6 +19,7 @@ classifiers = [
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
 ]
 requires-python = ">=3.8"
 dependencies = [
@@ -52,7 +53,10 @@ abifusion = "abifusion.cli:main"
 
 [tool.setuptools]
 include-package-data = false
-packages = ["abifusion", "abifusion.core", "abifusion.utils"]
+packages = ["abifusion", "abifusion.core", "abifusion.utils", "abifusion.data", "tooling", "tooling.abifusion_legacy", "tooling.abifusion_legacy.data", "tooling.abifusion_legacy.features"]
+
+[tool.setuptools.package-data]
+"abifusion.data" = ["*.json"]
 
 [tool.black]
 line-length = 88
@@ -95,8 +99,3 @@ no_implicit_optional = true
 warn_redundant_casts = true
 warn_unused_ignores = true
 warn_no_return = true
-
-[dependency-groups]
-dev = [
-    "pandas>=2.0.3",
-]

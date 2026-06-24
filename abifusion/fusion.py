@@ -24,8 +24,12 @@ from __future__ import annotations
 
 import json
 import logging
-from pathlib import Path
 from typing import Any, Dict, List, Optional
+
+try:
+    from importlib.resources import files
+except ImportError:  # Python <3.9
+    from importlib_resources import files  # type: ignore[assignment,unused-ignore]
 
 from abifusion.adapters import EvmoleBytecodeAnalyzer
 from abifusion.core.fuse import (
@@ -67,26 +71,26 @@ class ABIFusion:
     def _ensure_known_selectors(self) -> None:
         if ABIFusion._known_selectors is not None:
             return
-        table_path = Path(__file__).parent.parent / "data" / "known_selector_signatures.json"
-        if table_path.exists():
+        table_path = files("abifusion.data") / "known_selector_signatures.json"
+        try:
             with open(table_path) as f:
                 ABIFusion._known_selectors = json.load(f)
             logger.info("Loaded %d known selector signatures", len(ABIFusion._known_selectors))
-        else:
+        except FileNotFoundError:
             ABIFusion._known_selectors = {}
-            logger.warning("Known selector table not found at %s", table_path)
+            logger.warning("Known selector table not found")
 
     def _ensure_known_interfaces(self) -> None:
         if ABIFusion._known_interfaces is not None:
             return
-        table_path = Path(__file__).parent.parent / "data" / "known_interface_sets.json"
-        if table_path.exists():
+        table_path = files("abifusion.data") / "known_interface_sets.json"
+        try:
             with open(table_path) as f:
                 ABIFusion._known_interfaces = json.load(f)
             logger.info("Loaded %d known interface sets", len(ABIFusion._known_interfaces))
-        else:
+        except FileNotFoundError:
             ABIFusion._known_interfaces = []
-            logger.debug("Known interface sets file not found at %s", table_path)
+            logger.debug("Known interface sets file not found")
 
     def _candidates(self, selector: str):
         rows = self.sig.lookup_openchain(selector) or self.sig.lookup_4byte(selector)

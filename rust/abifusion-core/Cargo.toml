@@ -4,6 +4,8 @@ version.workspace = true
 edition.workspace = true
 license.workspace = true
 description = "Pure, I/O-free fusion core for abifusion (no evmole, no network)."
+documentation = "https://docs.rs/abifusion-core"
+readme = "../README.md"
 
 [dependencies]
 serde = { workspace = true }

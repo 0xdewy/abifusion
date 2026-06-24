@@ -1,0 +1,123 @@
+[
+  {
+    "name": "afterAddLiquidity_group",
+    "functions": [
+      {
+        "selector": "1f29cf9d",
+        "name": "afterDonate",
+        "types": [
+          "address",
+          "tuple",
+          "uint256",
+          "uint256",
+          "bytes"
+        ]
+      },
+      {
+        "selector": "468ead2c",
+        "name": "beforeSwap",
+        "types": [
+          "address",
+          "tuple",
+          "tuple",
+          "bytes"
+        ]
+      },
+      {
+        "selector": "5cb32d10",
+        "name": "beforeRemoveLiquidity",
+        "types": [
+          "address",
+          "tuple",
+          "tuple",
+          "bytes"
+        ]
+      },
+      {
+        "selector": "606e8192",
+        "name": "afterRemoveLiquidity",
+        "types": [
+          "address",
+          "tuple",
+          "tuple",
+          "int256",
+          "int256",
+          "bytes"
+        ]
+      },
+      {
+        "selector": "b6d4944a",
+        "name": "afterInitialize",
+        "types": [
+          "address",
+          "tuple",
+          "uint160",
+          "int24"
+        ]
+      },
+      {
+        "selector": "b772b8cc",
+        "name": "beforeAddLiquidity",
+        "types": [
+          "address",
+          "tuple",
+          "tuple",
+          "bytes"
+        ]
+      },
+      {
+        "selector": "bc29bafc",
+        "name": "afterAddLiquidity",
+        "types": [
+          "address",
+          "tuple",
+          "tuple",
+          "int256",
+          "int256",
+          "bytes"
+        ]
+      },
+      {
+        "selector": "c13d1c69",
+        "name": "afterSwap",
+        "types": [
+          "address",
+          "tuple",
+          "tuple",
+          "int256",
+          "bytes"
+        ]
+      },
+      {
+        "selector": "d950bd74",
+        "name": "beforeDonate",
+        "types": [
+          "address",
+          "tuple",
+          "uint256",
+          "uint256",
+          "bytes"
+        ]
+      },
+      {
+        "selector": "ebe1cdaf",
+        "name": "beforeInitialize",
+        "types": [
+          "address",
+          "tuple",
+          "uint160"
+        ]
+      }
+    ],
+    "triggers": {
+      "selector_set": [
+        "575e24b4",
+        "dc4c90d3"
+      ],
+      "min_matches": 2
+    },
+    "precision": 1.0,
+    "recall": 1.0,
+    "contract_count": 14
+  }
+]

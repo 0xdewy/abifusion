@@ -4,9 +4,11 @@ version.workspace = true
 edition.workspace = true
 license.workspace = true
 description = "Adapters + orchestrator for abifusion: reconstruct Solidity ABIs from EVM bytecode."
+documentation = "https://docs.rs/abifusion"
+readme = "../README.md"
 
 [dependencies]
-abifusion-core = { path = "../abifusion-core" }
+abifusion-core = { path = "../abifusion-core", version = "0.1.0" }
 serde = { workspace = true }
 serde_json = { workspace = true }
 evmole = "0.8.4"

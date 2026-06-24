@@ -1,0 +1,10 @@
+include README.md LICENSE
+graft tests
+graft scripts
+graft rust
+graft schema
+graft docs
+graft data
+prune data/*.parquet
+prune data/cache
+graft abifusion/data

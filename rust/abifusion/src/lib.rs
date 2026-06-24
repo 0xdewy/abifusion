@@ -4,6 +4,13 @@
 //! pure [`abifusion_core::fuse_abi`]. Mirrors `abifusion/fusion.py::ABIFusion`.
 //! The ML tier is intentionally omitted (the model is PyTorch-only with no ONNX
 //! export); `fuse_abi` simply receives empty predictions.
+//!
+//! # Usage
+//!
+//! ```rust,no_run
+//! let abi = abifusion::reconstruct("0x6080604052...");
+//! println!("{}", serde_json::to_string_pretty(&abi).unwrap());
+//! ```
 
 pub mod analyzer;
 pub mod signatures;

@@ -341,26 +341,6 @@ def _f1(precision: float, recall: float) -> float:
 
 def aggregate_results(per_contract: List[PerContractMetrics]) -> EvalResults:
     """Aggregate per-contract metrics into global statistics."""
-    # Micro-averaged selector metrics
-    total_tp = 0
-    total_gt = 0
-    total_rec = 0
-    total_type_correct = 0
-    total_params = 0
-    total_arity_correct = 0
-    total_exact_type = 0
-    total_full_exact = 0
-
-    for c in per_contract:
-        total_gt += c.gt_function_count
-        total_rec += c.rec_function_count
-        total_tp += int(c.selector_recall * c.gt_function_count)  # approximate
-        total_arity_correct += int(c.arity_accuracy * max(c.gt_function_count, 1))
-        total_type_correct += int(c.type_accuracy * max(c.gt_function_count, 1))
-        total_params += max(c.gt_function_count, 1)
-        total_exact_type += int(c.prototype_f1 * max(c.gt_function_count, 1) / (2 - c.prototype_f1 + 0.001))  # rough
-        total_full_exact += int(c.full_signature_accuracy * c.gt_function_count)
-
     # Recompute micro-averages properly
     total_gt_selectors = sum(c.gt_function_count for c in per_contract)
     total_rec_selectors = sum(c.rec_function_count for c in per_contract)

@@ -75,6 +75,7 @@ Thumbs.db
 .tox/
 .pytest_cache/
 .ruff_cache/
+.mypy_cache/
 htmlcov/
 
 # Jupyter

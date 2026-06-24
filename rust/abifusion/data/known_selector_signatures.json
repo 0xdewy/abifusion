@@ -1,0 +1,279 @@
+{
+  "bc29bafc": {
+    "name": "afterAddLiquidity",
+    "types": [
+      "address",
+      "tuple",
+      "tuple",
+      "int256",
+      "int256",
+      "bytes"
+    ],
+    "selector": "bc29bafc",
+    "count": 12
+  },
+  "1f29cf9d": {
+    "name": "afterDonate",
+    "types": [
+      "address",
+      "tuple",
+      "uint256",
+      "uint256",
+      "bytes"
+    ],
+    "selector": "1f29cf9d",
+    "count": 12
+  },
+  "b6d4944a": {
+    "name": "afterInitialize",
+    "types": [
+      "address",
+      "tuple",
+      "uint160",
+      "int24"
+    ],
+    "selector": "b6d4944a",
+    "count": 12
+  },
+  "606e8192": {
+    "name": "afterRemoveLiquidity",
+    "types": [
+      "address",
+      "tuple",
+      "tuple",
+      "int256",
+      "int256",
+      "bytes"
+    ],
+    "selector": "606e8192",
+    "count": 12
+  },
+  "c13d1c69": {
+    "name": "afterSwap",
+    "types": [
+      "address",
+      "tuple",
+      "tuple",
+      "int256",
+      "bytes"
+    ],
+    "selector": "c13d1c69",
+    "count": 12
+  },
+  "b772b8cc": {
+    "name": "beforeAddLiquidity",
+    "types": [
+      "address",
+      "tuple",
+      "tuple",
+      "bytes"
+    ],
+    "selector": "b772b8cc",
+    "count": 12
+  },
+  "d950bd74": {
+    "name": "beforeDonate",
+    "types": [
+      "address",
+      "tuple",
+      "uint256",
+      "uint256",
+      "bytes"
+    ],
+    "selector": "d950bd74",
+    "count": 12
+  },
+  "ebe1cdaf": {
+    "name": "beforeInitialize",
+    "types": [
+      "address",
+      "tuple",
+      "uint160"
+    ],
+    "selector": "ebe1cdaf",
+    "count": 12
+  },
+  "5cb32d10": {
+    "name": "beforeRemoveLiquidity",
+    "types": [
+      "address",
+      "tuple",
+      "tuple",
+      "bytes"
+    ],
+    "selector": "5cb32d10",
+    "count": 12
+  },
+  "468ead2c": {
+    "name": "beforeSwap",
+    "types": [
+      "address",
+      "tuple",
+      "tuple",
+      "bytes"
+    ],
+    "selector": "468ead2c",
+    "count": 18
+  },
+  "ac12fecf": {
+    "name": "startRace",
+    "types": [
+      "tuple",
+      "uint256"
+    ],
+    "selector": "ac12fecf",
+    "count": 2
+  },
+  "a660668a": {
+    "name": "generateSvg",
+    "types": [
+      "tuple"
+    ],
+    "selector": "a660668a",
+    "count": 4
+  },
+  "71edd89d": {
+    "name": "setAccessories",
+    "types": [
+      "tuple[]"
+    ],
+    "selector": "71edd89d",
+    "count": 4
+  },
+  "d8234121": {
+    "name": "setBody",
+    "types": [
+      "tuple[]"
+    ],
+    "selector": "d8234121",
+    "count": 4
+  },
+  "d33aed88": {
+    "name": "setEyes",
+    "types": [
+      "tuple[]"
+    ],
+    "selector": "d33aed88",
+    "count": 4
+  },
+  "2201fddb": {
+    "name": "setGround",
+    "types": [
+      "tuple[]"
+    ],
+    "selector": "2201fddb",
+    "count": 4
+  },
+  "49b69b3f": {
+    "name": "setHair",
+    "types": [
+      "tuple[]"
+    ],
+    "selector": "49b69b3f",
+    "count": 4
+  },
+  "5d5ce9c9": {
+    "name": "setHorn",
+    "types": [
+      "tuple[]"
+    ],
+    "selector": "5d5ce9c9",
+    "count": 4
+  },
+  "0bf1d8f2": {
+    "name": "setLegsBack",
+    "types": [
+      "tuple[]"
+    ],
+    "selector": "0bf1d8f2",
+    "count": 4
+  },
+  "fed15348": {
+    "name": "setLegsFront",
+    "types": [
+      "tuple[]"
+    ],
+    "selector": "fed15348",
+    "count": 4
+  },
+  "8728fc6e": {
+    "name": "setTail",
+    "types": [
+      "tuple[]"
+    ],
+    "selector": "8728fc6e",
+    "count": 4
+  },
+  "5189bbab": {
+    "name": "setWings",
+    "types": [
+      "tuple[]"
+    ],
+    "selector": "5189bbab",
+    "count": 4
+  },
+  "588570a5": {
+    "name": "initialize",
+    "types": [
+      "tuple"
+    ],
+    "selector": "588570a5",
+    "count": 3
+  },
+  "fb4baf17": {
+    "name": "changeFeeParams",
+    "types": [
+      "uint256",
+      "tuple"
+    ],
+    "selector": "fb4baf17",
+    "count": 2
+  },
+  "af6ed122": {
+    "name": "executeUpgrade",
+    "types": [
+      "uint256",
+      "tuple"
+    ],
+    "selector": "af6ed122",
+    "count": 2
+  },
+  "e543e5bf": {
+    "name": "setChainCreationParams",
+    "types": [
+      "tuple"
+    ],
+    "selector": "e543e5bf",
+    "count": 2
+  },
+  "2b805192": {
+    "name": "setNewVersionUpgrade",
+    "types": [
+      "tuple",
+      "uint256",
+      "uint256",
+      "uint256"
+    ],
+    "selector": "2b805192",
+    "count": 2
+  },
+  "501e60d5": {
+    "name": "setUpgradeDiamondCut",
+    "types": [
+      "tuple",
+      "uint256"
+    ],
+    "selector": "501e60d5",
+    "count": 2
+  },
+  "7b315630": {
+    "name": "upgradeChainFromVersion",
+    "types": [
+      "uint256",
+      "uint256",
+      "tuple"
+    ],
+    "selector": "7b315630",
+    "count": 2
+  }
+}

@@ -107,12 +107,6 @@ def main():
         help="Contract address to recover (requires ETH_RPC_URL env var)",
     )
     fusion_parser.add_argument(
-        "--chain-id",
-        type=int,
-        default=1,
-        help="Chain ID for RPC lookup (default: 1, mainnet)",
-    )
-    fusion_parser.add_argument(
         "--output-format",
         choices=["annotated", "abi"],
         default="annotated",

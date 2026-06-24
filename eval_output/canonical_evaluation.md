@@ -1,27 +1,27 @@
-# abifusion Canonical Evaluation
+# ABI Reconstructor Canonical Evaluation
 
-**Date:** 2026-06-08
+**Date:** 2026-06-24
 
 ## Headline
 
-| ABIFusion | Held-out exact parameter-type accuracy |
+| Reconstructor | Held-out exact parameter-type accuracy |
 |---|---|
-| **Fusion** (recommended) | **98.5%** |
-| evmole baseline | 90.3% |
+| **Fusion** (recommended) | **98.2%** |
+| evmole baseline | 91.7% |
 
-- Fusion fixes 102 functions evmole gets wrong
-- Held-out functions: 1223/1241
-- Training accuracy: 98.2%
-- Generalization gap: -0.4pp
+- Fusion fixes 124 functions evmole gets wrong
+- Held-out functions: 1890/1925
+- Training accuracy: 98.6%
+- Generalization gap: 0.4pp
 
 ## Methodology
 
-- Dataset: `data/contracts.parquet`
+- Dataset: `data/contracts_1k.parquet`
 - Split: 80% training / 20% held-out
 - Split seed: 42
-- Training contracts: 400
-- Held-out contracts: 100
-- Known selector table entries: 538
+- Training contracts: 800
+- Held-out contracts: 200
+- Known selector table entries: 681
 - Known selector table built from training contracts only
 - Both fusion and evmole baseline evaluated on the same held-out split
 
@@ -29,10 +29,10 @@
 
 | Category | Correct | Total | Accuracy |
 |----------|---------|-------|----------|
-| DeFi AMM | 92 | 92 | 100.0% |
-| DeFi router | 532 | 546 | 97.4% |
-| other | 23 | 23 | 100.0% |
-| simple token | 576 | 580 | 99.3% |
+| DeFi AMM | 93 | 95 | 97.9% |
+| DeFi router | 404 | 425 | 95.1% |
+| other | 127 | 134 | 94.8% |
+| simple token | 1266 | 1271 | 99.6% |
 
 ## Summary
 

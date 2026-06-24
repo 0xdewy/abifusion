@@ -3,7 +3,6 @@
 import pytest
 import tempfile
 import os
-from unittest.mock import patch
 
 
 @pytest.fixture
@@ -100,31 +99,6 @@ def sample_contract_data():
     }
 
 
-@pytest.fixture
-def mock_etherscan_response():
-    """Mock response from Etherscan API."""
-    return {
-        "status": "1",
-        "message": "OK",
-        "result": [
-            {
-                "SourceCode": "// SPDX-License-Identifier: MIT\npragma solidity ^0.8.19;",
-                "ABI": '[{"type":"function","name":"name","inputs":[],"outputs":[{"type":"string","name":""}],"stateMutability":"view"}]',
-                "ContractName": "WrappedBTC",
-                "CompilerVersion": "v0.8.19+commit.7dd6d404",
-                "OptimizationUsed": "1",
-                "Runs": "200",
-                "ConstructorArguments": "",
-                "EVMVersion": "london",
-                "Library": "",
-                "LicenseType": "MIT",
-                "Proxy": "0",
-                "Implementation": "",
-                "SwarmSource": "",
-            }
-        ],
-    }
-
 
 @pytest.fixture
 def mock_4byte_response():
@@ -150,19 +124,6 @@ def mock_4byte_response():
     }
 
 
-@pytest.fixture
-def mock_sourcify_response():
-    """Mock response from Sourcify API."""
-    return {
-        "status": "perfect",
-        "files": [
-            {
-                "name": "WrappedBTC.sol",
-                "content": "// SPDX-License-Identifier: MIT\npragma solidity ^0.8.19;",
-            }
-        ],
-        "standardJsonInput": {"language": "Solidity", "sources": {}, "settings": {}},
-    }
 
 
 @pytest.fixture
@@ -172,58 +133,3 @@ def temp_cache_dir():
         cache_dir = os.path.join(temp_dir, "cache")
         os.makedirs(cache_dir, exist_ok=True)
         yield cache_dir
-
-
-@pytest.fixture
-def sample_signatures():
-    """Sample function signatures for testing."""
-    return [
-        "transfer(address,uint256)",
-        "approve(address,uint256)",
-        "balanceOf(address)",
-        "totalSupply()",
-        "name()",
-        "symbol()",
-        "decimals()",
-        "allowance(address,address)",
-        "transferFrom(address,address,uint256)",
-        "mint(address,uint256)",
-    ]
-
-
-@pytest.fixture
-def sample_selectors():
-    """Sample function selectors for testing."""
-    return {
-        "a9059cbb": "transfer(address,uint256)",
-        "095ea7b3": "approve(address,uint256)",
-        "70a08231": "balanceOf(address)",
-        "18160ddd": "totalSupply()",
-        "06fdde03": "name()",
-        "95d89b41": "symbol()",
-        "313ce567": "decimals()",
-        "dd62ed3e": "allowance(address,address)",
-        "23b872dd": "transferFrom(address,address,uint256)",
-        "40c10f19": "mint(address,uint256)",
-    }
-
-
-@pytest.fixture
-def mock_requests_get():
-    """Mock requests.get for API calls."""
-    with patch("requests.get") as mock_get:
-        yield mock_get
-
-
-@pytest.fixture
-def mock_requests_post():
-    """Mock requests.post for API calls."""
-    with patch("requests.post") as mock_post:
-        yield mock_post
-
-
-@pytest.fixture
-def mock_time_sleep():
-    """Mock time.sleep to speed up tests."""
-    with patch("time.sleep") as mock_sleep:
-        yield mock_sleep

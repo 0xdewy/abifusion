@@ -8,7 +8,7 @@ import sqlite3
 import time
 from dataclasses import dataclass
 from datetime import datetime
-from typing import Any, Dict, List, Optional
+from typing import Dict, List, Optional
 
 import requests
 
@@ -351,127 +351,6 @@ class FourByteDatabase:
                     ))
 
         return signatures
-
-    def get_best_signature(self, selector: str) -> Optional[str]:
-        """Get the best (most likely correct) signature for a selector.
-
-        Args:
-            selector: Function selector
-
-        Returns:
-            Best signature string or None
-        """
-        if selector in self.STANDARD_SIGNATURES:
-            return self.STANDARD_SIGNATURES[selector][0]
-
-        signatures = self.lookup(selector, fetch_api=True)
-        if signatures:
-            for sig in signatures:
-                if sig.source == "standard":
-                    return sig.text_signature
-            return signatures[0].text_signature
-        return None
-
-    def populate_from_api(self, selectors: Optional[List[str]] = None, batch_size: int = 100) -> Dict[str, int]:
-        """Populate database by fetching from 4byte.directory API.
-
-        Args:
-            selectors: List of selectors to fetch (None = paginate through API)
-            batch_size: Number of selectors per batch
-
-        Returns:
-            Dictionary with success/failure counts
-        """
-        results = {"success": 0, "failed": 0, "fetched": 0}
-
-        if selectors is None:
-            page = 1
-            while True:
-                self._rate_limit()
-                try:
-                    response = self._session.get(
-                        self.FOURBYTE_API,
-                        params={"page": page},
-                        timeout=10
-                    )
-                    response.raise_for_status()
-                    data = response.json()
-                    api_results = data.get("results", [])
-                    if not api_results:
-                        break
-
-                    for item in api_results:
-                        hex_sig = item.get("hex_signature", "")
-                        if hex_sig.startswith("0x"):
-                            selector = hex_sig[2:10]
-                        else:
-                            selector = hex_sig[:8]
-                        text_sig = item.get("text_signature", "")
-                        if selector and text_sig:
-                            self.insert_signature(selector, text_sig, "4byte.directory")
-                            results["fetched"] += 1
-
-                    if not data.get("next"):
-                        break
-                    page += 1
-
-                    if page > 1000:
-                        break
-
-                except requests.exceptions.RequestException as e:
-                    logger.warning(f"API pagination failed at page {page}: {e}")
-                    break
-
-            results["success"] = results["fetched"]
-            return results
-
-        for selector in selectors:
-            existing = self.get_signatures(selector)
-            if existing and any(s.source == "4byte.directory" for s in existing):
-                results["success"] += 1
-                continue
-
-            sigs = self.fetch_from_4byte_api(selector)
-            if sigs:
-                for sig_dict in sigs:
-                    text_sig = sig_dict.get("text_signature", "")
-                    if text_sig:
-                        self.insert_signature(selector, text_sig, "4byte.directory")
-                results["success"] += 1
-            else:
-                results["failed"] += 1
-
-            time.sleep(0.5)
-
-        return results
-
-    def get_stats(self) -> Dict[str, Any]:
-        """Get database statistics."""
-        conn = self._get_connection()
-        cursor = conn.execute("SELECT COUNT(*) as total, COUNT(DISTINCT selector) as unique_selectors FROM signatures")
-        row = cursor.fetchone()
-
-        cursor = conn.execute("SELECT COUNT(*) as count FROM signatures WHERE source = 'standard'")
-        standard_count = cursor.fetchone()["count"]
-
-        return {
-            "total_signatures": row["total"],
-            "unique_selectors": row["unique_selectors"],
-            "standard_signatures": standard_count,
-            "db_path": self.db_path,
-        }
-
-    def export_json(self) -> Dict[str, List[str]]:
-        """Export database as JSON dictionary."""
-        conn = self._get_connection()
-        cursor = conn.execute("SELECT selector, text_signature FROM signatures ORDER BY selector")
-        result: Dict[str, List[str]] = {}
-        for row in cursor:
-            sel = row["selector"]
-            if sel not in result:
-                result[sel] = []
-            result[sel].append(row["text_signature"])
-        return result
 
     def close(self) -> None:
         """Close database connection."""

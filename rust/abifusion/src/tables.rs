@@ -9,13 +9,13 @@ use abifusion_core::{KnownInterface, KnownSelector};
 use once_cell::sync::Lazy;
 
 static KNOWN_SELECTORS: Lazy<HashMap<String, KnownSelector>> = Lazy::new(|| {
-    let raw = include_str!("../../../data/known_selector_signatures.json");
-    serde_json::from_str(raw).expect("parse data/known_selector_signatures.json")
+    let raw = include_str!("../data/known_selector_signatures.json");
+    serde_json::from_str(raw).expect("parse known_selector_signatures.json")
 });
 
 static KNOWN_INTERFACES: Lazy<Vec<KnownInterface>> = Lazy::new(|| {
-    let raw = include_str!("../../../data/known_interface_sets.json");
-    serde_json::from_str(raw).expect("parse data/known_interface_sets.json")
+    let raw = include_str!("../data/known_interface_sets.json");
+    serde_json::from_str(raw).expect("parse known_interface_sets.json")
 });
 
 pub fn known_selectors() -> &'static HashMap<String, KnownSelector> {

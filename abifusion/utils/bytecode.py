@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import re
-from typing import List, Optional
+from typing import List
 
 PUSH1 = 0x60
 PUSH32 = 0x7F
@@ -11,14 +11,6 @@ CALLDATALOAD = 0x35
 EQ = 0x14
 PUSH4 = 0x63
 MIN_SELECTOR_VALUE = 0x00000100
-
-
-def parse_bytecode_hex(bytecode_hex: str) -> Optional[bytes]:
-    code = bytecode_hex[2:] if bytecode_hex.startswith("0x") else bytecode_hex
-    try:
-        return bytes.fromhex(code)
-    except ValueError:
-        return None
 
 
 def clean_bytecode_hex(bytecode_hex: str) -> str:

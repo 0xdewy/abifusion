@@ -5,12 +5,19 @@ import json
 import logging
 import os
 import time
-from datetime import datetime
-from typing import Dict, List, Optional, Tuple
+from pathlib import Path
+from typing import Dict, List, Optional
 
 import requests
 
 logger = logging.getLogger(__name__)
+
+
+def _default_cache_dir() -> str:
+    xdg = os.environ.get("XDG_CACHE_HOME")
+    if xdg:
+        return os.path.join(xdg, "abifusion", "signatures")
+    return str(Path.home() / ".cache" / "abifusion" / "signatures")
 
 
 class SignatureLookup:
@@ -48,14 +55,16 @@ class SignatureLookup:
         "2e1a7d4d": ["withdraw(uint256)"],
     }
 
-    def __init__(self, cache_dir: str = "./cache/signatures"):
+    def __init__(self, cache_dir: Optional[str] = None):
         """Initialize signature lookup.
 
         Args:
-            cache_dir: Directory to cache signature lookups
+            cache_dir: Directory to cache signature lookups.
+                       Defaults to ``$XDG_CACHE_HOME/abifusion/signatures``
+                       or ``~/.cache/abifusion/signatures``.
         """
-        self.cache_dir = cache_dir
-        os.makedirs(cache_dir, exist_ok=True)
+        self.cache_dir = cache_dir or _default_cache_dir()
+        os.makedirs(self.cache_dir, exist_ok=True)
 
         # Request session with headers
         self.session = requests.Session()
@@ -239,19 +248,10 @@ class SignatureLookup:
         Returns:
             List of signature dictionaries from all sources
         """
-        all_signatures = []
-
-        # Add standard signatures first (highest priority)
-        standard_sigs = self.get_standard_signatures(selector)
-        for sig in standard_sigs:
-            all_signatures.append(
-                {
-                    "text_signature": sig,
-                    "hex_signature": f"0x{selector}",
-                    "source": "standard",
-                    "priority": 1,  # Highest priority
-                }
-            )
+        all_signatures = [
+            {"text_signature": sig, "hex_signature": f"0x{selector}", "source": "standard", "priority": 1}
+            for sig in self.get_standard_signatures(selector)
+        ]
 
         # Query 4byte.directory
         fourbyte_sigs = self.lookup_4byte(selector)
@@ -278,202 +278,3 @@ class SignatureLookup:
         )
 
         return unique_signatures
-
-    def get_best_signature(self, selector: str) -> Optional[Tuple[str, float]]:
-        """Get the best signature for a selector with confidence score.
-
-        Args:
-            selector: Function selector (hex string without 0x)
-
-        Returns:
-            Tuple of (signature, confidence) or None if no signatures found
-        """
-        signatures = self.lookup_signatures(selector)
-
-        if not signatures:
-            return None
-
-        # Get the first (highest priority) signature
-        best_sig = signatures[0]
-        text_sig = best_sig.get("text_signature", "")
-
-        if not text_sig:
-            return None
-
-        # Calculate confidence score (0.0 to 1.0)
-        confidence = self._calculate_confidence(signatures, best_sig)
-
-        return (text_sig, confidence)
-
-    def _calculate_confidence(
-        self, all_signatures: List[Dict], chosen_sig: Dict
-    ) -> float:
-        """Calculate confidence score for a chosen signature.
-
-        Args:
-            all_signatures: All available signatures
-            chosen_sig: The chosen signature
-
-        Returns:
-            Confidence score from 0.0 to 1.0
-        """
-        if not all_signatures:
-            return 0.0
-
-        # Base confidence
-        confidence = 0.5
-
-        # Boost for standard signatures
-        if chosen_sig.get("source") == "standard":
-            confidence += 0.3
-
-        # Boost if it's the only signature
-        if len(all_signatures) == 1:
-            confidence += 0.2
-
-        # Penalty for many alternatives
-        if len(all_signatures) > 3:
-            confidence -= 0.1 * (len(all_signatures) - 3)
-            confidence = max(confidence, 0.1)  # Minimum 0.1
-
-        # Boost for recent signatures (from 4byte)
-        created_at = chosen_sig.get("created_at", "")
-        if created_at:
-            try:
-                # Parse ISO format
-                created_dt = datetime.fromisoformat(created_at.replace("Z", "+00:00"))
-                now_dt = datetime.now(created_dt.tzinfo)
-
-                # More recent = higher confidence
-                days_old = (now_dt - created_dt).days
-                if days_old < 30:  # Less than 30 days old
-                    confidence += 0.1
-                elif days_old < 365:  # Less than 1 year old
-                    confidence += 0.05
-            except Exception:
-                pass
-
-        # Cap at 1.0
-        return min(max(confidence, 0.0), 1.0)
-
-    def analyze_selector(self, selector: str) -> Dict:
-        """Comprehensive analysis of a selector.
-
-        Args:
-            selector: Function selector (hex string without 0x)
-
-        Returns:
-            Dictionary with analysis results
-        """
-        signatures = self.lookup_signatures(selector)
-
-        if not signatures:
-            return {
-                "selector": selector,
-                "status": "unknown",
-                "signatures": [],
-                "best_signature": None,
-                "confidence": 0.0,
-                "notes": "No signatures found in any database",
-            }
-
-        # Get best signature
-        best_result = self.get_best_signature(selector)
-        if best_result:
-            best_sig, confidence = best_result
-        else:
-            best_sig, confidence = None, 0.0
-
-        # Determine status
-        if len(signatures) == 1:
-            status = "unique"
-        elif any(sig.get("source") == "standard" for sig in signatures):
-            status = "standard"
-        else:
-            status = "ambiguous"
-
-        # Extract just the text signatures for summary
-        text_signatures = [sig.get("text_signature", "") for sig in signatures]
-
-        return {
-            "selector": selector,
-            "status": status,
-            "signatures": text_signatures,
-            "signature_details": signatures,
-            "best_signature": best_sig,
-            "confidence": confidence,
-            "total_signatures": len(signatures),
-            "has_standard": any(sig.get("source") == "standard" for sig in signatures),
-        }
-
-    def batch_lookup(self, selectors: List[str]) -> Dict[str, Dict]:
-        """Look up multiple selectors with rate limiting.
-
-        Args:
-            selectors: List of function selectors
-
-        Returns:
-            Dictionary mapping selector to analysis results
-        """
-        results = {}
-
-        for i, selector in enumerate(selectors):
-            logger.info(f"  Looking up 0x{selector} ({i + 1}/{len(selectors)})...")
-            results[selector] = self.analyze_selector(selector)
-
-            # Small delay between requests to be nice to the API
-            if i < len(selectors) - 1:
-                time.sleep(0.5)
-
-        return results
-
-
-# Test function
-def test_signature_lookup():
-    """Test the signature lookup."""
-    logger.info("Testing SignatureLookup...")
-    logger.info("=" * 60)
-
-    lookup = SignatureLookup()
-
-    # Test with known selectors
-    test_selectors = [
-        "a9059cbb",  # transfer (multiple signatures)
-        "095ea7b3",  # approve (standard)
-        "deadbeef",  # Unknown (should return empty)
-        "70a08231",  # balanceOf (standard)
-    ]
-
-    for selector in test_selectors:
-        logger.info(f"\nAnalyzing 0x{selector}:")
-
-        analysis = lookup.analyze_selector(selector)
-
-        logger.info(f"  Status: {analysis['status']}")
-        logger.info(f"  Total signatures: {analysis['total_signatures']}")
-        logger.info(f"  Has standard: {analysis['has_standard']}")
-
-        if analysis["best_signature"]:
-            logger.info(f"  Best signature: {analysis['best_signature']}")
-            logger.info(f"  Confidence: {analysis['confidence']:.2f}")
-
-        if analysis["signatures"]:
-            logger.info("  All signatures:")
-            for i, sig in enumerate(analysis["signatures"][:3]):  # Show first 3
-                logger.info(f"    {i + 1}. {sig}")
-            if len(analysis["signatures"]) > 3:
-                logger.info(f"    ... and {len(analysis['signatures']) - 3} more")
-
-    # Test batch lookup
-    logger.info("\n\nBatch lookup test:")
-    batch_results = lookup.batch_lookup(test_selectors[:2])
-
-    for selector, result in batch_results.items():
-        logger.info(f"  0x{selector}: {result['status']} ({result['total_signatures']} sigs)")
-
-    return lookup
-
-
-if __name__ == "__main__":
-    logging.basicConfig(level=logging.INFO, format="%(levelname)s %(name)s: %(message)s")
-    test_signature_lookup()

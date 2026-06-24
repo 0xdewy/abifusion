@@ -2,7 +2,7 @@
 
 import re
 from dataclasses import dataclass
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional
 
 from .database import FourByteDatabase
 
@@ -90,18 +90,11 @@ class FunctionABI:
 
         return result
 
-    def to_json(self) -> str:
-        """Convert to JSON string."""
-        import json
-        return json.dumps(self.to_dict(), indent=2)
-
-
 class BytecodeParser:
     """Parse EVM bytecode to extract function selectors and context."""
 
     PUSH4_OPCODE = "63"
     EQ_OPCODE = "14"
-    JUMPI_OPCODE = "57"
     DUP1_OPCODE = "80"
 
     MIN_SELECTOR_VALUE = 0x00000100  # Filter only near-zero noise
@@ -345,53 +338,6 @@ class BytecodeParser:
 
         return errors
 
-    def extract_selector_context(
-        self,
-        bytecode: str,
-        position: int,
-        context_size: int = 100
-    ) -> str:
-        """Extract context around a selector position.
-
-        Args:
-            bytecode: Clean hex bytecode
-            position: Position of selector in hex chars
-            context_size: Number of hex chars before/after
-
-        Returns:
-            Context string
-        """
-        start = max(0, position - context_size)
-        end = min(len(bytecode), position + 8 + context_size)
-        return bytecode[start:end]
-
-    def extract_function_signatures(
-        self,
-        bytecode: str,
-        selectors: Optional[List[FunctionSelector]] = None
-    ) -> List[Tuple[str, str, float]]:
-        """Extract selectors with known signatures from bytecode.
-
-        Args:
-            bytecode: Contract bytecode
-            selectors: Optional list of pre-extracted selectors
-
-        Returns:
-            List of (selector, signature, confidence) tuples
-        """
-        if selectors is None:
-            selectors = self.extract_selectors(bytecode)
-
-        results = []
-        for sel in selectors:
-            sig = self.COMMON_SELECTORS.get(sel.selector)
-            if sig:
-                results.append((sel.selector, sig, sel.confidence))
-            else:
-                results.append((sel.selector, f"unknown_{sel.selector}()", sel.confidence))
-
-        return results
-
     def bytecode_to_tokens(
         self,
         bytecode: str,
@@ -486,12 +432,6 @@ class ParameterReconstructor:
     For production ML-based parameter prediction, models would need to be
     trained on large datasets of annotated bytecode->ABI pairs.
     """
-
-    COMMON_TYPES = [
-        "address", "uint256", "bool", "bytes32", "string", "bytes",
-        "uint8", "uint16", "uint32", "uint64", "uint128", "int256",
-        "address[]", "uint256[]", "bytes32[]", "string[]", "bytes[]",
-    ]
 
     FUNCTION_PARAM_COUNTS = {
         "transfer": 2, "approve": 2, "balanceOf": 1, "totalSupply": 0,
@@ -739,14 +679,12 @@ class OfflineABI:
         self,
         bytecode: str,
         selector: str,
-        use_ml: bool = False
     ) -> Dict[str, Any]:
         """Reconstruct a single function ABI from bytecode.
 
         Args:
             bytecode: Contract bytecode
             selector: Function selector (8 hex chars)
-            use_ml: Ignored (reserved for future ML inference)
 
         Returns:
             Dictionary with reconstructed ABI information

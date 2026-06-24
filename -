@@ -1,0 +1,5 @@
+{
+  "runner": "pytest",
+  "command": "python3 -m pytest -v",
+  "confidence": "high"
+}
