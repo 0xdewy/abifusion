@@ -196,15 +196,29 @@ def sample_etherscan_contracts(
 
 
 def keccak256(data: bytes) -> bytes:
-    """Compute keccak256 hash of data."""
+    """Compute keccak256 hash of data.
+
+    Ethereum's "keccak256" predates the NIST SHA-3 standard and uses the
+    original Keccak padding, not SHA-3's. `hashlib.sha3_256` implements the
+    NIST variant and produces a *different* digest for the same input, so it
+    silently computes the wrong 4-byte selector for every function signature
+    (a bug this eval script had: without pycryptodome installed it fell back
+    to sha3_256 and reported wrong selectors as ground truth). There is no
+    correct fallback in the standard library, so a missing dependency must
+    fail loudly here rather than produce a plausible-looking wrong answer.
+    """
     try:
         from Crypto.Hash import keccak
-        k = keccak.new(digest_bits=256)
-        k.update(data)
-        return k.digest()
-    except ImportError:
-        import hashlib
-        return hashlib.sha3_256(data).digest()
+    except ImportError as exc:
+        raise ImportError(
+            "pycryptodome is required for correct keccak256 selectors "
+            "(pip install pycryptodome, or `pip install -e .[tooling]`); "
+            "hashlib's sha3_256 is NOT keccak256 and silently gives wrong "
+            "selectors"
+        ) from exc
+    k = keccak.new(digest_bits=256)
+    k.update(data)
+    return k.digest()
 
 
 def parse_ground_truth_functions(abi: List[Dict]) -> List[Dict]:
