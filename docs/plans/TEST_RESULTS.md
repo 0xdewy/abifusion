@@ -69,7 +69,7 @@ for these contracts. Fallback to global features with arity augmentation is used
 
 ## Test 3: per_position_features Module Import
 
-**Command:** `python -c "from abi_reconstructor.features.per_position_features import ..."`
+**Command:** `python -c "from abifusion.features.per_position_features import ..."`
 
 **Result:** SUCCESS
 
@@ -84,7 +84,7 @@ Note: Phase 0 failed, so all functions use the global-feature fallback.
 
 ## Test 4: ml_reconstructor Module Import
 
-**Command:** `python -c "from abi_reconstructor.ml_reconstructor import MLReconstructor, ..."`
+**Command:** `python -c "from abifusion.ml_reconstructor import MLReconstructor, ..."`
 
 **Result:** SUCCESS
 
@@ -98,7 +98,7 @@ The stub module provides:
 
 ## Test 5: FusionReconstructor Integration
 
-**Command:** `python -c "from abi_reconstructor.fusion import FusionReconstructor; ..."`
+**Command:** `python -c "from abifusion.fusion import FusionReconstructor; ..."`
 
 **Result:** SUCCESS
 

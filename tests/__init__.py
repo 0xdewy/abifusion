@@ -1,1 +1,1 @@
-"""Test package for ABI Reconstructor."""
+"""Test package for abifusion."""

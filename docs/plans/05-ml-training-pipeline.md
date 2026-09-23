@@ -38,7 +38,7 @@ contracts → 385 parameter samples → transformer encoder, 5 epochs):
     classifier too, and three pre-existing `evaluate_models`/`load_model` bugs
     (predict() call signature, return-key mismatch, `type_criterion_weighted`
     key) were fixed. `--evaluate` now runs end-to-end from both freshly trained
-    and disk-loaded checkpoints, and `ABIReconstructorPipeline.load_pipeline`
+    and disk-loaded checkpoints, and `AbifusionPipeline.load_pipeline`
     loads from canonical `checkpoints/`.
 - **Caveat:** an earlier demo run wrote to `checkpoints/` and overwrote the
   interim `*_parameter_predictor.pth` (gitignored, unrecoverable). The script

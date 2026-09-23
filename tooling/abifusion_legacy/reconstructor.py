@@ -666,7 +666,7 @@ class OfflineABI:
     """Main ABI reconstruction system combining all components."""
 
     def __init__(self, db_path: str = "./cache/4byte.db"):
-        """Initialize ABI reconstructor.
+        """Initialize the legacy reconstructor.
 
         Args:
             db_path: Path to 4byte SQLite database

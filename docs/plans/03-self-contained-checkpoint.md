@@ -55,8 +55,8 @@ At save time, assert that `encoder_config` contains all required keys: `vocab_si
 
 ## Files changed
 
-- `abi_reconstructor/models/parameter_prediction_model.py` — add `save_checkpoint()` and `load_checkpoint()` static methods
-- `abi_reconstructor/training/train_ml_models.py` — use new save/load methods
+- `abifusion/models/parameter_prediction_model.py` — add `save_checkpoint()` and `load_checkpoint()` static methods
+- `abifusion/training/train_ml_models.py` — use new save/load methods
 - `tests/models/test_parameter_prediction_model.py` — add roundtrip test
 
 ## Test

@@ -169,7 +169,7 @@ def main() -> int:
 
     output_dir = Path(args.output_dir)
     session = requests.Session()
-    session.headers.update({"User-Agent": "abi-reconstructor/0.1"})
+    session.headers.update({"User-Agent": "abifusion/0.1"})
 
     try:
         keys = list(iter_keys(args.tables, session, args.max_files_per_table))

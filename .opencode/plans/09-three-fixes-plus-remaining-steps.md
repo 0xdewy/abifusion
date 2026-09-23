@@ -20,10 +20,10 @@ Changes to `scripts/eval/run_evaluation.py`:
 
 ```python
 # Add new import
-from abifusion.reconstructor import ABIReconstructor  # evmole-based offline fallback
+from abifusion.reconstructor import abifusion  # evmole-based offline fallback
 
 # In main(), after computing fusion heldout accuracy:
-evmole_fusion = ABIReconstructor()
+evmole_fusion = abifusion()
 evmole_correct, evmole_total = 0, 0
 for _, row in heldout_df.iterrows():
     truth = true_functions(row["abi"])

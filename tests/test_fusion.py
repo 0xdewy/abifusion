@@ -1,4 +1,4 @@
-"""Tests for the fusion ABI reconstructor.
+"""Tests for the abifusion fusion module.
 
 The core is choose_candidate: picking the correct 4byte signature out of a
 spam-laden candidate set using evmole's recovered type structure.

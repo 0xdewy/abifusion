@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Evaluation benchmark for ABI Reconstructor.
+"""Evaluation benchmark for abifusion.
 
 Measures selector F1, prototype/type F1, and full-signature exact-match accuracy
 on ground-truth verified contracts. Reports per-compiler-version breakdown when
@@ -437,7 +437,7 @@ def write_results(results: EvalResults, output_dir: str):
     # Markdown summary
     md_path = out_dir / "eval_summary.md"
     lines = [
-        f"# ABI Reconstructor Evaluation",
+        f"# abifusion Evaluation",
         f"",
         f"**{results.total_contracts} contracts · {results.total_functions} functions**",
         f"",
@@ -482,7 +482,7 @@ def main():
     from dotenv import load_dotenv
     load_dotenv()
 
-    parser = argparse.ArgumentParser(description="ABI Reconstructor evaluation benchmark")
+    parser = argparse.ArgumentParser(description="abifusion evaluation benchmark")
     parser.add_argument("--source", choices=["local", "etherscan"], default="local",
                         help="Contract data source")
     parser.add_argument("--input", type=str, default="",

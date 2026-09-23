@@ -229,7 +229,7 @@ def write_failure_summary(
     acc = accuracy(correct, total)
 
     lines = [
-        "# ABI Reconstructor Failure Summary",
+        "# abifusion Failure Summary",
         "",
         f"**Date:** {date.today().isoformat()}",
         "",

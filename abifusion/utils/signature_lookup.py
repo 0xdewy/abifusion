@@ -1,4 +1,4 @@
-"""Signature lookup from 4byte.directory for ABI reconstructor."""
+"""Signature lookup from 4byte.directory for abifusion."""
 
 import hashlib
 import json
@@ -70,7 +70,7 @@ class SignatureLookup:
         self.session = requests.Session()
         self.session.headers.update(
             {
-                "User-Agent": "ABI-Reconstructor/1.0",
+                "User-Agent": "abifusion/1.0",
                 "Accept": "application/json",
             }
         )

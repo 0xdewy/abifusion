@@ -219,7 +219,7 @@ def main():
 
     # Generate report
     lines = [
-        "# Gap Analysis — ABI Reconstructor",
+        "# Gap Analysis — abifusion",
         "",
         f"**{len(addresses)} contracts · {total} ground-truth functions**",
         f"**{correct} correct ({correct/total*100:.1f}%) · {failures} failures ({failures/total*100:.1f}%)**",

@@ -8,7 +8,7 @@ Eliminate ad-hoc `to(device)` calls scattered through the codebase. Route everyt
 
 ## Current state
 
-`DeviceManager` exists at `abi_reconstructor/device.py` but is used inconsistently. Models construct their own device logic in `__init__`:
+`DeviceManager` exists at `abifusion/device.py` but is used inconsistently. Models construct their own device logic in `__init__`:
 
 ```python
 # parameter_prediction_model.py
@@ -44,13 +44,13 @@ model = DeviceManager.to_device(model)                  # or move after init
 
 ## Files changed
 
-- `abi_reconstructor/device.py` — audit and simplify, make `get_device()` the canonical entry point
-- `abi_reconstructor/models/parameter_prediction_model.py` — remove `use_cuda`, add `device` param
-- `abi_reconstructor/models/function_name_classifier.py` — same
-- `abi_reconstructor/models/bytecode_transformer.py` — same
-- `abi_reconstructor/features/bytecode_features.py` — same
+- `abifusion/device.py` — audit and simplify, make `get_device()` the canonical entry point
+- `abifusion/models/parameter_prediction_model.py` — remove `use_cuda`, add `device` param
+- `abifusion/models/function_name_classifier.py` — same
+- `abifusion/models/bytecode_transformer.py` — same
+- `abifusion/features/bytecode_features.py` — same
 - `tests/` — update model construction in all tests
-- `abi_reconstructor/training/train_ml_models.py` — use DeviceManager
+- `abifusion/training/train_ml_models.py` — use DeviceManager
 
 ## Risk
 

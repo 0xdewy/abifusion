@@ -217,7 +217,7 @@ def render_report(
     heldout_acc = pct(heldout_correct, heldout_total)
     evmole_acc = pct(evmole_correct, evmole_total)
     lines = [
-        "# ABI Reconstructor Canonical Evaluation",
+        "# abifusion Canonical Evaluation",
         "",
         f"**Date:** {date.today().isoformat()}",
         "",
@@ -280,7 +280,7 @@ def render_external_report(
     eval_acc = pct(eval_correct, eval_total)
     evmole_acc = pct(evmole_correct, evmole_total)
     lines = [
-        "# ABI Reconstructor External Evaluation",
+        "# abifusion External Evaluation",
         "",
         f"**Date:** {date.today().isoformat()}",
         "",

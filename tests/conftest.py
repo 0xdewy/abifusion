@@ -1,4 +1,4 @@
-"""Common test fixtures for ABI Reconstructor tests."""
+"""Common test fixtures for abifusion tests."""
 
 import pytest
 import tempfile

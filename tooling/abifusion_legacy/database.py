@@ -93,7 +93,7 @@ class FourByteDatabase:
         self._conn: Optional[sqlite3.Connection] = None
         self._session = requests.Session()
         self._session.headers.update({
-            "User-Agent": "ABI-Reconstructor/1.0",
+            "User-Agent": "abifusion/1.0",
             "Accept": "application/json",
         })
         self._last_request_time = 0

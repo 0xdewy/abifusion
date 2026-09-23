@@ -121,7 +121,7 @@ Use the 7 SigRec features extracted from the function body as a single [7-dim] v
 **Decision threshold: >60% Top-3 function name accuracy on the 57 unique-selector test set.**
 
 If the model achieves >60%:
-1. Create `abi_reconstructor/ml_reconstructor.py` with the trained model
+1. Create `abifusion/ml_reconstructor.py` with the trained model
 2. Integrate as a third-tier fallback in `FusionReconstructor.reconstruct()`:
    - Tier 1: 4byte/openchain signature (existing fusion path)
    - Tier 2: known-selector table (Step 0 expansion)

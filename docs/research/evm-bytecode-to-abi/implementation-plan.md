@@ -1,4 +1,4 @@
-# Implementation Plan — ABI Reconstructor
+# Implementation Plan — abifusion
 
 *Generated from `RESEARCH.md` (4 hypotheses tested, 16 papers, 7 in full text).*
 *Each section traces to a specific research finding. Dependencies: Section 1 must complete first.*
@@ -32,7 +32,7 @@ Build a reproducible benchmark that measures selector F1, prototype/type F1, and
 ### Implementation steps
 1. Fetch N ≥ 200 verified contracts from Etherscan/Sourcify with known source code
 2. For each contract: extract ground-truth ABI from verified source, pair with runtime bytecode
-3. Run existing `ABIReconstructorPipeline.reconstruct_complete_abi()` on each bytecode
+3. Run existing `AbifusionPipeline.reconstruct_complete_abi()` on each bytecode
 4. Compute per-contract metrics: compare extracted selectors against ground truth, compare parameter types against ground truth
 5. Aggregate by compiler version (extracted from contract metadata)
 6. Write `eval_results.json` and `eval_summary.md`

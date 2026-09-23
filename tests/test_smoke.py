@@ -1,4 +1,4 @@
-"""Smoke tests for ABI Reconstructor."""
+"""Smoke tests for abifusion."""
 
 from tooling.abifusion_legacy.features.discriminating_features import (
     DiscriminatingFeatureExtractor,
